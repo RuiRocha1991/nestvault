@@ -1,0 +1,47 @@
+name: security
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  checks:
+    name: Audit, lint, typecheck, test
+    runs-on: ubuntu-latest
+    # Runs once the monorepo exists (package.json at the root).
+    if: ${{ hashFiles('package.json') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+      - name: No secrets in NEXT_PUBLIC_ variables
+        run: |
+          if grep -rEho 'NEXT_PUBLIC_[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*' \
+               --include='*.ts' --include='*.tsx' --include='*.js' --include='.env.example' \
+               --exclude-dir=node_modules --exclude-dir=.next . ; then
+            echo "::error::Secret-looking NEXT_PUBLIC_ variable found"; exit 1
+          fi
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test

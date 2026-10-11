@@ -1,6 +1,6 @@
 ## Task
 
-`nstvault-<n>` — <one-line summary>
+Jira: `<KEY>` — <one-line summary>
 
 ## Task checklist
 
@@ -22,6 +22,7 @@ Explain every change, grouped by package or area, including design decisions and
 - [ ] Unit tests for every new or changed service (`pnpm test` green)
 - [ ] OpenAPI updated (`pnpm openapi`) and Postman collection in `tests/api/` updated when relevant
 - [ ] SQL injection check done (query builder / bound parameters only, injection-payload tests)
+- [ ] Security baseline (`docs/security.md`) — controls touched by this change are verified
 - [ ] `pnpm lint && pnpm typecheck` pass
 
 Security review notes:

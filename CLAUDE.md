@@ -19,7 +19,9 @@ Everything new is written in English (see below).
 
 - **Everything is written in English**: code, identifiers, comments, docs, commit messages,
   branch names, PR titles and descriptions, API docs, test names.
-- The only exception is user-facing UI text, which goes through i18n (no hard-coded strings in components).
+- The only exception is user-facing UI text: the UI is in **Portuguese (pt-PT)**, always through
+  i18n (`next-intl`, messages in `apps/web/messages/pt-PT.json`, keys in English). No hard-coded
+  strings in components. Formats: dates `dd/mm/aaaa`, numbers `1 234,56 €`.
 
 ## Current scope (phase 1 — foundations)
 
@@ -38,6 +40,7 @@ TypeScript (strict) monorepo with pnpm workspaces.
 | --- | --- |
 | Web | Next.js 15 (App Router, Node runtime), React 19 |
 | UI | Tailwind CSS with the prototype tokens (`design/tailwind.preset.js`), shadcn/ui |
+| i18n | next-intl, default locale `pt-PT` |
 | Auth | Better Auth (email + password, DB sessions) |
 | ORM / migrations | Drizzle ORM + drizzle-kit, one schema and one migrations folder per database |
 | Validation | zod on every input (forms, API, files) |
@@ -82,19 +85,28 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
 
 ## Security rules
 
+`docs/security.md` is the security baseline: 20 controls, each with where it lives and how it is
+verified. Read it before touching auth, routes, tables, uploads, logging, env vars or
+dependencies. The essentials:
+
 - **SQL injection:** only use the Drizzle query builder or the `sql` tagged template with bound
   parameters. Never build SQL with string concatenation or template literals, and never pass
   user input to `sql.raw`, `sql.identifier` or dynamic `orderBy`/column names without an
   allow-list. Every new repository function gets a test with an injection payload
   (e.g. `' OR 1=1 --`) proving it is treated as data.
-- Validate all input with zod at the boundary (Server Actions, Route Handlers, file imports).
+- Validate all input with zod at the boundary; input schemas are `.strict()` (no mass assignment);
+  `pool_id`, ids, roles and authors never come from the request body.
+- Responses are built from output schemas (DTOs), never raw DB rows.
+- Authentication is checked in services (`requireSession`), never only in `middleware.ts`.
 - Passwords: argon2id, min 12 chars. Session cookie: `HttpOnly; SameSite=Lax`
   (`Secure` outside localhost). Only the token hash is stored.
 - Write Route Handlers require `Origin` to match the app origin (CSRF).
-- Logs never contain amounts, IBANs, tokens or passwords.
-- Secrets only via environment variables (`.env.local`, never committed; keep `.env.example` updated).
+- Errors to clients are generic; logs never contain amounts, IBANs, emails, tokens or passwords.
+- Secrets only via environment variables (`.env.local`, never committed; keep `.env.example`
+  updated). Never `NEXT_PUBLIC_` for a secret. Claude must not read `.env` files.
 - Postgres users: `identity_rw` sees only the identity DB; `app_rw` sees only the app DB and
-  has no `BYPASSRLS`; a separate migration user.
+  has no `BYPASSRLS`; a separate migration user. Postgres port bound to `127.0.0.1`.
+- Sign-up closed by default (`ALLOW_SIGNUP=false`); people join by invite.
 
 ## Local development
 
@@ -111,16 +123,33 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
 
 ## Git workflow
 
-- Long-lived branches: **`master`** (stable) and **`dev`** (integration). No other long-lived branches.
-- One branch per task, named after the task key: `nstvault-<n>` (e.g. `nstvault-1`),
-  created from `dev`, merged back into `dev` by PR. `dev` is merged into `master` by PR.
-- Commit messages: `nstvault-<n>: <imperative summary>`.
-- Never push directly to `master` or `dev`.
+- Tasks are Jira issues. The branch name **is the Jira key** (e.g. `NV-12`) and every commit
+  message starts with it: `NV-12: <imperative summary>`. (The Jira project key is still to be
+  created; use whatever key the issue has.)
+- **Current mode: direct to `master`.** Until the user says otherwise, commit and push straight to
+  `master`; no task branches and no PRs. Still run the definition of done before every push.
+- **Target mode (when the user switches):** long-lived `master` (stable) and `dev` (integration)
+  only; task branches `<KEY>` from `dev`, merged back by PR; `dev` → `master` by PR; no direct
+  pushes to `master` or `dev`.
+
+## Project skills (`.claude/skills/`)
+
+| Skill | Use it when |
+| --- | --- |
+| `start-task` | Starting any Jira task: reads the issue, creates the branch, writes the plan and acceptance criteria |
+| `protected-route` | Adding/changing any route, Server Action, API endpoint or CRUD |
+| `db-migration` | Any table, column, index or repository change (RLS + isolation tests) |
+| `new-importer` | Any statement importer (bank/broker file) |
+| `nestvault-domain` | Any calculation in `packages/domain` and its reference values |
+| `finish-task` | **At the end of every task** — runs the definition of done and writes the PR |
+
+Built-in skills used by them: `/security-review`, `/code-review`, `xlsx`, `pdf` (fixtures),
+`dataviz` (charts), `run` (see the app working).
 
 ## Definition of done — run at the end of EVERY development task
 
-Before saying a task is finished or opening a PR, do all of the following and report the result
-of each step:
+Use the `finish-task` skill. Before saying a task is finished, pushing, or opening a PR, do all
+of the following and report the result of each step:
 
 1. **Security review for new routes.** If the change adds or modifies any route (page, Server
    Action, Route Handler under `/api`, worker job entry point), run the `/security-review` skill
@@ -138,16 +167,18 @@ of each step:
    plus `local.postman_environment.json`) with example requests for the new endpoints.
 4. **SQL injection check.** Re-read every new or changed query against the SQL injection rules
    above; add injection-payload tests for new repository functions.
-5. `pnpm lint && pnpm typecheck && pnpm test` all pass.
+5. **Security baseline.** Walk `docs/security.md`; every control the change touches has its
+   "Verified by" check in place.
+6. `pnpm lint && pnpm typecheck && pnpm test` all pass.
 
 ## Pull requests
 
 - Target branch: `dev` (or `master` for a release from `dev`).
-- Title: `nstvault-<n>: <summary>`.
+- Title: `<KEY>: <summary>`.
 - Body follows `.github/pull_request_template.md`, which must contain:
   - **Task checklist** — a list of checkbox tasks describing what this task is expected to do
     (the acceptance criteria), ticked when done.
   - **What was done** — an explanation of every change (per package/area), design decisions and
     trade-offs.
-  - **Definition of done** results (security review, tests, API docs, SQL injection check).
+  - **Definition of done** results (security review, tests, API docs, SQL injection, security baseline).
   - **How to test** locally, including Postman requests when relevant.
