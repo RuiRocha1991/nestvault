@@ -1,6 +1,6 @@
 ---
 name: finish-task
-description: Run NestVault's definition of done and open the pull request. Use it at the end of EVERY development task in this repo — when the user says "terminei", "está feito", "fecha a task", "abre o PR", "finish NV-12", "ready for review", or when you yourself are about to say a task is complete. It runs the security review for new routes, checks unit tests, API docs (OpenAPI + Postman), SQL injection, the 21 security controls, lint/typecheck/tests, then writes the PR with the task checklist and a full explanation.
+description: Run NestVault's definition of done and open the pull request. Use it at the end of EVERY development task in this repo — when the user says "terminei", "está feito", "fecha a task", "abre o PR", "finish NES-12", "ready for review", or when you yourself are about to say a task is complete. It runs the security review for new routes, checks unit tests, API docs (OpenAPI + Postman), SQL injection, the 21 security controls, lint/typecheck/tests, then writes the PR with the task checklist and a full explanation.
 ---
 
 # Finish a task

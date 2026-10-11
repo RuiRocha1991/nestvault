@@ -5,7 +5,12 @@ data is isolated per pool. The v28 HTML prototype is the functional and visual s
 everything it does must keep working, now server-side and shared.
 
 Reference material (source of truth for behaviour and design):
-- `docs/prd.md` — product requirements (server version)
+- **Confluence space NestVault** — the English PRD (source of truth for requirements):
+  https://ruirrocha.atlassian.net/wiki/spaces/NestVault/pages/11665409 (PRD 01–08 and one
+  "FR — …" page per module), Design — Mockups, Design — Design system, Backlog — Jira NES.
+- **Jira project NES** — epics NES-1…NES-10 (one per phase area), tasks with acceptance criteria and
+  links to their Confluence page; app-level acceptance checklist in NES-85.
+- `docs/prd.md` — original product requirements (Portuguese)
 - `docs/handoff.md` — validated business rules and reference values for tests
 - `docs/prototype/cofre-familiar-v28.html` — the prototype (behaviour + visuals)
 - `docs/tools/` — Python converters (Trade Republic PDF, Banco Invest xlsx → CSV), to be ported
@@ -35,6 +40,17 @@ Everything new is written in English (see below).
   design ready for it (no schema or code that blocks it later).
 - **Local development only.** No production deploy for now. Target: an Ubuntu machine with Docker,
   accessed from a Mac.
+
+## Product decisions added after the original PRD
+
+- **Sessions persist**: refresh, new tab, browser restart and server restart never log the user out
+  while the session is valid (DB sessions, persistent cookie, server-side session read). See NES-21.
+- **Notes**: every transaction and investment operation can have a note; every month has a month
+  note; a monthly review screen `/[poolId]/mes/[yyyy-mm]` combines the numbers and the notes
+  (NES-45, NES-53, NES-54, NES-36). Notes are user content: escaped on render, never logged,
+  never overwritten by imports.
+- **Statement import** through the Python parser service with automatic detection; AI-assisted
+  specs in phase 5 (ADR 0001).
 
 ## Stack
 
@@ -128,9 +144,8 @@ dependencies. The essentials:
 
 ## Git workflow
 
-- Tasks are Jira issues. The branch name **is the Jira key** (e.g. `NV-12`) and every commit
-  message starts with it: `NV-12: <imperative summary>`. (The Jira project key is still to be
-  created; use whatever key the issue has.)
+- Tasks are Jira issues in project **NES**. The branch name **is the Jira key** (e.g. `NES-12`)
+  and every commit message starts with it: `NES-12: <imperative summary>`.
 - **Current mode: direct to `master`.** Until the user says otherwise, commit and push straight to
   `master`; no task branches and no PRs. Still run the definition of done before every push.
 - **Target mode (when the user switches):** long-lived `master` (stable) and `dev` (integration)

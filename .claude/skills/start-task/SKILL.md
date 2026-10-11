@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Start work on a NestVault task from its Jira key (e.g. "start NV-12", "pega na task NV-3", "vamos fazer a NV-7", "começa a próxima task"). Reads the Jira issue, creates the task branch with the right name, and writes an implementation plan with acceptance criteria before any code. Use it whenever the user names a Jira key or asks to begin a new task/feature/bug in this repo, even if they don't say "start".
+description: Start work on a NestVault task from its Jira key (e.g. "start NES-12", "pega na task NES-3", "vamos fazer a NES-7", "começa a próxima task"). Reads the Jira issue, creates the task branch with the right name, and writes an implementation plan with acceptance criteria before any code. Use it whenever the user names a Jira key or asks to begin a new task/feature/bug in this repo, even if they don't say "start".
 ---
 
 # Start a task
@@ -21,10 +21,12 @@ rework at the end.
    - Check `CLAUDE.md` → "Git workflow" for the current base branch (while the project is in
      "direct to master" mode, work on `master` and skip branch creation; otherwise branch from `dev`).
    - `git fetch origin <base> && git checkout -b <KEY> origin/<base>` — the branch name is exactly
-     the Jira key (e.g. `NV-12`).
+     the Jira key (e.g. `NES-12`).
 
 3. **Load context.** Read only what the task touches:
-   - `docs/prd.md` sections for the module; `docs/handoff.md` business rules.
+   - The Confluence pages linked in the issue's "References" (`getConfluenceContent`); they are
+     the English PRD. Fall back to `docs/prd.md` and `docs/handoff.md` when Confluence is not
+     reachable.
    - For UI work: the matching screenshots in `design/mockups/escuro|claro/` and
      `design/DESIGN-SYSTEM.md`.
    - For domain work: the `nestvault-domain` skill.
@@ -49,4 +51,4 @@ rework at the end.
 
 ## Commit messages
 
-`<KEY>: <imperative summary>` — e.g. `NV-12: add accounts repository with RLS`.
+`<KEY>: <imperative summary>` — e.g. `NES-12: add accounts repository with RLS`.
