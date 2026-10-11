@@ -18,8 +18,8 @@ Reference material (source of truth for behaviour and design):
   full prototype CSS, fonts, mockups (`mockups/escuro` = dark, `mockups/claro` = light)
 
 - `docs/adr/` — architecture decisions; they override the PRD where they differ
-  (ADR 0001: statement parsing in a Python parser service with automatic detection and
-  AI-assisted import specs)
+  (0001 statement parsing and AI-assisted import specs, 0002 market data providers,
+  0003 plans and entitlements, 0004 global categories)
 
 These reference files are the original Portuguese versions; read them as specification.
 Everything new is written in English (see below).
@@ -51,6 +51,15 @@ Everything new is written in English (see below).
   never overwritten by imports.
 - **Statement import** through the Python parser service with automatic detection; AI-assisted
   specs in phase 5 (ADR 0001).
+- **Market data** behind swappable providers, free sources first, one env var to switch to a paid
+  provider; prices hourly, dividends daily, estimated dividends when nothing is announced (ADR 0002).
+- **Plans**: Free (3 accounts, 2 portfolios, owner only, no real estate) and Pro (no limits). Enforce
+  through `assertWithinLimit` / `assertFeature` in services, never in feature code; billing off by
+  default (`BILLING_ENABLED=false` = everything Pro) (ADR 0003).
+- **Categories**: global catalogue (`pool_id IS NULL`, names via i18n) + pool-only custom
+  categories; budgets per pool (ADR 0004).
+- **Real estate and loans** (Pro, phase 6): properties, mortgages with installment breakdown,
+  prepayments, rate changes, works projects with payment phases; net worth gains liabilities.
 
 ## Stack
 
