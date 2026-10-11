@@ -1,5 +1,9 @@
 # PRD — Cofre Familiar (versão servidor)
 
+> **Note (2026-10-11):** the "Importadores" design in this PRD is superseded by
+> [ADR 0001](adr/0001-ai-assisted-importers.md): parsing moves to an isolated Python parser service
+> with automatic format detection and, in a later phase, AI-assisted import specs.
+
 Oct 11, 2026 · @Rui Rocha
 
 ## Resumo e objetivos

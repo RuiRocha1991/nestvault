@@ -12,6 +12,10 @@ Reference material (source of truth for behaviour and design):
 - `design/` — design system (`DESIGN-SYSTEM.md`), tokens (`tokens.css`, `tailwind.preset.js`),
   full prototype CSS, fonts, mockups (`mockups/escuro` = dark, `mockups/claro` = light)
 
+- `docs/adr/` — architecture decisions; they override the PRD where they differ
+  (ADR 0001: statement parsing in a Python parser service with automatic detection and
+  AI-assisted import specs)
+
 These reference files are the original Portuguese versions; read them as specification.
 Everything new is written in English (see below).
 
@@ -45,6 +49,7 @@ TypeScript (strict) monorepo with pnpm workspaces.
 | ORM / migrations | Drizzle ORM + drizzle-kit, one schema and one migrations folder per database |
 | Validation | zod on every input (forms, API, files) |
 | Jobs | pg-boss (worker process) |
+| Statement parsing | Python parser service (FastAPI, pdfplumber, openpyxl), isolated container — see ADR 0001 |
 | API docs | OpenAPI 3.1 generated from zod schemas (`@asteasolutions/zod-to-openapi`), served with Swagger UI |
 | Tests | Vitest (unit, integration), Playwright (e2e) |
 
@@ -56,10 +61,10 @@ apps/worker/         scheduled jobs (pg-boss)
 packages/domain/     pure calculations, no I/O (port of the prototype engine)
 packages/services/   use cases + guards (requireSession, requirePoolAccess, can)
 packages/db/         identity/ and app/: Drizzle schemas, migrations, repositories
-packages/importers/  one module per statement format
+services/parser/     Python parser service: code parsers, spec engine, specs, fixtures (ADR 0001)
 packages/ui/         tokens and shared components
 design/              design system, tokens, fonts, mockups
-docs/                PRD, handoff, prototype, API docs (docs/api/), ADRs
+docs/                PRD, handoff, prototype, security baseline, API docs (docs/api/), ADRs (docs/adr/)
 tests/api/           Postman/Insomnia collections and environments (JSON)
 ```
 
@@ -85,7 +90,7 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
 
 ## Security rules
 
-`docs/security.md` is the security baseline: 20 controls, each with where it lives and how it is
+`docs/security.md` is the security baseline: 21 controls, each with where it lives and how it is
 verified. Read it before touching auth, routes, tables, uploads, logging, env vars or
 dependencies. The essentials:
 
@@ -139,7 +144,7 @@ dependencies. The essentials:
 | `start-task` | Starting any Jira task: reads the issue, creates the branch, writes the plan and acceptance criteria |
 | `protected-route` | Adding/changing any route, Server Action, API endpoint or CRUD |
 | `db-migration` | Any table, column, index or repository change (RLS + isolation tests) |
-| `new-importer` | Any statement importer (bank/broker file) |
+| `new-importer` | Any statement importer (bank/broker file), parser service, detection, import specs |
 | `nestvault-domain` | Any calculation in `packages/domain` and its reference values |
 | `finish-task` | **At the end of every task** — runs the definition of done and writes the PR |
 

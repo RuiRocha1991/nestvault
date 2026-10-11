@@ -1,6 +1,6 @@
 # Security baseline
 
-Twenty controls every change must respect. Each control says **what** we do, **where** it lives and
+Twenty-one controls every change must respect. Each control says **what** we do, **where** it lives and
 **how it is verified**. "Verified by" is what makes a control real: a test, a CI job or a review
 step. A control with no automated check is reviewed by the `finish-task` skill and `/security-review`.
 
@@ -29,6 +29,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 | 18 | Security headers | Now |
 | 19 | HTTPS only | Ready |
 | 20 | Dependency scanning | Now |
+| 21 | Parser isolation and AI safety | Now (parser service) / phase 5 (AI) |
 
 ---
 
@@ -143,6 +144,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   extension or client MIME; xlsx unzip limits (entry count and uncompressed size) against zip
   bombs; files > 1 MB parsed in the worker; stored outside the web root, encrypted (5), named by
   SHA-256, original filename kept only as metadata. Never execute or render uploaded content.
+  Parsing happens only in the isolated parser service (21).
 - **Verified by:** importer tests with an oversized file, a renamed executable and a zip bomb.
 
 ## 17. Minimal API responses
@@ -171,6 +173,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   and GitHub Actions; pnpm `onlyBuiltDependencies` allow-list so dependency install scripts do not
   run by default; new dependencies justified in the PR.
 - **Verified by:** CI job `security.yml`; Dependabot PRs.
+
+## 21. Parser isolation and AI safety
+- **What:** see `docs/adr/0001-ai-assisted-importers.md`.
+  - The parser service (`services/parser`) has no DB credentials, no object-storage access and no
+    outbound network (internal Docker network only); runs non-root, read-only filesystem, with CPU,
+    memory and time limits per job and regex timeouts.
+  - Only reviewed code runs: new code parsers enter through a PR. AI output is **data** (an import
+    spec validated against a strict, versioned JSON schema), never executed code.
+  - Only synthesized structure (headers, layout, fake sample rows) is sent to the AI provider —
+    never the statement, names, IBANs or real amounts. The AI API key is server-side only (1).
+  - AI-generated specs start as `draft` (creating pool only) and become global only after
+    reconciled, confirmed imports or admin approval; failing global specs are demoted.
+  - AI generation is rate-limited per pool and globally, requires `imports.run`, and is audited
+    (without file content).
+- **Verified by:** docker-compose review (no network/volumes for the parser container); tests that
+  the synthesizer output contains none of the original values; spec-schema rejection tests
+  (unknown keys, unbounded regex, oversized patterns); promotion-rule unit tests.
 
 ---
 

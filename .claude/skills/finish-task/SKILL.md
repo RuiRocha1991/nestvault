@@ -1,6 +1,6 @@
 ---
 name: finish-task
-description: Run NestVault's definition of done and open the pull request. Use it at the end of EVERY development task in this repo — when the user says "terminei", "está feito", "fecha a task", "abre o PR", "finish NV-12", "ready for review", or when you yourself are about to say a task is complete. It runs the security review for new routes, checks unit tests, API docs (OpenAPI + Postman), SQL injection, the 20 security controls, lint/typecheck/tests, then writes the PR with the task checklist and a full explanation.
+description: Run NestVault's definition of done and open the pull request. Use it at the end of EVERY development task in this repo — when the user says "terminei", "está feito", "fecha a task", "abre o PR", "finish NV-12", "ready for review", or when you yourself are about to say a task is complete. It runs the security review for new routes, checks unit tests, API docs (OpenAPI + Postman), SQL injection, the 21 security controls, lint/typecheck/tests, then writes the PR with the task checklist and a full explanation.
 ---
 
 # Finish a task
@@ -63,14 +63,14 @@ Re-read every new or changed query:
 
 ## 5. Security baseline
 
-Walk the 20 controls in `docs/security.md`. For each one that this change touches, confirm its
+Walk the 21 controls in `docs/security.md`. For each one that this change touches, confirm its
 "Verified by" item exists (test, CI step). Mark the ones that do not apply. Pay special attention
 to: new env vars (1, 2 — add to `.env.example` with a placeholder, never `NEXT_PUBLIC_` for
-secrets), new tables (4), uploads (16), logs (15), new dependencies (20 — justify each).
+secrets), new tables (4), uploads (16), logs (15), parser service or AI (21), new dependencies (20 — justify each).
 
 ## 6. Quality gates
 
-Run `pnpm lint && pnpm typecheck && pnpm test` (and `pnpm test:e2e` when UI flows changed). All
+Run `pnpm lint && pnpm typecheck && pnpm test` (and `pnpm test:e2e` when UI flows changed; `pytest` in `services/parser` when parsers changed). All
 must pass. Paste the summary lines of the output into the report.
 
 ## 7. Commit, push, PR
