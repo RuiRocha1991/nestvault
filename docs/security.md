@@ -111,7 +111,11 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** session cookie `HttpOnly; SameSite=Lax; Path=/`, `Secure` whenever not on
   `localhost`, `__Host-` prefix when served over HTTPS. Only a random token in the cookie; only its
   hash in the DB. Token rotated on login and on role change.
-- **Verified by:** test that inspects the `Set-Cookie` header after login.
+- **CSRF:** `SameSite=Lax` plus an `Origin` check: `route()` rejects `POST`/`PUT`/`PATCH`/`DELETE`
+  whose `Origin` is missing or is not the app origin (403). Server Actions are covered by Next.js'
+  own origin check.
+- **Verified by:** test that inspects the `Set-Cookie` header after login; `tests/web/api-route.test.ts`
+  for the `Origin` check (foreign, missing, look-alike origins).
 
 ## 10. Password hashing
 - **What:** argon2id (`@node-rs/argon2`) configured as Better Auth's hash/verify (its default is
@@ -152,8 +156,16 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   details go to logs with a `request_id`. Logs never contain amounts, IBANs, emails, tokens or
   passwords (a redaction list in the logger). No production source maps served publicly.
   Non-members get 404, not 403.
-- **Verified by:** logger redaction unit test; error-handler test that forces an exception and
-  checks the body.
+- **Where:** `route()` in `apps/web/src/server/api/route.ts` maps typed errors
+  (`packages/services/src/errors.ts`) and anything unexpected to the generic body; the logger is
+  `packages/services/src/logger.ts` (pino; any field whose name contains password/token/secret/session/cookie/authorization/api-key/iban/email/amount/balance/note/body/description is censored, case-insensitively and at any depth, errors logged as type, code and stack
+  frames but **never the message**, because Drizzle/pg messages carry query parameters).
+- **API docs exposure:** Swagger UI and the OpenAPI document are served only when
+  `ENABLE_API_DOCS=true` (default false) and `NODE_ENV` is not `production`; two switches, so
+  exposing them (for example on a shared box) is a conscious choice. Verified by `tests/web/openapi.test.ts`.
+- **Verified by:** `tests/services/logger.test.ts` (redaction, no error message in the log) and
+  `tests/web/api-route.test.ts` (a forced exception returns the generic body with a request id;
+  the log has the stack, the response does not).
 
 ## 16. Restricted uploads
 - **What:** max 10 MB; allow-list by **content** (magic bytes: xlsx = zip, pdf, csv text), not by

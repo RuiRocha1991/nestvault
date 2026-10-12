@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { AppShell } from '../../../components/shell';
-import { Sidebar } from '../../../components/sidebar';
-import { isPoolSegment } from '../../../lib/pool';
-import { parseTheme, THEME_COOKIE } from '../../../lib/theme';
+import { AppShell } from '@webapp/components/shell';
+import { Sidebar } from '@webapp/components/sidebar';
+import { isPoolSegment } from '@webapp/lib/pool';
+import { parseTheme, THEME_COOKIE } from '@webapp/lib/theme';
 
 export default async function PoolLayout({
   children,

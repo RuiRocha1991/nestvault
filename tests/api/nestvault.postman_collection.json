@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "NestVault API",
+    "description": "Example requests for the NestVault REST API (/api/v1). Import tests/api/local.postman_environment.json too. The OpenAPI document (docs/api/openapi.json) is the complete reference; see tests/api/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "poolId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('body is { status: \"ok\" }', () => pm.expect(pm.response.json()).to.eql({ status: 'ok' }));",
+                  "pm.test('has a request id', () => pm.expect(pm.response.headers.get('x-request-id')).to.be.a('string').and.not.empty);",
+                  "pm.test('is not cached', () => pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Liveness check. No authentication, no data."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Write requests (POST/PUT/PATCH/DELETE) are rejected with 403 unless Origin equals the app origin.",
+          "// Postman does not send one by default, so set it for every request in this collection.",
+          "pm.request.headers.upsert({ key: 'Origin', value: pm.variables.get('baseUrl') });"
+        ]
+      }
+    }
+  ]
+}

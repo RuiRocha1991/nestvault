@@ -4,7 +4,7 @@ import { Moon, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { THEME_COOKIE, THEME_COOKIE_MAX_AGE, type Theme } from '../lib/theme';
+import { THEME_COOKIE, THEME_COOKIE_MAX_AGE, type Theme } from '@webapp/lib/theme';
 
 /** Moon / sun switch. The server renders the saved theme into <html data-theme>, so there is no flash. */
 export function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {

@@ -8,6 +8,8 @@ const projects = ['web', 'worker', 'domain', 'services', 'db', 'ui', 'config', '
 // `server-only` throws outside a React Server build, so tests replace it with an empty module.
 const serverOnlyStub = fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url));
 
+const webSrc = fileURLToPath(new URL('./apps/web/src/', import.meta.url));
+
 export default defineConfig({
   test: {
     projects: projects.map((name) => ({
@@ -23,7 +25,13 @@ export default defineConfig({
             }
           : {}),
       },
-      resolve: { alias: { 'server-only': serverOnlyStub } },
+      resolve: {
+        alias: [
+          { find: 'server-only', replacement: serverOnlyStub },
+          // `@webapp/…` is the web app's source alias (apps/web/tsconfig.json).
+          { find: /^@webapp\//, replacement: webSrc },
+        ],
+      },
     })),
   },
 });

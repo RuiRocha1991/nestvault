@@ -28,6 +28,27 @@ pnpm db:migrate    # applies the migrations to nestvault_identity and nestvault_
 `pnpm env:init` refuses to overwrite an existing `.env.local`. To start over, delete it and run
 `pnpm db:reset` (this also deletes all local database data).
 
+### Keeping `.env.local` up to date
+
+`.env.example` starts with `# env-version: N`; `pnpm env:init` copies it into `.env.local`.
+After pulling changes that touch `.env.example`:
+
+```bash
+pnpm env:check   # compares the versions and lists the variable NAMES your .env.local lacks
+pnpm env:sync    # adds the missing ones (random values where needed); existing values are untouched
+```
+
+`env:check` never prints values. A `.env.local` created before versions existed shows "version none";
+it works the same, the check goes by variable names.
+
+**Environment versions** (bump `env-version` in `.env.example` and add a line here whenever a
+variable is added, renamed or removed):
+
+| Version | Task   | Change                                                              |
+| ------- | ------ | ------------------------------------------------------------------- |
+| 1       | NES-12 | Postgres, database URLs, test databases, app secrets, SMTP          |
+| 2       | NES-16 | `ENABLE_API_DOCS` (Swagger UI at `/api/docs`, development only)    |
+
 ## 3. What runs
 
 | Service  | Address                 | Purpose                                              |
@@ -58,6 +79,7 @@ pnpm db:migrate    # applies the migrations to nestvault_identity and nestvault_
 | Command                                  | What it does                                                    |
 | ---------------------------------------- | --------------------------------------------------------------- |
 | `pnpm env:init`                          | Create `.env.local` from `.env.example` with random secrets     |
+| `pnpm env:check` / `pnpm env:sync`       | List / add the variables your `.env.local` lacks (names only)   |
 | `pnpm db:up` / `pnpm db:down`            | Start / stop the containers (data is kept in a Docker volume)   |
 | `pnpm db:reset`                          | Delete the volume after confirmation and recreate everything    |
 | `pnpm db:check`                          | Verify isolation, role attributes and network exposure          |

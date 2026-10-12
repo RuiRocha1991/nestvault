@@ -11,7 +11,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@webapp/*": ["./src/*"]
     },
     "esModuleInterop": true,
     "resolveJsonModule": true

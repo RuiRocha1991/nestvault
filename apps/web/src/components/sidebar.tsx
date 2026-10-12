@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import type { Theme } from '../lib/theme';
+import type { Theme } from '@webapp/lib/theme';
 
 import { NAV_GROUPS } from './nav';
 import { SIDEBAR_ID, useShell } from './shell';

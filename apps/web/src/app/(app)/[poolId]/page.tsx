@@ -1,7 +1,7 @@
 import { Card, EmptyState } from '@nestvault/ui';
 import { getTranslations } from 'next-intl/server';
 
-import { Topbar } from '../../../components/topbar';
+import { Topbar } from '@webapp/components/topbar';
 
 export default async function OverviewPage() {
   const t = await getTranslations();
