@@ -1,0 +1,36 @@
+# Local development services. Start with `pnpm db:up` (needs .env.local, see scripts/init-env.sh).
+# Both ports are bound to 127.0.0.1 only: nothing is reachable from the network (security control 3).
+name: nestvault
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    ports:
+      # Host port 5433 (not 5432) so it does not clash with a Postgres already running on a developer
+      # machine, including the Mac end of the SSH tunnel. Inside the container Postgres stays on 5432.
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run pnpm env:init to create .env.local}
+      IDENTITY_RW_PASSWORD: ${IDENTITY_RW_PASSWORD:?run pnpm env:init to create .env.local}
+      APP_RW_PASSWORD: ${APP_RW_PASSWORD:?run pnpm env:init to create .env.local}
+      MIGRATOR_PASSWORD: ${MIGRATOR_PASSWORD:?run pnpm env:init to create .env.local}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # web UI
+
+volumes:
+  postgres-data:
