@@ -137,6 +137,13 @@ tr.cur td{background:var(--accent-soft)}
 .benefit{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;font-size:var(--fs-md)}
 .benefit .tick{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent-2);display:grid;place-items:center}
 .benefit .tick .ico{width:13px;height:13px;stroke-width:2.4}
+.pop{position:absolute;right:0;top:36px;width:340px;z-index:5;background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-lg);box-shadow:0 24px 64px rgba(0,0,0,.35);padding:var(--s4);display:flex;flex-direction:column;gap:6px}
+.pop-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.pop-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:var(--fs-md);cursor:pointer}
+.pop-row small{font-size:var(--fs-xs);color:var(--fg-3);font-weight:500}
+.tgl{width:34px;height:20px;border-radius:999px;background:var(--inset);border:1px solid var(--line-2);position:relative;flex:none}
+.tgl i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--fg-3)}
+.tgl.on{background:var(--accent);border-color:var(--accent)}.tgl.on i{left:16px;background:#fff}.tgl.dis{opacity:.5}
 .hero-pro{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--grad-violet);color:#fff;box-shadow:0 10px 24px -8px var(--accent)}
 .hero-pro .ico{width:26px;height:26px}
 `;

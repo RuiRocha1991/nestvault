@@ -72,21 +72,56 @@ const eventLi = (e) => {
   return `<li><span class="dot" style="background:${col}2e;color:${col}">${ico(ic)}</span><div><span class="when">${my(e.ym)}</span><br><b>${e.title}</b><p>${e.text}</p></div></li>`;
 };
 
-/* ================= 29 · Prestações ================= */
-function imovelPrestacoes(m = pro) {
+/* ================= 29 · Prestações (colunas configuráveis) ================= */
+/* Basic columns are always available; optional fields can be switched on per loan. Switching a field on adds
+   its column AND counts it in the row total, the period summary and the yearly breakdown. */
+const LOAN_FIELDS = [
+  { k: 'fees', i: 4, label: 'Comissões', on: true }, { k: 'tax', i: 5, label: 'Imposto de selo', on: true },
+  { k: 'life', i: 6, label: 'Seguro vida', on: true, dflt: true }, { k: 'home', i: 7, label: 'Seguro casa', on: true, dflt: true },
+  { k: 'credit', i: 8, label: 'Seguro crédito', on: true },
+];
+const switchEl = (on, disabled = false) => `<span class="tgl ${on ? 'on' : ''} ${disabled ? 'dis' : ''}"><i></i></span>`;
+function colsPopover() {
+  const row = (label, on, { fixed, note, dflt } = {}) => `<label class="pop-row"><span>${label}${dflt ? ' <small>predefinido</small>' : ''}${note ? `<small class="muted" style="display:block">${note}</small>` : ''}</span>${switchEl(on, fixed)}</label>`;
+  return `<div class="pop" role="dialog" aria-label="Colunas da tabela">
+    <div class="pop-h"><b>Colunas e campos</b><button class="btn ghost sm">Repor predefinição</button></div>
+    <span class="eyebrow">Básicas</span>
+    ${row('Nº e data', true, { fixed: true })}${row('Amortização (capital)', true, { fixed: true })}${row('Juros', true, { fixed: true })}${row('Total da prestação', true, { fixed: true })}
+    ${row('Em falta', true)}${row('Estado', true)}${row('Movimento ligado', true)}
+    <span class="eyebrow" style="margin-top:6px">Campos da prestação <small style="text-transform:none;letter-spacing:0;font-weight:500">· contam no total e nos sumários</small></span>
+    ${LOAN_FIELDS.map((f) => row(f.label, f.on, { dflt: f.dflt, note: f.k === 'credit' ? 'desde 04/2026' : f.k === 'fees' || f.k === 'tax' ? 'valores até 2022' : '' })).join('')}
+    <button class="btn sm" style="align-self:flex-start;margin-top:4px">${ico('plus')}Novo campo</button>
+    <label class="pop-row" style="border-top:1px solid var(--line);padding-top:10px;margin-top:4px"><span>Ocultar colunas sem valores no período<small class="muted" style="display:block">Ex.: Comissões e Imposto de selo em 2026</small></span>${switchEl(true)}</label>
+  </div>`;
+}
+function imovelPrestacoes(m = pro, { popover = false } = {}) {
   const rows = [...m.paidRows.map((r) => ({ r, proj: false })), ...m.projRows.map((r) => ({ r, proj: true }))].filter(({ r }) => r[1].startsWith('2026'));
-  const tr = rows.map(({ r, proj }, i) => {
+  const fields = LOAN_FIELDS.filter((f) => f.on && rows.some(({ r }) => r[f.i] > 0)); // empty columns hidden for the period
+  const tot = (i) => sum(rows, ({ r }) => r[i]);
+  const tr = rows.map(({ r, proj }) => {
     const linked = !proj && r[0] < 73;
     const isNext = proj && r[0] === m.next[0];
-    return `<tr class="${proj ? 'proj' : ''} ${isNext ? 'cur' : ''}"><td>${r[0]}</td><td>${dmy(r[1])}</td><td class="num">${eur(r[2])}</td><td class="num">${eur(r[3])}</td><td class="num">${r[4] + r[5] ? eur(r[4] + r[5]) : '—'}</td><td class="num">${eur(r[6])}</td><td class="num">${eur(r[7])}</td><td class="num">${r[8] ? eur(r[8]) : '—'}</td><td class="num"><b>${eur(r[9])}</b></td><td class="num">${m.totalCount - r[0]}</td><td>${proj ? chip('Projetada') : chip('Paga', 'pos')}</td><td>${proj ? '<span class="muted">—</span>' : linked ? `<span class="chip accent">${ico('link')}Ligada</span>` : `<span class="chip warn">Por ligar</span>`}</td><td><div class="row-acts"><button class="btn ghost icon sm" aria-label="Editar">${ico('edit')}</button></div></td></tr>`;
+    return `<tr class="${proj ? 'proj' : ''} ${isNext ? 'cur' : ''}"><td>${r[0]}</td><td>${dmy(r[1])}</td><td class="num">${eur(r[2])}</td><td class="num">${eur(r[3])}</td>${fields.map((f) => `<td class="num">${r[f.i] ? eur(r[f.i]) : '—'}</td>`).join('')}<td class="num"><b>${eur(r[9])}</b></td><td class="num">${m.totalCount - r[0]}</td><td>${proj ? chip('Projetada') : chip('Paga', 'pos')}</td><td>${proj ? '<span class="muted">—</span>' : linked ? `<span class="chip accent">${ico('link')}Ligada</span>` : `<span class="chip warn">Por ligar</span>`}</td><td><div class="row-acts"><button class="btn ghost icon sm" aria-label="Editar">${ico('edit')}</button></div></td></tr>`;
   }).join('');
-  const tot = (i) => sum(rows, ({ r }) => r[i]);
-  const foot = `<tfoot><tr><td colspan="2">Total 2026</td><td class="num">${eur(tot(2))}</td><td class="num">${eur(tot(3))}</td><td class="num">${eur(tot(4) + tot(5))}</td><td class="num">${eur(tot(6))}</td><td class="num">${eur(tot(7))}</td><td class="num">${eur(tot(8))}</td><td class="num">${eur(tot(9))}</td><td colspan="4"></td></tr></tfoot>`;
-  const toolbar = `<div class="toolbar"><div class="seg" role="group"><button aria-pressed="true">Todas</button><button aria-pressed="false">Pagas</button><button aria-pressed="false">Projetadas</button></div><select class="sel"><option>Ano: 2026</option></select><select class="sel"><option>Todos os estados de ligação</option></select><span class="grow"></span>${btn('Exportar CSV', { sm: true, icon: 'down' })}${btn('Importar prestações', { sm: true, icon: 'down' })}${btn('Prestação', { sm: true, icon: 'plus', primary: true })}</div>`;
-  const note = `<div class="note">${ico('info', 'ico').replace('class="ico"', 'class="ico" style="width:14px;height:14px;vertical-align:-2px"')} Quando ligas o débito do banco a uma prestação, só <b>juros, comissões, impostos e seguros</b> contam como despesa; a parte do <b>capital</b> conta como poupança (capital próprio), não como despesa.</div>`;
-  const content = `${propHeader(m, 1, false)}<div class="grid"><div class="card c12">${toolbar}<div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>Data</th><th class="num">Capital</th><th class="num">Juros</th><th class="num">Comissões e selo</th><th class="num">Seguro vida</th><th class="num">Seguro casa</th><th class="num">Seguro crédito</th><th class="num">Total</th><th class="num">Em falta</th><th>Estado</th><th>Movimento</th><th></th></tr></thead><tbody>${tr}</tbody>${foot}</table></div>${note}</div></div>`;
+  const foot = `<tfoot><tr><td colspan="2">Total 2026</td><td class="num">${eur(tot(2))}</td><td class="num">${eur(tot(3))}</td>${fields.map((f) => `<td class="num">${eur(tot(f.i))}</td>`).join('')}<td class="num">${eur(tot(9))}</td><td colspan="4"></td></tr></tfoot>`;
+  const summary = card('Sumário de 2026', `<div class="strip" style="grid-template-columns:repeat(${3 + fields.length},minmax(0,1fr))">
+      <div class="it"><span class="eyebrow">Amortização</span><b class="num" style="font-size:var(--fs-lg)">${eur(tot(2))}</b></div>
+      <div class="it"><span class="eyebrow">Juros</span><b class="num" style="font-size:var(--fs-lg)">${eur(tot(3))}</b></div>
+      ${fields.map((f) => `<div class="it"><span class="eyebrow">${f.label}</span><b class="num" style="font-size:var(--fs-lg)">${eur(tot(f.i))}</b></div>`).join('')}
+      <div class="it"><span class="eyebrow">Total</span><b class="num" style="font-size:var(--fs-lg)">${eur(tot(9))}</b></div></div>`,
+    { sub: `${rows.filter((x) => !x.proj).length} pagas + ${rows.filter((x) => x.proj).length} projetadas · segue o filtro e os campos ativos`, cls: 'c12' });
+  const toolbar = `<div class="toolbar"><div class="seg" role="group"><button aria-pressed="true">Todas</button><button aria-pressed="false">Pagas</button><button aria-pressed="false">Projetadas</button></div><select class="sel"><option>Ano: 2026</option></select><select class="sel"><option>Todos os estados de ligação</option></select><span class="grow"></span>${btn('Exportar CSV', { sm: true, icon: 'down' })}${btn('Importar prestações', { sm: true, icon: 'down' })}<span style="position:relative">${btn('Colunas', { sm: true, icon: 'cog' })}${popover ? colsPopover() : ''}</span>${btn('Prestação', { sm: true, icon: 'plus', primary: true })}</div>`;
+  const note = `<div class="note">${ico('info', 'ico').replace('class="ico"', 'class="ico" style="width:14px;height:14px;vertical-align:-2px"')} Quando ligas o débito do banco a uma prestação, só <b>juros, comissões, impostos e seguros</b> contam como despesa; a <b>amortização</b> conta como poupança (capital próprio), não como despesa. Os campos ativos aplicam-se a todas as prestações do empréstimo.</div>`;
+  const content = `${propHeader(m, 1, false)}<div class="grid">${summary}<div class="card c12">${toolbar}<div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>Data</th><th class="num">Amortização</th><th class="num">Juros</th>${fields.map((f) => `<th class="num">${f.label}</th>`).join('')}<th class="num">Total</th><th class="num">Em falta</th><th>Estado</th><th>Movimento</th><th></th></tr></thead><tbody>${tr}</tbody>${foot}</table></div>${note}</div></div>`;
   return page('imovel', m.name, content, { property: m.name });
 }
+
+const mNewField = () => modalShell({ title: 'Novo campo da prestação', body: `<div class="fields">
+  ${field('Nome', inp('Seguro de proteção de pagamentos'), '', true)}
+  ${field('Conta como', select(['Despesa (seguro, comissão, imposto)', 'Outro custo do imóvel'], 'Despesa (seguro, comissão, imposto)'), 'Entra no custo do crédito e nas despesas quando ligas o débito.', true)}
+  ${field('Valor mensal por defeito (€)', inp('0,00', 'style="text-align:right"'), 'Opcional. Preenche as prestações novas e projetadas.')}${field('A partir de', inp('01/10/2026'))}
+  <label class="check f full"><input type="checkbox" checked> Mostrar como coluna na tabela de prestações</label></div>
+  <div class="note"><b>O que muda ao guardar</b><br>• Nova coluna na tabela de prestações<br>• O valor passa a somar no <b>Total</b> de cada prestação, no <b>sumário do período</b>, no <b>Pago por ano</b> e no custo do crédito<br>• As prestações já pagas ficam com 0,00 € até editares</div>`, footer: `${btn('Cancelar', { ghost: true })}${btn('Guardar campo', { primary: true })}` });
 
 /* ================= 30 · Eventos e anos ================= */
 function imovelEventos(m = pro) {
@@ -267,7 +302,8 @@ const mNewLoan = () => modalShell({ title: 'Novo empréstimo', wide: true, body:
   ${field('Indexante', select(['Euribor 3M', 'Euribor 6M', 'Euribor 12M'], 'Euribor 6M'))}${field('Spread (%)', inp('0,50', 'style="text-align:right"'))}
   ${field('Revisão a cada (meses)', inp('6', 'style="text-align:right"'), 'Março e setembro.')}${field('TAEG (%)', inp('', 'placeholder="Da FINE"'), 'Opcional.')}
   ${field('Conta de débito', select(['Conta à ordem · Banco A · Rui'], 'Conta à ordem · Banco A · Rui'), '', true)}
-  <div class="f full"><label>Seguros mensais (opcional)</label><div class="fields" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="f"><span class="hint">Vida</span>${inp('12,39', 'style="text-align:right"')}</div><div class="f"><span class="hint">Casa</span>${inp('18,76', 'style="text-align:right"')}</div><div class="f"><span class="hint">Crédito</span>${inp('36,02', 'style="text-align:right"')}</div></div></div></div>
+  <div class="f full"><label>Campos da prestação</label><div class="toolbar"><span class="chip accent">${ico('check')}Seguro vida</span><span class="chip accent">${ico('check')}Seguro casa</span>${btn('Campo', { sm: true, icon: 'plus' })}</div><span class="hint">Além da amortização e dos juros. Podes ativar mais (seguro de crédito, comissões…) ou criar os teus, e depois contam no total e nos sumários.</span></div>
+  <div class="f full"><label>Valores mensais dos campos (opcional)</label><div class="fields" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="f"><span class="hint">Seguro vida</span>${inp('12,39', 'style="text-align:right"')}</div><div class="f"><span class="hint">Seguro casa</span>${inp('18,76', 'style="text-align:right"')}</div></div></div></div>
   <div class="note">A app gera o plano de prestações (amortização francesa). Depois confirmas ou corriges as prestações reais, ou importas o histórico da tua folha de cálculo.</div>`, footer: `${btn('Cancelar', { ghost: true })}${btn('Guardar e gerar plano', { primary: true })}` });
 
 const mLoanEvent = () => modalShell({ title: 'Evento do empréstimo', body: `<div class="seg" style="align-self:flex-start"><button aria-pressed="true">Amortização antecipada</button><button aria-pressed="false">Revisão da taxa</button><button aria-pressed="false">Renegociação</button></div>
@@ -296,4 +332,4 @@ const mImport = () => modalShell({ title: 'Importar folha de cálculo', wide: tr
   <label class="check"><input type="checkbox" checked> Atualizar prestações existentes sem duplicar</label>
   <span class="card-sub">Notas e ligações a movimentos bancários nunca são substituídas por uma importação.</span>`, footer: `${btn('Cancelar', { ghost: true })}${btn('Importar 92 linhas', { primary: true, icon: 'down' })}` });
 
-module.exports = { imobiliarioLista, imovelResumo, imovelPrestacoes, imovelEventos, imovelObras, imovelVenda, definicoesPlano, definicoesUtilizadores, dialogPro, dialogLimit, mNewProperty, mNewLoan, mLoanEvent, mNewWorks, mImport, pro, demo };
+module.exports = { imobiliarioLista, imovelResumo, imovelPrestacoes, imovelEventos, imovelObras, imovelVenda, definicoesPlano, definicoesUtilizadores, dialogPro, dialogLimit, mNewProperty, mNewField, mNewLoan, mLoanEvent, mNewWorks, mImport, pro, demo };
