@@ -23,26 +23,23 @@ export const isolationProbe = defineProbeTable('_isolation_probe');
 /** Same columns but NO row-level security: only the repository's pool filter protects it. */
 export const unprotectedProbe = defineProbeTable('_unprotected_probe');
 
-export const UNPROTECTED_PROBE_SQL = `
-  CREATE TABLE _unprotected_probe (
+// Raw SQL twin of `defineProbeTable`'s columns.
+const PROBE_COLUMNS_SQL = `
     id uuid PRIMARY KEY,
     pool_id uuid NOT NULL,
     label text NOT NULL,
     amount numeric(18,4),
     qty numeric(20,8)
-  );
+`;
+
+export const UNPROTECTED_PROBE_SQL = `
+  CREATE TABLE _unprotected_probe (${PROBE_COLUMNS_SQL});
   GRANT SELECT, INSERT, UPDATE, DELETE ON _unprotected_probe TO app_rw;
 `;
 
 /** Applied by the harness as the migration user; real tables get this block from their migration. */
 export const PROBE_TABLE_SQL = `
-  CREATE TABLE _isolation_probe (
-    id uuid PRIMARY KEY,
-    pool_id uuid NOT NULL,
-    label text NOT NULL,
-    amount numeric(18,4),
-    qty numeric(20,8)
-  );
+  CREATE TABLE _isolation_probe (${PROBE_COLUMNS_SQL});
   CREATE INDEX _isolation_probe_pool_idx ON _isolation_probe (pool_id);
   ALTER TABLE _isolation_probe ENABLE ROW LEVEL SECURITY;
   ALTER TABLE _isolation_probe FORCE ROW LEVEL SECURITY;

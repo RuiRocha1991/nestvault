@@ -9,12 +9,12 @@ import { createPoolContext } from '@nestvault/db/pool-context-factory';
 import { loadLocalEnv } from './load-env';
 import { PROBE_TABLE_SQL } from './probe';
 
-function migratorPool(url: string): Pool {
-  return new Pool({ connectionString: url, max: 1, application_name: 'nestvault-test-migrator' });
-}
-
 async function withMigrator<T>(url: string, run: (pool: Pool) => Promise<T>): Promise<T> {
-  const pool = migratorPool(url);
+  const pool = new Pool({
+    connectionString: url,
+    max: 1,
+    application_name: 'nestvault-test-migrator',
+  });
   try {
     return await run(pool);
   } finally {
@@ -55,8 +55,10 @@ export async function prepareTestDatabases(): Promise<void> {
   loadLocalEnv();
   const env = testEnv();
   try {
-    await withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(DROP_EVERYTHING));
-    await withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(DROP_EVERYTHING));
+    await Promise.all([
+      withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(DROP_EVERYTHING)),
+      withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(DROP_EVERYTHING)),
+    ]);
   } catch (error) {
     const code = error instanceof Error && 'code' in error ? String(error.code) : 'unknown';
     throw new Error(
@@ -92,8 +94,10 @@ export function openTestDatabase(maxConnections = 4): TestDatabase {
     withPool: createWithPool(() => app),
     asMigrator: (run) => withMigrator(env.TEST_MIGRATOR_URL_APP, run),
     async truncateAll() {
-      await withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(TRUNCATE_EVERYTHING));
-      await withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(TRUNCATE_EVERYTHING));
+      await Promise.all([
+        withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(TRUNCATE_EVERYTHING)),
+        withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(TRUNCATE_EVERYTHING)),
+      ]);
     },
     close: () => app.close(),
   };
