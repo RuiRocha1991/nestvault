@@ -148,7 +148,9 @@ dependencies. The essentials:
   `http://localhost:3000` and cookies behave like local dev. Alternatively VS Code Remote-SSH.
 - Commands (keep this list in sync with `package.json`):
   - `pnpm install`
-  - `pnpm db:up` / `pnpm db:down` / `pnpm db:migrate` / `pnpm db:seed`
+  - `pnpm env:init` — create `.env.local` (random secrets; Claude must not read it)
+  - `pnpm db:up` / `pnpm db:down` / `pnpm db:reset` / `pnpm db:check` / `pnpm db:psql:identity` /
+    `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`
   - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm build`
   - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`
   - `pnpm format` / `pnpm format:check` — Prettier
