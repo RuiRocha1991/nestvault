@@ -162,6 +162,7 @@ dependencies. The essentials:
 - Commands (keep this list in sync with `package.json`):
   - `pnpm install`
   - `pnpm env:init` — create `.env.local` (random secrets; Claude must not read it)
+  - `pnpm gen:secret` — print a random 32-byte base64 secret
   - `pnpm db:up` / `pnpm db:down` / `pnpm db:reset` / `pnpm db:check` / `pnpm db:psql:identity` /
     `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`
   - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm build`

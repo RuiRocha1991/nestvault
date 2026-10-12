@@ -36,16 +36,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 ## 1. Keep API keys server-side
 - **What:** third-party keys (`PRICES_API_KEY`, email) are read only on the server (worker, services).
   Never use the `NEXT_PUBLIC_` prefix for a secret; never import `env` server modules into client components.
-- **Where:** `packages/config/env.ts` (zod-validated env, `import 'server-only'`).
+- **Where:** `packages/config` (zod-validated env). `@nestvault/config` has `import 'server-only'`;
+  the only browser-safe entry is `@nestvault/config/public` (explicit allow-list, no secrets). The
+  web/worker runtime never receives the migration user: it is read by `loadMigratorEnv()` only.
 - **Verified by:** CI step that fails if any `NEXT_PUBLIC_*` variable name matches
-  `KEY|SECRET|TOKEN|PASSWORD`; `server-only` import makes a client import a build error.
+  `KEY|SECRET|TOKEN|PASSWORD`; `server-only` makes a client import a build error (checked in
+  NES-13 with a temporary client component); `tests/config/boundaries.test.ts` checks the
+  server/public split; ESLint forbids `process.env` outside `packages/config`.
 
 ## 2. No secrets in git
 - **What:** `.env*` files are ignored (only `.env.example` is committed, with placeholders).
   If a secret is ever committed, **rotate it** — rewriting history is not enough.
 - **Where:** `.gitignore`, `.github/workflows/security.yml`.
 - **Verified by:** gitleaks on every push and PR; Claude is denied reading `.env*` files
-  (`.claude/settings.json`).
+  (`.claude/settings.json`); `tests/config/env-example.test.ts` checks that `.env.example` holds
+  only placeholders for secrets and passwords.
 
 ## 3. No database credentials reachable by clients
 - **Why adapted:** the original advice is about Supabase/Firebase "public" keys used from the
