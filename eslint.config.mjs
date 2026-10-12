@@ -15,6 +15,18 @@ const noProcessEnv = {
   message: 'Read environment variables only through @nestvault/config (security control 15).',
 };
 
+// All visible text goes through next-intl (messages/pt-PT.json): no literal strings in JSX.
+const noJsxText = {
+  selector: 'JSXText[value=/\\S/]',
+  message: 'Hard-coded text in JSX. Use a next-intl message (apps/web/messages/pt-PT.json).',
+};
+
+const noJsxTextAttribute = {
+  selector:
+    'JSXAttribute[name.name=/^(title|alt|placeholder|aria-label|aria-description)$/] > Literal',
+  message: 'Hard-coded text in a JSX attribute. Use a next-intl message.',
+};
+
 export default defineConfig(
   {
     ignores: [
@@ -26,6 +38,7 @@ export default defineConfig(
       'design/**',
       'services/parser/**',
       'tests/lint/fixtures/**',
+      '**/next-env.d.ts',
     ],
   },
   js.configs.recommended,
@@ -33,7 +46,7 @@ export default defineConfig(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['*.mjs'] },
+        projectService: { allowDefaultProject: ['*.mjs', 'apps/*/*.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -52,6 +65,7 @@ export default defineConfig(
       ],
       'import-x/no-duplicates': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
       'no-restricted-syntax': ['error', noSqlRaw, noProcessEnv],
     },
   },
@@ -64,5 +78,12 @@ export default defineConfig(
     // The config package is the only place that reads process.env.
     files: ['packages/config/**'],
     rules: { 'no-restricted-syntax': ['error', noSqlRaw] },
+  },
+  {
+    // User-facing components: UI text is translated, never typed into the JSX.
+    files: ['apps/web/src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': ['error', noSqlRaw, noProcessEnv, noJsxText, noJsxTextAttribute],
+    },
   },
 );

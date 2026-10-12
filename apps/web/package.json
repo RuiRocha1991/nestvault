@@ -6,8 +6,24 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "dev": "echo \"web dev: arrives in a later task\"",
-    "build": "echo \"web: nothing to build yet\"",
-    "typecheck": "tsc -p tsconfig.json"
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "typecheck": "next typegen && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestvault/ui": "workspace:*",
+    "autoprefixer": "^10.6.1",
+    "lucide-react": "^1.55.0",
+    "next": "^15.5.27",
+    "next-intl": "^4.14.9",
+    "postcss": "^8.5.29",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   }
 }

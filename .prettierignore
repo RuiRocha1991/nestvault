@@ -10,3 +10,4 @@ tests/api
 .claude
 .github
 CLAUDE.md
+apps/web/next-env.d.ts

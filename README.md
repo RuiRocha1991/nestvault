@@ -5,8 +5,8 @@ data is isolated per pool. Project rules and architecture: [`CLAUDE.md`](CLAUDE.
 baseline: [`docs/security.md`](docs/security.md). Requirements: Confluence space NestVault and
 Jira project NES.
 
-> Status: phase 1 (foundations). The workspace, lint, typecheck and tests work today. Docker,
-> database, web app and worker arrive in the next tasks (see the table at the end).
+> Status: phase 1 (foundations). The workspace, the web app shell (layout, themes, pt-PT) and the
+> checks work today. Docker, the database and the worker arrive in the next tasks (see the end).
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm test`                             | Vitest, all packages and the lint-rule tests                    |
 | `pnpm format` / `pnpm format:check`     | Prettier write / check                                          |
 | `pnpm build`                            | Build every package (placeholders for now)                      |
-| `pnpm dev` / `pnpm dev:worker`          | Web app / worker. **Placeholders until NES-15 / worker task**   |
+| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)     |
 | `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`     |
 | `pnpm db:up` / `db:down`                | Start / stop Postgres and Mailpit in Docker                     |
 | `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it         |
@@ -68,16 +68,35 @@ pnpm lint && pnpm typecheck && pnpm test
 Tests live outside the packages, in `tests/<package>/` (e.g. `tests/domain/`). Run one package's
 tests with `pnpm test --project domain`; typecheck all packages with `pnpm -r typecheck`.
 
+## Running the web app
+
+```bash
+pnpm dev        # http://localhost:4000 (redirects to /demo)
+```
+
+There is no sign-in or pool yet (NES-19, NES-26), so `/demo` stands in for `/[poolId]`. Pages:
+`/demo` (overview frame) and the other sidebar links (placeholders). Switch the theme with the
+toggle in the sidebar footer. On a phone-width window (≤ 860 px) the sidebar becomes a drawer.
+The design reference (tokens, components, mockups) lives in Confluence and `design/`, not in a route.
+
+- **Theme:** dark by default; the choice is stored in the `nv-theme` cookie and rendered on the
+  server, so a refresh does not flash.
+- **Texts:** every visible string lives in `apps/web/messages/pt-PT.json` (English keys). ESLint
+  fails on text typed directly in JSX.
+- **Formats:** `formatMoney`, `formatDate` and `formatPct` in `@nestvault/ui` (`1 234,56 €`,
+  `11/10/2026`).
+- **Fonts:** self-hosted from `design/fonts`; no request to Google Fonts.
+
 ## Repository layout
 
 ```
-apps/web/            Next.js app (not scaffolded yet)
+apps/web/            Next.js 15 app (App Router, next-intl, Tailwind with the design tokens)
 apps/worker/         scheduled jobs (pg-boss)
 docker/              Postgres init script (docker-compose.yml and scripts/ are at the root)
 packages/domain/     pure calculations, no I/O
 packages/services/   use cases + guards
 packages/db/         Drizzle schemas, migrations, repositories (identity + app databases)
-packages/ui/         tokens and shared components
+packages/ui/         base components (shadcn-style, token based) and pt-PT formatters
 packages/config/     validated environment variables (the only place that reads process.env)
 design/  docs/
 tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/api)
@@ -86,11 +105,11 @@ tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/a
 ## Accessing the app from a Mac (local development only)
 
 The project runs on an Ubuntu machine and is reached through SSH port forwarding, so the browser
-uses `http://localhost:3000` and cookies behave like local dev. Postgres is published on port 5433
+uses `http://localhost:4000` and cookies behave like local dev. Postgres is published on port 5433
 (not 5432), so a Postgres already running on the Mac does not clash with the tunnel:
 
 ```bash
-ssh -L 3000:localhost:3000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ubuntu-host
+ssh -L 4000:localhost:4000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ubuntu-host
 ```
 
 ## Git workflow
@@ -106,6 +125,5 @@ ssh -L 3000:localhost:3000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ub
 | ---------------------------------------------- | ------ |
 | Validated config package (`@nestvault/config`) | NES-13 |
 | Drizzle, `PoolContext`, RLS harness            | NES-14 |
-| Next.js app shell, themes, i18n                | NES-15 |
 
 This README is updated in every task that changes how the project is set up or run.

@@ -1,0 +1,47 @@
+{
+  "brand": {
+    "name": "COFRE",
+    "tagline": "FINANÇAS FAMILIARES"
+  },
+  "nav": {
+    "label": "Navegação principal",
+    "groups": {
+      "general": "Geral",
+      "investments": "Investimentos",
+      "daily": "Dia a dia",
+      "app": "App"
+    },
+    "items": {
+      "overview": "Visão geral",
+      "portfolios": "Portfolios",
+      "goals": "Objetivos",
+      "expenses": "Despesas",
+      "months": "Meses",
+      "accounts": "Contas e poupanças",
+      "settings": "Definições"
+    }
+  },
+  "shell": {
+    "skipToContent": "Saltar para o conteúdo",
+    "openMenu": "Abrir menu",
+    "closeMenu": "Fechar menu",
+    "searchLabel": "Pesquisar",
+    "searchPlaceholder": "Ticker ou movimento",
+    "newTransaction": "Transação",
+    "allHolders": "Todos",
+    "saveStatus": "Guardado neste navegador"
+  },
+  "theme": {
+    "dark": "Tema escuro",
+    "light": "Tema claro",
+    "switchLabel": "Usar o tema claro"
+  },
+  "overview": {
+    "emptyTitle": "Ainda não há dados",
+    "emptyText": "A visão geral enche-se quando houver contas, portfolios e movimentos."
+  },
+  "sections": {
+    "comingSoonTitle": "Em construção",
+    "comingSoonText": "Este ecrã chega numa fase seguinte."
+  }
+}
