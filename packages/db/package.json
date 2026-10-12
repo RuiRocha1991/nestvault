@@ -6,7 +6,26 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "echo \"db: nothing to build yet\"",
-    "typecheck": "tsc -p tsconfig.json"
+    "build": "echo \"db: nothing to build\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "db:generate:identity": "node --env-file-if-exists=../../.env.local ./node_modules/drizzle-kit/bin.cjs generate --config=drizzle.config.identity.ts",
+    "db:generate:app": "node --env-file-if-exists=../../.env.local ./node_modules/drizzle-kit/bin.cjs generate --config=drizzle.config.app.ts",
+    "db:migrate": "tsx --env-file-if-exists=../../.env.local src/migrate-cli.ts"
+  },
+  "dependencies": {
+    "@nestvault/config": "workspace:*",
+    "drizzle-orm": "~0.45.4",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "uuid": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "~0.31.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./pool-context-factory": "./src/pool-context.factory.ts",
+    "./migrate": "./src/migrate.ts"
   }
 }

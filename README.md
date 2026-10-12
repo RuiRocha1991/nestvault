@@ -37,6 +37,7 @@ Create the local environment and start the services (details: [`docs/dev-setup.m
 pnpm env:init   # creates .env.local with random passwords (never committed)
 pnpm db:up      # Postgres 16 (two databases) + Mailpit, bound to 127.0.0.1
 pnpm db:check   # verifies database isolation
+pnpm db:migrate # applies the migrations to both databases
 ```
 
 Check that everything works:
@@ -52,7 +53,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm install`                          | Install dependencies for all workspaces                            |
 | `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules)    |
 | `pnpm typecheck`                        | `tsc` in every package and for the root files                      |
-| `pnpm test`                             | Vitest, all packages and the lint-rule tests                       |
+| `pnpm test`                             | Vitest: unit, lint-rule and database tests. **Needs `pnpm db:up`** |
 | `pnpm format` / `pnpm format:check`     | Prettier write / check                                             |
 | `pnpm build`                            | Build every package (placeholders for now)                         |
 | `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)        |
@@ -62,7 +63,9 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it            |
 | `pnpm db:check`                         | Verify database isolation and network exposure                     |
 | `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                       |
-| `pnpm db:migrate` / `db:seed`           | Migrations / seed. **Placeholders until NES-14**                   |
+| `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user      |
+| `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                       |
+| `pnpm db:seed`                          | Seed data. **Placeholder until the first tables**                  |
 | `pnpm test:e2e`                         | Playwright. **Placeholder until the first screens**                |
 | `pnpm openapi`                          | Regenerate `docs/api/openapi.json`. **Placeholder**                |
 
@@ -103,6 +106,20 @@ random secrets.
   connections with `loadMigratorEnv()` and `loadTestEnv()`.
 - Adding a variable: add it to the schema in `packages/config/src/schema.ts` and to
   `.env.example` (a test fails if they drift apart).
+
+## Database
+
+Two databases that are never joined: `nestvault_identity` and `nestvault_app` (Drizzle, one schema
+folder and one migrations folder each, in `packages/db`).
+
+- `pnpm db:migrate` applies pending migrations to both as `nestvault_migrator`; run it as often as
+  you like. To change the schema use the `db-migration` skill (`pnpm db:generate:app`).
+- Application code reaches `nestvault_app` only through `withPool(ctx, tx => …)`, where `ctx` is a
+  `PoolContext` that only `requirePoolAccess` can create; Postgres Row-Level Security then enforces
+  the pool as a second lock.
+- `pnpm test` includes the database tests (RLS, pool isolation, injection payloads). They run on the
+  `_test` databases, which are dropped and migrated again at the start of each run, so
+  **`pnpm db:up` must be running**; if not, the run stops with a message saying so.
 
 ## Repository layout
 

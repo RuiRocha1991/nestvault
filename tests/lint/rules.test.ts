@@ -41,3 +41,84 @@ describe('process.env restriction', () => {
     );
   });
 });
+
+describe('PoolContext restrictions (architecture rule 3)', () => {
+  const factoryImport =
+    "import { createPoolContext } from '@nestvault/db/pool-context-factory';\nexport const f = createPoolContext;\n";
+  const cast =
+    "import type { PoolContext } from '@nestvault/db';\nexport const forged = {} as PoolContext;\n";
+
+  it('only services, the db package and tests may import the factory', async () => {
+    expect(await ruleIds(factoryImport, 'packages/services/src/guards.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(factoryImport, 'packages/db/src/index.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(factoryImport, 'tests/db/harness.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+    for (const path of [
+      'apps/web/src/app/page.ts',
+      'apps/worker/src/jobs.ts',
+      'packages/ui/src/x.ts',
+      'packages/domain/src/x.ts',
+    ]) {
+      expect(await ruleIds(factoryImport, path), path).toContain('no-restricted-imports');
+    }
+  });
+
+  it('forbids the angle-bracket cast and the double cast too', async () => {
+    const angle =
+      "import type { PoolContext } from '@nestvault/db';\nexport const forged = <PoolContext>{};\n";
+    const double =
+      "import type { PoolContext } from '@nestvault/db';\nexport const forged = JSON.parse('{}') as unknown as PoolContext;\n";
+    for (const code of [angle, double]) {
+      expect(await ruleIds(code, 'packages/services/src/guards.ts')).toContain(
+        'no-restricted-syntax',
+      );
+    }
+  });
+
+  it('forbids casting to PoolContext anywhere except the factory', async () => {
+    expect(await ruleIds(cast, 'packages/services/src/guards.ts')).toContain(
+      'no-restricted-syntax',
+    );
+    expect(await ruleIds(cast, 'apps/web/src/app/page.ts')).toContain('no-restricted-syntax');
+    expect(await ruleIds(cast, 'tests/db/harness.ts')).toContain('no-restricted-syntax');
+    expect(await ruleIds(cast, 'packages/db/src/pool-context.factory.ts')).not.toContain(
+      'no-restricted-syntax',
+    );
+  });
+});
+
+describe('the database package in the web app', () => {
+  const dbImport = "import { withPool } from '@nestvault/db';\nexport const w = withPool;\n";
+
+  it('is blocked in apps/web and allowed in services and the worker', async () => {
+    expect(await ruleIds(dbImport, 'apps/web/src/app/page.ts')).toContain('no-restricted-imports');
+    expect(await ruleIds(dbImport, 'packages/services/src/x.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(dbImport, 'apps/worker/src/index.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+  });
+});
+
+describe('Node-only config entry', () => {
+  const nodeImport =
+    "import { runtimeEnv } from '@nestvault/config/node';\nexport const e = runtimeEnv;\n";
+
+  it('is blocked in apps/web (it must not reach the browser) and allowed elsewhere', async () => {
+    expect(await ruleIds(nodeImport, 'apps/web/src/app/page.ts')).toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(nodeImport, 'packages/db/src/app/with-pool.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(nodeImport, 'apps/worker/src/index.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+  });
+});

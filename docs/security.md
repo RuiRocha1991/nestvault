@@ -61,13 +61,22 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 
 ## 4. Row-Level Security
 - **What:** every table in `nestvault_app` has `pool_id uuid not null`, `ENABLE` **and** `FORCE ROW
-  LEVEL SECURITY`, and a policy `pool_id = current_setting('app.pool_id')::uuid`. The app connects as
-  `app_rw` (not table owner, no `BYPASSRLS`). Queries run in `withPool(ctx, …)` which does
-  `SET LOCAL app.pool_id`.
-- **Where:** `packages/db/app/migrations`, `packages/db/app/with-pool.ts`.
-- **Verified by:** a test that queries `pg_class` and fails if any app table (except the global
-  `fx_rates`) lacks `relrowsecurity` and `relforcerowsecurity`; pool-isolation tests for every
-  repository (read and write of another pool's row must fail, even with the `where` removed).
+  LEVEL SECURITY`, and a policy `pool_id = app_current_pool_id()` (a function that reads
+  `app.pool_id` and treats unset or empty as "no pool"). The app connects as `app_rw` (not table
+  owner, no `BYPASSRLS`). Queries run in `withPool(ctx, …)`, which opens a transaction and runs
+  `set_config('app.pool_id', $1, true)` with a bound parameter, so the setting is local to the
+  transaction and cannot leak to the next user of a pooled connection.
+- **Where:** `packages/db/migrations/app` (policy function and per-table RLS blocks),
+  `packages/db/src/app/with-pool.ts`, `packages/db/src/app/rls-audit.ts`.
+- **Verified by:** `tests/db/rls-audit.test.ts` queries `pg_class` and fails if any app table
+  (except the global `fx_rates` and `import_specs`) lacks `relrowsecurity` **and**
+  `relforcerowsecurity` (demonstrated with tables that have none or only ENABLE);
+  `tests/db/with-pool.test.ts` shows that outside `withPool` no row is visible, that a select with
+  no `where` returns only the pool's rows, that inserting another pool's row fails the `WITH CHECK`,
+  and that the setting does not leak across a reused connection; pool-isolation tests for every
+  repository (read and write of another pool's row must fail, with RLS and, on an RLS-less twin
+  table, with the repository's own `where` alone). The same tests were mutation-checked: breaking
+  the policy function, the predicate or the repository filter makes them fail.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with
@@ -127,8 +136,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** Drizzle query builder or the `sql` tagged template only. No string-built SQL; no user
   input in `sql.raw`/`sql.identifier`; dynamic sort/filter columns go through an allow-list.
 - **Verified by:** ESLint `no-restricted-syntax` rule flagging `sql.raw(` outside
-  `packages/db/**/migrations`; injection-payload test for every repository function;
-  `/security-review`.
+  `packages/db/**/migrations`; injection-payload test for every repository function
+  (`tests/db/repository.test.ts`; the pool id in `set_config` is also tested with malicious
+  strings); `/security-review`. Note: Drizzle's error message includes the query parameters, so
+  errors must never be logged with their message (NES-16 redaction).
 
 ## 14. Input validation
 - **What:** zod at every boundary: Server Actions, Route Handlers, query strings, route params

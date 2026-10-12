@@ -16,6 +16,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
-    "./public": "./src/public.ts"
+    "./public": "./src/public.ts",
+    "./node": "./src/node.ts"
   }
 }
