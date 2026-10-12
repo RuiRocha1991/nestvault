@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Security control 20: dependency install scripts do not run unless listed here.
+# Explicitly skipped: unrs-resolver ships prebuilt native binaries, its install script is a fallback.
+allowBuilds:
+  unrs-resolver: false

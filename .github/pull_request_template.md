@@ -24,6 +24,7 @@ Explain every change, grouped by package or area, including design decisions and
 - [ ] SQL injection check done (query builder / bound parameters only, injection-payload tests)
 - [ ] Security baseline (`docs/security.md`) — controls touched by this change are verified
 - [ ] `pnpm lint && pnpm typecheck` pass
+- [ ] `README.md` updated when setup, config or commands changed
 
 Security review notes:
 
