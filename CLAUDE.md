@@ -90,6 +90,8 @@ services/parser/     Python parser service: code parsers, spec engine, specs, fi
 packages/ui/         tokens and shared components
 design/              design system, tokens, fonts, mockups
 docs/                PRD, handoff, prototype, security baseline, API docs (docs/api/), ADRs (docs/adr/)
+tests/<package>/     all Vitest tests, one folder per package (tests/domain, tests/services, …)
+tests/lint/          tests for the custom ESLint rules
 tests/api/           Postman/Insomnia collections and environments (JSON)
 ```
 
@@ -146,20 +148,38 @@ dependencies. The essentials:
   `http://localhost:3000` and cookies behave like local dev. Alternatively VS Code Remote-SSH.
 - Commands (keep this list in sync with `package.json`):
   - `pnpm install`
-  - `pnpm db:up` / `pnpm db:migrate` / `pnpm db:seed`
-  - `pnpm dev` — web app; `pnpm dev:worker` — worker
+  - `pnpm db:up` / `pnpm db:down` / `pnpm db:migrate` / `pnpm db:seed`
+  - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm build`
   - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`
+  - `pnpm format` / `pnpm format:check` — Prettier
   - `pnpm openapi` — regenerate `docs/api/openapi.json`
 
 ## Git workflow
 
 - Tasks are Jira issues in project **NES**. The branch name **is the Jira key** (e.g. `NES-12`)
   and every commit message starts with it: `NES-12: <imperative summary>`.
-- **Current mode: direct to `master`.** Until the user says otherwise, commit and push straight to
-  `master`; no task branches and no PRs. Still run the definition of done before every push.
-- **Target mode (when the user switches):** long-lived `master` (stable) and `dev` (integration)
-  only; task branches `<KEY>` from `dev`, merged back by PR; `dev` → `master` by PR; no direct
-  pushes to `master` or `dev`.
+- **Current mode: work from `dev`.** `master` (stable) and `dev` (integration) are long-lived.
+  Every task gets a branch named after the Jira key, created **from `dev`**
+  (`git fetch origin dev && git checkout -b NES-12 origin/dev`), and is merged back into `dev`
+  by PR (the user validates and merges). Never commit or push directly to `dev` or `master`;
+  `dev` → `master` by PR only when the user asks for a release.
+- **One commit per task.** Before the PR is merged, squash the task branch into a single commit
+  (`git reset --soft origin/dev && git commit`, then `git push --force-with-lease`; only ever on
+  the task branch). The PR is merged with `gh pr merge --squash` once checks are green and the
+  user has approved; then delete the task branch and set the Jira task to `Concluído`.
+- **Keep the Jira status in sync, always** (statuses: `A fazer`, `Em Progresso`, `Concluído`):
+  - starting a task → `Em Progresso`;
+  - PR open and waiting for the user → stays `Em Progresso`;
+  - PR merged / the user confirms it is finished → `Concluído`;
+  - work paused or dropped → back to `A fazer`.
+  Do the transition in the same turn the state changes, and say which one was done.
+
+## README
+
+`README.md` is the step-by-step guide to set the project up and run it. Keep it exactly as true as
+the repository: whenever a task changes how to set up, configure, run, test or build the project
+(prerequisites, env vars, Docker services, ports, scripts, migrations, seeds, new apps), update
+`README.md` in the same PR and tick it in the definition of done.
 
 ## Project skills (`.claude/skills/`)
 
@@ -199,6 +219,8 @@ of the following and report the result of each step:
 5. **Security baseline.** Walk `docs/security.md`; every control the change touches has its
    "Verified by" check in place.
 6. `pnpm lint && pnpm typecheck && pnpm test` all pass.
+7. **README and Jira.** `README.md` still matches the real setup steps; the Jira status is
+   correct for the current state (see Git workflow).
 
 ## Pull requests
 

@@ -1,0 +1,44 @@
+{
+  "name": "nestvault",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @nestvault/web dev",
+    "dev:worker": "pnpm --filter @nestvault/worker dev",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "echo 'test:e2e: Playwright arrives with the first screens (NES-15)'",
+    "db:up": "echo 'db:up: Docker dev environment arrives in NES-12'",
+    "db:down": "echo 'db:down: Docker dev environment arrives in NES-12'",
+    "db:migrate": "echo 'db:migrate: migrations arrive in NES-14'",
+    "db:seed": "echo 'db:seed: seed arrives with the first tables'",
+    "openapi": "echo 'openapi: generator arrives with the first /api/v1 route'"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@nestvault/config": "workspace:*",
+    "@nestvault/db": "workspace:*",
+    "@nestvault/domain": "workspace:*",
+    "@nestvault/services": "workspace:*",
+    "@nestvault/ui": "workspace:*",
+    "@nestvault/web": "workspace:*",
+    "@nestvault/worker": "workspace:*",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.12.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
+}

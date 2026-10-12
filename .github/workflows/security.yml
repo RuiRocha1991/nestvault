@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   secrets:
@@ -23,8 +24,6 @@ jobs:
   checks:
     name: Audit, lint, typecheck, test
     runs-on: ubuntu-latest
-    # Runs once the monorepo exists (package.json at the root).
-    if: ${{ hashFiles('package.json') != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -1,0 +1,12 @@
+node_modules
+pnpm-lock.yaml
+.next
+dist
+coverage
+docs
+design
+services/parser
+tests/api
+.claude
+.github
+CLAUDE.md
