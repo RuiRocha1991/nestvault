@@ -36,21 +36,29 @@ pool's row.
 
 ## Steps
 
-1. Edit the Drizzle schema in `packages/db/src/<db>/schema/<table>.ts`.
-2. `pnpm --filter @nestvault/db db:generate:<db>` to create the migration SQL. Read the generated
-   SQL — never edit an already-applied migration; add a new one.
+1. Edit the Drizzle schema in `packages/db/src/<db>/schema/<table>.ts` and export it from the
+   folder's `index.ts`. Use the helpers in `@nestvault/db`: `money()`, `quantity()`, `rate()`,
+   `poolId()` and `newId()`.
+2. `pnpm db:generate:app` (or `db:generate:identity`) creates the migration SQL in
+   `packages/db/migrations/<db>/`. Read the generated SQL — never edit an already-applied
+   migration; add a new one. For SQL Drizzle cannot generate: `pnpm db:generate:app --custom --name=<name>`.
 3. For `app` tables, add the RLS block to the same migration (Drizzle does not generate it):
 
 ```sql
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts FORCE ROW LEVEL SECURITY;
 CREATE POLICY accounts_pool_isolation ON accounts
-  USING (pool_id = current_setting('app.pool_id', true)::uuid)
-  WITH CHECK (pool_id = current_setting('app.pool_id', true)::uuid);
+  USING (pool_id = app_current_pool_id())
+  WITH CHECK (pool_id = app_current_pool_id());
 GRANT SELECT, INSERT, UPDATE, DELETE ON accounts TO app_rw;
 ```
 
-   (`current_setting(..., true)` returns null when unset, so a query outside `withPool` sees nothing.)
+   `app_current_pool_id()` is created by the baseline migration. It returns null when the setting is
+   unset **or an empty string** (what Postgres leaves behind on a reused connection), so a query
+   outside `withPool` sees nothing. Never write `current_setting('app.pool_id')::uuid` directly: the
+   empty string would fail the cast. `ENABLE` alone is not enough; `FORCE` makes the table owner
+   obey the policy too. `app_rw` already has default privileges on tables the migration user
+   creates, the explicit `GRANT` documents intent.
 4. Repository in `packages/db/src/<db>/repositories/<table>.repo.ts`:
 
 ```ts
@@ -72,17 +80,26 @@ export const accountsRepo = {
 
    Rules: `PoolContext` is a required parameter; every `where` includes `pool_id`; no
    `sql.raw` / string-built SQL; any dynamic column comes from an allow-list.
-5. `pnpm db:migrate` locally and run the tests.
+5. `pnpm db:migrate` locally, then `pnpm test --project db` (the Docker Postgres must be up:
+   `pnpm db:up`).
 
-## Required tests (`<table>.repo.test.ts`, against the Docker Postgres)
+## Required tests (`tests/db/<table>.repo.test.ts`, against the Docker Postgres)
+
+Use the harness in `tests/db/harness.ts`: `openTestDatabase()` (app connection as `app_rw` plus
+`withPool`), `createTwoPools()`, `truncateAll()` in `beforeEach`, and `failureCodeOf()` / `PG` to
+assert on Postgres error codes (Drizzle wraps the driver error, so match `cause.code`, not the
+message). `tests/db/probe.ts` is a complete worked example of a repository and its tests.
 
 - **Isolation (app layer):** create rows in pool A and B; with ctx A, `list`/`get`/`update`/`delete`
-  never see or change B's rows.
+  never see or change B's rows. RLS would hide a missing `where pool_id`, so run this on an RLS-less
+  twin table (see `makeProbeRepo` / `UNPROTECTED_PROBE_SQL` in `tests/db/`), created and dropped
+  inside the test.
 - **Isolation (RLS):** inside `withPool(ctxA)`, run a raw select of the table **without** the
   `pool_id` filter (test-only helper) and assert only A's rows come back; insert with
   `pool_id = B` must fail the `WITH CHECK`.
-- **RLS present:** the global test that every app table has `relrowsecurity` and
-  `relforcerowsecurity` covers the new table automatically — make sure it passes.
+- **RLS present:** the global test in `tests/db/rls-audit.test.ts` (`findAppTablesWithoutRls`) covers
+  the new table automatically — make sure it passes. A table that is global reference data goes in
+  `RLS_EXEMPT_TABLES` (`packages/db/src/app/rls-audit.ts`) with a reason in the PR.
 - **SQL injection:** a string field set to `' OR 1=1 --` and `'; DROP TABLE <table>; --` is stored
   and read back literally, and the table still exists.
 - **Money precision:** `"0.1" + "0.2"` style values round-trip exactly as strings.

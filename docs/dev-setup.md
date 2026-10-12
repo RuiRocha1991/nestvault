@@ -22,6 +22,7 @@ pnpm install --frozen-lockfile
 pnpm env:init      # creates .env.local with random passwords and secrets (never committed)
 pnpm db:up         # starts Postgres 16 and Mailpit, waits until they are healthy
 pnpm db:check      # verifies isolation between the databases (see below)
+pnpm db:migrate    # applies the migrations to nestvault_identity and nestvault_app
 ```
 
 `pnpm env:init` refuses to overwrite an existing `.env.local`. To start over, delete it and run

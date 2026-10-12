@@ -7,6 +7,7 @@ packages:
 allowBuilds:
   '@parcel/watcher': false
   '@swc/core': false
+  esbuild: false
   unrs-resolver: false
 
 # Next.js pins an old postcss internally (GHSA-6g55-p6wh-862q, GHSA-r28c-9q8g-f849); use the patched one.

@@ -26,9 +26,16 @@ describe('server / client boundary (security control 1)', () => {
     expect(source('schema.ts')).not.toContain('process.env');
   });
 
-  it('only index.ts and public.ts read process.env', () => {
-    expect(source('index.ts')).toContain('process.env');
+  it('only node.ts and public.ts read process.env', () => {
+    expect(source('node.ts')).toContain('process.env');
     expect(source('public.ts')).toContain('process.env.NEXT_PUBLIC_APP_NAME');
+    expect(source('index.ts')).not.toContain('process.env');
+  });
+
+  it('the Node entry point has no server-only (it throws outside React Server) and reads env lazily', () => {
+    const node = source('node.ts');
+    expect(node).not.toContain('server-only');
+    expect(node).not.toMatch(/^export const \w+ = .*process\.env/m);
   });
 });
 

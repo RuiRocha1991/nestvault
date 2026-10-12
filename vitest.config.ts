@@ -5,22 +5,25 @@ import { defineConfig } from 'vitest/config';
 // One Vitest project per folder under tests/, named after the package it covers.
 const projects = ['web', 'worker', 'domain', 'services', 'db', 'ui', 'config', 'lint'];
 
+// `server-only` throws outside a React Server build, so tests replace it with an empty module.
+const serverOnlyStub = fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url));
+
 export default defineConfig({
   test: {
     projects: projects.map((name) => ({
-      test: { name, include: [`tests/${name}/**/*.test.{ts,tsx}`] },
-      // `server-only` throws outside a React Server build; the config tests stub it.
-      ...(name === 'config'
-        ? {
-            resolve: {
-              alias: {
-                'server-only': fileURLToPath(
-                  new URL('./tests/config/stubs/server-only.ts', import.meta.url),
-                ),
-              },
-            },
-          }
-        : {}),
+      test: {
+        name,
+        include: [`tests/${name}/**/*.test.{ts,tsx}`],
+        // The db tests share one Postgres: migrate and reset once per run, then run files in turn.
+        ...(name === 'db'
+          ? {
+              globalSetup: ['tests/db/global-setup.ts'],
+              setupFiles: ['tests/db/setup-env.ts'],
+              fileParallelism: false,
+            }
+          : {}),
+      },
+      resolve: { alias: { 'server-only': serverOnlyStub } },
     })),
   },
 });
