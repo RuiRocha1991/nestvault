@@ -22,3 +22,21 @@
   until within the limit or upgraded. Extra members keep read-only access until removed.
 - Billing later: Stripe Billing + Customer Portal + webhooks (signature verified, idempotent),
   Stripe Tax for VAT; no card data ever touches our servers.
+
+## Addendum (2026-10-12) — Free preview of Pro modules
+
+Free pools can **open** Pro modules (real estate and loans today), but only see **fictional demo
+data** in read-only mode instead of an empty state or a 403 page.
+
+- The demo data is static and shipped with the app (never written to the pool's database, never
+  counted in net worth, never exported). Pages show a "dados de exemplo" banner and an `EXEMPLO` tag.
+- Every action control (add, edit, import, delete, simulate-and-save…) is rendered normally with a
+  lock icon and, when clicked, **always opens the "Plano Pro" dialog** instead of calling the API.
+- The dialog is UI only. The server rule is unchanged: services still call
+  `assertFeature(ctx, 'real_estate')` and return `PlanLimitError` (403, code `plan_limit`), so the
+  preview cannot be used to write real data.
+- Dialog variants: owner (**Ativar Pro**), non-owner member (**Só o proprietário pode ativar o Pro**,
+  with "Avisar o proprietário"), and the numeric limit variant (**Limite do plano Free atingido**,
+  e.g. 3 of 3 accounts).
+- Navigation shows a `PRO` tag next to the module for Free pools.
+- Mockups: `design/mockups/*/33…`, `34…`, `35…`, `36…`, `modal-37…39…`.
