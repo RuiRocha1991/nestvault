@@ -119,6 +119,13 @@ export default defineConfig(
     },
   },
   {
+    // Test-runner configuration reads CI flags; it never runs inside the product.
+    files: ['playwright.config.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', noSqlRaw, noPoolContextCast, noPoolContextAngleCast],
+    },
+  },
+  {
     // The factory is the one file that builds a PoolContext.
     files: ['packages/db/src/pool-context.factory.ts'],
     rules: { 'no-restricted-syntax': ['error', noSqlRaw, noProcessEnv] },

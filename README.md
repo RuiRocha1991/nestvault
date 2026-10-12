@@ -66,8 +66,13 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user      |
 | `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                       |
 | `pnpm db:seed`                          | Seed data. **Placeholder until the first tables**                  |
-| `pnpm test:e2e`                         | Playwright. **Placeholder until the first screens**                |
+| `pnpm test:e2e`                         | Playwright (Chromium) against the production build on port 4010    |
 | `pnpm openapi`                          | Regenerate `docs/api/openapi.json`. **Placeholder**                |
+
+Browser checks (`tests/e2e/`) need Chromium once: `pnpm exec playwright install chromium`
+(on a fresh Ubuntu add `--with-deps`). `pnpm test:e2e` builds the web app and serves it on port 4010,
+so stop anything else using that port; the header integration test in `tests/web` uses it too, so
+do not run both at the same time.
 
 Tests live outside the packages, in `tests/<package>/` (e.g. `tests/domain/`). Run one package's
 tests with `pnpm test --project domain`; typecheck all packages with `pnpm -r typecheck`.
