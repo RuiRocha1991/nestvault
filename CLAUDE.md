@@ -53,7 +53,8 @@ Everything new is written in English (see below).
   specs in phase 5 (ADR 0001).
 - **Market data** behind swappable providers, free sources first, one env var to switch to a paid
   provider; prices hourly, dividends daily, estimated dividends when nothing is announced (ADR 0002).
-- **Plans**: Free (3 accounts, 2 portfolios, owner only, no real estate) and Pro (no limits). Enforce
+- **Plans**: Free (3 accounts, 2 portfolios, owner only, no real estate) and Pro (no limits). Free pools can open Pro
+  pages with read-only demo data; every action opens the Pro dialog (ADR 0003 addendum). Enforce
   through `assertWithinLimit` / `assertFeature` in services, never in feature code; billing off by
   default (`BILLING_ENABLED=false` = everything Pro) (ADR 0003).
 - **Categories**: global catalogue (`pool_id IS NULL`, names via i18n) + pool-only custom
