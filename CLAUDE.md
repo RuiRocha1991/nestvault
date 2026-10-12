@@ -118,6 +118,9 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
 
 ## UI conventions
 
+- Inside `apps/web/src`, import with the `@webapp/…` alias (`@webapp/server/api/route`), not long
+  `../../..` paths; each future app gets its own alias (`@worker/…`). Same-folder `./x` stays relative.
+
 - All visible text comes from `apps/web/messages/pt-PT.json` (`useTranslations` /
   `getTranslations`); ESLint rejects text and `title`/`alt`/`placeholder`/`aria-label` literals in
   JSX under `apps/web` and `packages/ui`. Shared components take their labels as props.
@@ -162,6 +165,8 @@ dependencies. The essentials:
 - Commands (keep this list in sync with `package.json`):
   - `pnpm install`
   - `pnpm env:init` — create `.env.local` (random secrets; Claude must not read it)
+  - `pnpm env:check` / `pnpm env:sync` — list / add the variables `.env.local` lacks (names only);
+    changing `.env.example` means bumping its `# env-version` and the table in `docs/dev-setup.md`
   - `pnpm gen:secret` — print a random 32-byte base64 secret
   - `pnpm db:up` / `pnpm db:down` / `pnpm db:reset` / `pnpm db:check` / `pnpm db:psql:identity` /
     `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`

@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
   // Linting runs in `pnpm lint` and CI with the root flat config.
   eslint: { ignoreDuringBuilds: true },
   // Workspace packages ship TypeScript sources.
-  transpilePackages: ['@nestvault/ui', '@nestvault/config'],
+  transpilePackages: ['@nestvault/ui', '@nestvault/config', '@nestvault/services'],
+  // Loaded by Node as they are: pino for logging, swagger-ui-dist because it is served from disk.
+  serverExternalPackages: ['pino', 'swagger-ui-dist'],
 };
 
 export default withNextIntl(nextConfig);

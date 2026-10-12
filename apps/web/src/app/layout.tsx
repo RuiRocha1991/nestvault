@@ -5,7 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { parseTheme, THEME_COOKIE } from '../lib/theme';
+import { parseTheme, THEME_COOKIE } from '@webapp/lib/theme';
 
 import { jetBrainsMono, plusJakartaSans } from './fonts';
 

@@ -75,6 +75,8 @@ const runtimeShape = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_URL: appUrl,
   ALLOW_SIGNUP: strictBoolean,
+  // Swagger UI and the OpenAPI document at /api/docs; never served when NODE_ENV is production.
+  ENABLE_API_DOCS: strictBoolean,
   DATABASE_URL_IDENTITY: postgresUrl,
   DATABASE_URL_APP: postgresUrl,
   BETTER_AUTH_SECRET: secret(32),
@@ -157,7 +159,8 @@ export class EnvValidationError extends Error {
       [
         'Invalid environment variables:',
         ...issues.map((issue) => `  - ${issue.name}: ${issue.reason}`),
-        'See .env.example (pnpm env:init creates .env.local with working values).',
+        'See .env.example (pnpm env:init creates .env.local with working values;\n' +
+          'pnpm env:check lists the variables your .env.local lacks, pnpm env:sync adds them).',
       ].join('\n'),
     );
     this.name = 'EnvValidationError';

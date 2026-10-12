@@ -58,6 +58,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm build`                            | Build every package (placeholders for now)                         |
 | `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)        |
 | `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`        |
+| `pnpm env:check` / `pnpm env:sync`      | List / add the variables your `.env.local` lacks (names only)      |
 | `pnpm gen:secret`                       | Print a random 32-byte base64 secret (auth secret, encryption key) |
 | `pnpm db:up` / `db:down`                | Start / stop Postgres and Mailpit in Docker                        |
 | `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it            |
@@ -67,7 +68,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                       |
 | `pnpm db:seed`                          | Seed data. **Placeholder until the first tables**                  |
 | `pnpm test:e2e`                         | Playwright (Chromium) against the production build on port 4010    |
-| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`. **Placeholder**                |
+| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)  |
 
 Browser checks (`tests/e2e/`) need Chromium once: `pnpm exec playwright install chromium`
 (on a fresh Ubuntu add `--with-deps`). `pnpm test:e2e` builds the web app and serves it on port 4010,
@@ -96,6 +97,19 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   `11/10/2026`).
 - **Fonts:** self-hosted from `design/fonts`; no request to Google Fonts.
 
+## REST API
+
+Every endpoint under `/api/v1` is a Route Handler wrapped in `route()` (`apps/web/src/server/api`):
+request id (`x-request-id`), same-`Origin` check on writes, typed errors mapped to
+`{ error: { code, message }, requestId }`, JSON logs without secrets.
+
+- `GET http://localhost:4000/api/v1/health` answers `{"status":"ok"}` (no sign-in).
+- **Swagger UI:** http://localhost:4000/api/docs. Served only when `ENABLE_API_DOCS=true` (set in
+  `.env.local` by `pnpm env:init`) **and** the app is not in production mode; otherwise a 404.
+- **OpenAPI document:** `docs/api/openapi.json`, generated from the zod schemas. Run `pnpm openapi`
+  after adding or changing an endpoint; `pnpm openapi --check` (CI) fails when it is stale.
+- **Postman / Insomnia:** `tests/api/` (collection, environment and how to sign in with the cookie jar).
+
 ## Environment variables
 
 All configuration comes from environment variables, validated once at boot by `@nestvault/config`
@@ -110,7 +124,9 @@ random secrets.
 - The web and worker processes do not get the migration user; migrations and tests load their own
   connections with `loadMigratorEnv()` and `loadTestEnv()`.
 - Adding a variable: add it to the schema in `packages/config/src/schema.ts` and to
-  `.env.example` (a test fails if they drift apart).
+  `.env.example`, bump `# env-version` there and add a line to "Environment versions" in
+  `docs/dev-setup.md` (tests fail if they drift apart). After pulling, `pnpm env:check` tells you
+  whether your `.env.local` lacks anything and `pnpm env:sync` adds it.
 
 ## Database
 

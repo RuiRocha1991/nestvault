@@ -6,13 +6,15 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "dev": "next dev -p 4000",
+    "dev": "node --env-file-if-exists=../../.env.local ./node_modules/next/dist/bin/next dev -p 4000",
     "build": "next build",
-    "start": "next start -p 4000",
+    "start": "node --env-file-if-exists=../../.env.local ./node_modules/next/dist/bin/next start -p 4000",
     "typecheck": "next typegen && tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@nestvault/config": "workspace:*",
+    "@nestvault/services": "workspace:*",
     "@nestvault/ui": "workspace:*",
     "autoprefixer": "^10.6.1",
     "lucide-react": "^1.55.0",
@@ -21,7 +23,9 @@
     "postcss": "^8.5.29",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "tailwindcss": "^3.4.19"
+    "swagger-ui-dist": "^5.33.1",
+    "tailwindcss": "^3.4.19",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

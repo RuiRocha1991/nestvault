@@ -8,5 +8,9 @@
   "scripts": {
     "build": "echo \"services: nothing to build yet\"",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "pino": "^10.4.0",
+    "zod": "^4.6.6"
   }
 }

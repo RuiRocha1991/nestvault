@@ -50,6 +50,8 @@ jobs:
         run: pnpm db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
+      - name: OpenAPI document is up to date
+        run: pnpm openapi --check
       - run: pnpm test
       - name: Browser checks (Playwright)
         run: |

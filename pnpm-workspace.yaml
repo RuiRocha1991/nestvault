@@ -6,6 +6,7 @@ packages:
 # Explicitly skipped: unrs-resolver ships prebuilt native binaries, its install script is a fallback.
 allowBuilds:
   '@parcel/watcher': false
+  '@scarf/scarf': false
   '@swc/core': false
   esbuild: false
   unrs-resolver: false
