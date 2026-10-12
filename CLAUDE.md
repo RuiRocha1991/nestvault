@@ -115,6 +115,18 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
    floats for money arithmetic in the domain; use a decimal library.
 7. Derived values (balances, positions, deposit interest) are computed in `packages/domain`.
 
+## UI conventions
+
+- All visible text comes from `apps/web/messages/pt-PT.json` (`useTranslations` /
+  `getTranslations`); ESLint rejects text and `title`/`alt`/`placeholder`/`aria-label` literals in
+  JSX under `apps/web` and `packages/ui`. Shared components take their labels as props.
+- Colours, spacing, radii and fonts come from `design/tokens.css` through the Tailwind preset
+  (`bg-panel`, `text-fg-2`, …); no hard-coded hex values in components except data colours.
+- Money, dates and percentages are formatted only with `formatMoney`, `formatDate` and
+  `formatPct` from `@nestvault/ui`.
+- The theme is the `nv-theme` cookie (`dark` | `light`), rendered into `<html data-theme>` on the
+  server. Cookie values are validated with `parseTheme` before use.
+
 ## Security rules
 
 `docs/security.md` is the security baseline: 21 controls, each with where it lives and how it is
@@ -144,8 +156,8 @@ dependencies. The essentials:
 
 - Postgres runs in Docker (`docker compose up -d`), both databases in one container.
 - The Ubuntu machine is accessed from the Mac. Preferred: SSH port forwarding
-  (`ssh -L 3000:localhost:3000 -L 5432:localhost:5432 user@ubuntu-host`) so the browser uses
-  `http://localhost:3000` and cookies behave like local dev. Alternatively VS Code Remote-SSH.
+  (`ssh -L 4000:localhost:4000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ubuntu-host`) so the browser uses
+  `http://localhost:4000` and cookies behave like local dev. Alternatively VS Code Remote-SSH.
 - Commands (keep this list in sync with `package.json`):
   - `pnpm install`
   - `pnpm env:init` — create `.env.local` (random secrets; Claude must not read it)

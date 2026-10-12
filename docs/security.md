@@ -163,7 +163,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 
 ## 19. HTTPS only
 - **What (now):** local development over `http://localhost` through an SSH tunnel — the traffic
-  between Mac and Ubuntu is encrypted by SSH. Do not expose port 3000 on the LAN without TLS.
+  between Mac and Ubuntu is encrypted by SSH. Do not expose port 4000 on the LAN without TLS.
 - **What (later):** TLS terminated by the host (Render) or Caddy on a VPS; HTTP → HTTPS redirect;
   HSTS (18); `Secure` cookies (9).
 - **Verified by:** deployment checklist when we leave local-only.

@@ -1,6 +1,6 @@
 /* Tokens de design do Cofre Familiar (escuro por defeito, claro via data-theme ou preferência do sistema).
-   Fontes: Plus Jakarta Sans 400–800 e JetBrains Mono 500–600 (Google Fonts, licença OFL; cópias em /fonts). */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+   Fontes: Plus Jakarta Sans 400–800 e JetBrains Mono 500–600 (licença OFL), servidas a partir de /fonts
+   (sem pedidos a terceiros em runtime: a CSP só permite 'self'). */
 
 :root{
   --bg:#1A1B38; --sidebar:#1F2044; --panel:#24264C; --panel-2:#2C2E5A; --inset:#1D1F40;

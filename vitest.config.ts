@@ -6,7 +6,7 @@ const projects = ['web', 'worker', 'domain', 'services', 'db', 'ui', 'config', '
 export default defineConfig({
   test: {
     projects: projects.map((name) => ({
-      test: { name, include: [`tests/${name}/**/*.test.ts`] },
+      test: { name, include: [`tests/${name}/**/*.test.{ts,tsx}`] },
     })),
   },
 });

@@ -68,13 +68,13 @@ anything other than `127.0.0.1`; or the Postgres port answers on the machine's L
 
 ## 5. Open the app from the Mac
 
-Forward the ports through SSH so the browser on the Mac uses `http://localhost:3000`:
+Forward the ports through SSH so the browser on the Mac uses `http://localhost:4000`:
 
 ```bash
-ssh -L 3000:localhost:3000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ubuntu-host
+ssh -L 4000:localhost:4000 -L 8025:localhost:8025 -L 5433:localhost:5433 user@ubuntu-host
 ```
 
-Then open `http://localhost:3000` (the app) and `http://localhost:8025` (Mailpit). A database tool on
+Then open `http://localhost:4000` (the app) and `http://localhost:8025` (Mailpit). A database tool on
 the Mac connects to `localhost:5433` (the `-L 5433` part; leave it out if you do not need it). The
 port is 5433 on both machines on purpose: a Postgres already running on the Mac (5432) does not
 clash with the tunnel. To use another port, set `POSTGRES_PORT` in `.env.local`, run `pnpm db:up`
@@ -82,7 +82,7 @@ again and use the same number in `-L`.
 
 Alternative: VS Code Remote-SSH, which forwards the ports for you.
 
-**Why not expose port 3000 on the LAN?** The dev server has no TLS and the session cookie is not
+**Why not expose port 4000 on the LAN?** The dev server has no TLS and the session cookie is not
 `Secure` on localhost. Through the tunnel the browser sees `localhost`, so cookies behave exactly
 like local development, and nothing on your network can reach the app or the database.
 
