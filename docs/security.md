@@ -174,8 +174,13 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `X-Frame-Options: DENY` (+ `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera, mic,
   geolocation off), HSTS when on HTTPS.
-- **Where:** `apps/web/middleware.ts` + `next.config.ts`.
-- **Verified by:** test that requests a page and an API route and asserts each header.
+- **Where:** `apps/web/src/middleware.ts` (headers only, never authorization) builds them with
+  `apps/web/src/lib/security-headers.ts`; `next.config.ts` turns off `X-Powered-By` and browser
+  source maps. `style-src` keeps `'unsafe-inline'` because Tailwind and `next/font` inject styles;
+  scripts have none. In development only, `/api/docs` (Swagger UI) may run its bundled script.
+- **Verified by:** `tests/web/security-headers.test.ts` (policy), `tests/web/headers.integration.test.ts`
+  (real production build: page, API route, nonce per request, HSTS behind HTTPS, no source maps)
+  and `tests/e2e/csp.spec.ts` (Playwright: no violation on the shell pages, inline handlers blocked).
 
 ## 19. HTTPS only
 - **What (now):** local development over `http://localhost` through an SSH tunnel — the traffic
