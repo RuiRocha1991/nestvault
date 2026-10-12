@@ -8,5 +8,14 @@
   "scripts": {
     "build": "echo \"config: nothing to build yet\"",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./public": "./src/public.ts"
   }
 }

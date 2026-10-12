@@ -47,23 +47,24 @@ pnpm lint && pnpm typecheck && pnpm test
 
 ## Commands
 
-| Command                                 | What it does                                                    |
-| --------------------------------------- | --------------------------------------------------------------- |
-| `pnpm install`                          | Install dependencies for all workspaces                         |
-| `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules) |
-| `pnpm typecheck`                        | `tsc` in every package and for the root files                   |
-| `pnpm test`                             | Vitest, all packages and the lint-rule tests                    |
-| `pnpm format` / `pnpm format:check`     | Prettier write / check                                          |
-| `pnpm build`                            | Build every package (placeholders for now)                      |
-| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)     |
-| `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`     |
-| `pnpm db:up` / `db:down`                | Start / stop Postgres and Mailpit in Docker                     |
-| `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it         |
-| `pnpm db:check`                         | Verify database isolation and network exposure                  |
-| `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                    |
-| `pnpm db:migrate` / `db:seed`           | Migrations / seed. **Placeholders until NES-14**                |
-| `pnpm test:e2e`                         | Playwright. **Placeholder until the first screens**             |
-| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`. **Placeholder**             |
+| Command                                 | What it does                                                       |
+| --------------------------------------- | ------------------------------------------------------------------ |
+| `pnpm install`                          | Install dependencies for all workspaces                            |
+| `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules)    |
+| `pnpm typecheck`                        | `tsc` in every package and for the root files                      |
+| `pnpm test`                             | Vitest, all packages and the lint-rule tests                       |
+| `pnpm format` / `pnpm format:check`     | Prettier write / check                                             |
+| `pnpm build`                            | Build every package (placeholders for now)                         |
+| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)        |
+| `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`        |
+| `pnpm gen:secret`                       | Print a random 32-byte base64 secret (auth secret, encryption key) |
+| `pnpm db:up` / `db:down`                | Start / stop Postgres and Mailpit in Docker                        |
+| `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it            |
+| `pnpm db:check`                         | Verify database isolation and network exposure                     |
+| `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                       |
+| `pnpm db:migrate` / `db:seed`           | Migrations / seed. **Placeholders until NES-14**                   |
+| `pnpm test:e2e`                         | Playwright. **Placeholder until the first screens**                |
+| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`. **Placeholder**                |
 
 Tests live outside the packages, in `tests/<package>/` (e.g. `tests/domain/`). Run one package's
 tests with `pnpm test --project domain`; typecheck all packages with `pnpm -r typecheck`.
@@ -87,6 +88,22 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   `11/10/2026`).
 - **Fonts:** self-hosted from `design/fonts`; no request to Google Fonts.
 
+## Environment variables
+
+All configuration comes from environment variables, validated once at boot by `@nestvault/config`
+(zod). If one is missing or invalid, the process exits and prints the **names** and a reason, never
+the values. `.env.example` lists every variable; `pnpm env:init` copies it to `.env.local` with
+random secrets.
+
+- Server code: `import { env } from '@nestvault/config'` (server-only: importing it from a client
+  component fails the build). `process.env` is read nowhere else (ESLint enforces it).
+- Browser code: `import { publicEnv } from '@nestvault/config/public'`, an explicit allow-list
+  (`NEXT_PUBLIC_APP_NAME`). Never put a secret behind `NEXT_PUBLIC_`.
+- The web and worker processes do not get the migration user; migrations and tests load their own
+  connections with `loadMigratorEnv()` and `loadTestEnv()`.
+- Adding a variable: add it to the schema in `packages/config/src/schema.ts` and to
+  `.env.example` (a test fails if they drift apart).
+
 ## Repository layout
 
 ```
@@ -97,7 +114,8 @@ packages/domain/     pure calculations, no I/O
 packages/services/   use cases + guards
 packages/db/         Drizzle schemas, migrations, repositories (identity + app databases)
 packages/ui/         base components (shadcn-style, token based) and pt-PT formatters
-packages/config/     validated environment variables (the only place that reads process.env)
+packages/config/     validated environment variables (the only place that reads process.env):
+                     `@nestvault/config` is server-only, `@nestvault/config/public` is browser-safe
 design/  docs/
 tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/api)
 ```

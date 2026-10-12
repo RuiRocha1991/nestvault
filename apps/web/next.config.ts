@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Linting runs in `pnpm lint` and CI with the root flat config.
   eslint: { ignoreDuringBuilds: true },
   // Workspace packages ship TypeScript sources.
-  transpilePackages: ['@nestvault/ui'],
+  transpilePackages: ['@nestvault/ui', '@nestvault/config'],
 };
 
 export default withNextIntl(nextConfig);
