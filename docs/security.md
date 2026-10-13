@@ -114,14 +114,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **CSRF:** `SameSite=Lax` plus an `Origin` check: `route()` rejects `POST`/`PUT`/`PATCH`/`DELETE`
   whose `Origin` is missing or is not the app origin (403). Server Actions are covered by Next.js'
   own origin check.
-- **Verified by:** test that inspects the `Set-Cookie` header after login; `tests/web/api-route.test.ts`
+- **Where:** `packages/services/src/auth/create-auth.ts` (cookie `nv.session_token`, 30 days
+  sliding, cookie cache off so revocation is immediate); the token hash is stored by
+  `hashed-session-adapter.ts` (SHA-256; the hash is useless as a credential).
+- **Verified by:** `tests/services/auth.integration.test.ts` (`Set-Cookie` attributes after login,
+  only the SHA-256 stored, the stored hash rejected as a cookie); `tests/web/api-route.test.ts`
   for the `Origin` check (foreign, missing, look-alike origins).
 
 ## 10. Password hashing
 - **What:** argon2id (`@node-rs/argon2`) configured as Better Auth's hash/verify (its default is
   scrypt). Min length 12, max 128. Check against breached passwords (HIBP k-anonymity) on sign-up
   and password change.
-- **Verified by:** unit test that the stored hash starts with `$argon2id$`; validation tests.
+- **Where:** `packages/services/src/auth/passwords.ts` and `breached-passwords.ts` (HIBP fails open
+  with a warning log when unreachable).
+- **Verified by:** `tests/services/auth.integration.test.ts` (stored hash starts with `$argon2id$`,
+  breached and too short/long passwords rejected); `tests/services/auth-passwords.test.ts`.
 
 ## 11. Rate limiting
 - **What:** login and password reset: 5 attempts / 15 min per IP and per email. API: 300
@@ -134,7 +141,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (single-use token, 7 days, bound to the invited email). Rate limits (11) cover login.
 - **What (when exposed to the internet):** Cloudflare Turnstile on sign-up, login and password
   reset.
-- **Verified by:** test that sign-up returns 403 when `ALLOW_SIGNUP=false`.
+- **Where:** `packages/services/src/auth/signup-policy.ts` (the invite check is a port, wired to the
+  invites table in NES-25; `x-invite-token` header).
+- **Verified by:** `tests/services/auth.integration.test.ts` (403 when `ALLOW_SIGNUP=false` without
+  a valid invite for that email).
 
 ## 13. Parameterized queries
 - **What:** Drizzle query builder or the `sql` tagged template only. No string-built SQL; no user

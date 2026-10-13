@@ -115,6 +115,13 @@ function differentDatabases<K extends string>(identityKey: K, appKey: K) {
   };
 }
 
+/** Optional inputs of `pnpm db:seed`; not part of the app runtime and not in `.env.example`. */
+const seedShape = {
+  SEED_OWNER_EMAIL: optionalText,
+  SEED_OWNER_PASSWORD: optionalText,
+  SEED_OWNER_NAME: optionalText,
+};
+
 const runtimeSchema = z
   .object(runtimeShape)
   .superRefine(differentDatabases('DATABASE_URL_IDENTITY', 'DATABASE_URL_APP'));
@@ -206,6 +213,14 @@ export function loadEnv(source: EnvSource): Env {
 /** Migration user connections; read only by the migration tooling. */
 export function loadMigratorEnv(source: EnvSource): MigratorEnv {
   return parseOrThrow(migratorSchema, source);
+}
+
+const seedSchema = z.object(seedShape);
+export type SeedEnv = z.infer<typeof seedSchema>;
+
+/** Inputs of the seed script; all optional (the script prompts for what is missing). */
+export function loadSeedEnv(source: EnvSource): SeedEnv {
+  return parseOrThrow(seedSchema, source);
 }
 
 /** Connections to the `_test` databases; read only by the integration tests. */

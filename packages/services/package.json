@@ -10,6 +10,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@nestvault/db": "workspace:*",
+    "@node-rs/argon2": "^2.2.2",
+    "better-auth": "^1.7.7",
     "pino": "^10.4.0",
     "zod": "^4.6.6"
   }
