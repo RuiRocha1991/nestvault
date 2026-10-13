@@ -80,7 +80,7 @@ export const accountsRepo = {
 
    Rules: `PoolContext` is a required parameter; every `where` includes `pool_id`; no
    `sql.raw` / string-built SQL; any dynamic column comes from an allow-list.
-5. `pnpm db:migrate` locally, then `pnpm test --project db` (the Docker Postgres must be up:
+5. `pnpm db:migrate` locally, then `pnpm test:integration` (the Docker Postgres must be up:
    `pnpm db:up`).
 
 ## Required tests (`tests/db/<table>.repo.test.ts`, against the Docker Postgres)

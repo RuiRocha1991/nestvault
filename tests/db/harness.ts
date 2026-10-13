@@ -1,10 +1,11 @@
 import { Pool } from 'pg';
 
 import { testEnv } from '@nestvault/config/node';
-import { createAppDatabase, createWithPool, newId } from '@nestvault/db';
-import type { AppDatabase, PoolRunner } from '@nestvault/db';
+import { createAppDatabase, createWithPool } from '@nestvault/db';
+import type { AppDatabase, PoolContext, PoolRunner, Role } from '@nestvault/db';
 import { runMigrations } from '@nestvault/db/migrate';
-import { createPoolContext } from '@nestvault/db/pool-context-factory';
+
+import { asMember, createPool } from '../support/factories';
 
 import { loadLocalEnv } from './load-env';
 import { PROBE_TABLE_SQL } from './probe';
@@ -106,21 +107,17 @@ export function openTestDatabase(maxConnections = 4): TestDatabase {
 export interface TestPool {
   poolId: string;
   userId: string;
-  ctx: ReturnType<typeof createPoolContext>;
+  ctx: PoolContext;
 }
 
-export function createTestPool(role: 'owner' | 'member' | 'viewer' = 'owner'): TestPool {
-  const poolId = newId();
-  const userId = newId();
+const PROBE_PERMISSIONS = ['probe.read', 'probe.write'];
+
+export function createTestPool(role: Exclude<Role, 'system'> = 'owner'): TestPool {
+  const pool = createPool();
   return {
-    poolId,
-    userId,
-    ctx: createPoolContext({
-      poolId,
-      actor: { kind: 'user', userId },
-      role,
-      permissions: ['probe.read', 'probe.write'],
-    }),
+    poolId: pool.poolId,
+    userId: pool.owner.id,
+    ctx: asMember(pool, role, { user: pool.owner, permissions: PROBE_PERMISSIONS }),
   };
 }
 
