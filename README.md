@@ -53,7 +53,10 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm install`                          | Install dependencies for all workspaces                            |
 | `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules)    |
 | `pnpm typecheck`                        | `tsc` in every package and for the root files                      |
-| `pnpm test`                             | Vitest: unit, lint-rule and database tests. **Needs `pnpm db:up`** |
+| `pnpm test`                             | Vitest: unit + integration tests. **Needs `pnpm db:up`**           |
+| `pnpm test:unit`                        | Unit tests only: nothing needs to be running                       |
+| `pnpm test:integration`                 | Integration tests only (Postgres, production build for headers)    |
+| `pnpm test:coverage`                    | `pnpm test` with the coverage report and the thresholds (CI)       |
 | `pnpm format` / `pnpm format:check`     | Prettier write / check                                             |
 | `pnpm build`                            | Build every package (placeholders for now)                         |
 | `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)        |
@@ -67,16 +70,20 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user      |
 | `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                       |
 | `pnpm db:seed`                          | Seed data. **Placeholder until the first tables**                  |
-| `pnpm test:e2e`                         | Playwright (Chromium) against the production build on port 4010    |
+| `pnpm test:e2e`                         | Playwright (Chromium): smoke + CSP checks on the production build  |
 | `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)  |
 
 Browser checks (`tests/e2e/`) need Chromium once: `pnpm exec playwright install chromium`
 (on a fresh Ubuntu add `--with-deps`). `pnpm test:e2e` builds the web app and serves it on port 4010,
 so stop anything else using that port; the header integration test in `tests/web` uses it too, so
-do not run both at the same time.
+do not run both at the same time (CI runs them in separate jobs). If browsers are installed
+system-wide in `/opt/pw-browsers`, they are used instead of the download.
 
 Tests live outside the packages, in `tests/<package>/` (e.g. `tests/domain/`). Run one package's
 tests with `pnpm test --project domain`; typecheck all packages with `pnpm -r typecheck`.
+A file named `*.integration.test.ts` is an integration test (it runs in the `integration` project,
+which prepares the `_test` databases once per run); every other test is a unit test. Details,
+factories and coverage thresholds: [`docs/testing.md`](docs/testing.md).
 
 ## Running the web app
 

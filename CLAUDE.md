@@ -91,7 +91,9 @@ services/parser/     Python parser service: code parsers, spec engine, specs, fi
 packages/ui/         tokens and shared components
 design/              design system, tokens, fonts, mockups
 docs/                PRD, handoff, prototype, security baseline, API docs (docs/api/), ADRs (docs/adr/)
-tests/<package>/     all Vitest tests, one folder per package (tests/domain, tests/services, …)
+tests/<package>/     all Vitest tests, one folder per package (tests/domain, tests/services, …);
+                     `*.integration.test.ts` needs Postgres; shared factories in tests/support/;
+                     Playwright specs in tests/e2e/ (see docs/testing.md)
 tests/lint/          tests for the custom ESLint rules
 tests/api/           Postman/Insomnia collections and environments (JSON)
 ```
@@ -172,8 +174,9 @@ dependencies. The essentials:
     `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`
   - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm build`
   - `pnpm db:generate:app` / `pnpm db:generate:identity` — generate a migration from the schema
-  - `pnpm lint`, `pnpm typecheck`, `pnpm test` (needs `pnpm db:up`: it includes the database
-    tests), `pnpm test:e2e`
+  - `pnpm lint`, `pnpm typecheck`, `pnpm test` (needs `pnpm db:up`: it includes the integration
+    tests), `pnpm test:unit` (nothing running), `pnpm test:integration`, `pnpm test:coverage`
+    (thresholds: domain 90%, services 80% lines), `pnpm test:e2e`
   - `pnpm format` / `pnpm format:check` — Prettier
   - `pnpm openapi` — regenerate `docs/api/openapi.json`
 
