@@ -189,10 +189,16 @@ dependencies. The essentials:
   (`git fetch origin dev && git checkout -b NES-12 origin/dev`), and is merged back into `dev`
   by PR (the user validates and merges). Never commit or push directly to `dev` or `master`;
   `dev` → `master` by PR only when the user asks for a release.
-- **One commit per task.** Before the PR is merged, squash the task branch into a single commit
-  (`git reset --soft origin/dev && git commit`, then `git push --force-with-lease`; only ever on
-  the task branch). The PR is merged with `gh pr merge --squash` once checks are green and the
-  user has approved; then delete the task branch and set the Jira task to `Concluído`.
+- **Separate commits while the PR is open, one commit when it merges.**
+  - From the first push until the user says the PR is OK to merge, every change (review fixes,
+    simplifications, follow-ups) goes in a **new commit** on the task branch, named
+    `NES-12: <imperative summary of that change>`. **Never amend, squash or force-push** during this
+    phase, so the user can compare commits and see what changed after each round.
+  - Only when the user explicitly says everything is OK and the PR can be merged: squash the task
+    branch into a single commit (`git reset --soft origin/dev && git commit`, message
+    `NES-12: <summary of the whole task>`, then `git push --force-with-lease`; only ever on the task
+    branch), wait for the checks, merge with `gh pr merge --squash`, delete the task branch and set
+    the Jira task to `Concluído`. `dev` therefore keeps exactly one commit per task.
 - **Keep the Jira status in sync, always** (statuses: `A fazer`, `Em Progresso`, `Concluído`):
   - starting a task → `Em Progresso`;
   - PR open and waiting for the user → stays `Em Progresso`;

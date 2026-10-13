@@ -75,7 +75,10 @@ must pass. Paste the summary lines of the output into the report.
 
 ## 7. Commit, push, PR
 
-- Commits: `<KEY>: <imperative summary>`.
+- Commits: `<KEY>: <imperative summary>`. The first push is the task's first commit; every later
+  change while the PR is open is a **new commit** (no amend, no squash, no force-push) so the user
+  can compare them. Squash into one commit only after the user says the PR can be merged (see
+  `CLAUDE.md` → "Git workflow").
 - Push the branch. Follow `CLAUDE.md` → "Git workflow" for the target branch (while the project
   is in "direct to master" mode there is no PR; report the results in chat instead).
 - Open the PR only if the user asked for it or the workflow requires one. Title
