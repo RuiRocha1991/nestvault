@@ -146,7 +146,26 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** login and password reset: 5 attempts / 15 min per IP and per email. API: 300
   requests / min per session. Imports: 20 / hour per pool. Storage in Postgres (no Redis).
   Exceeding returns 429 with `Retry-After`.
-- **Verified by:** tests that hit each limit and expect 429.
+- **Where:** `packages/services/src/rate-limit/` (fixed-window limiter, one atomic
+  `INSERT … ON CONFLICT DO UPDATE … RETURNING count` on `nestvault_identity.rate_limits`; keys are
+  stored as HMACs, never an IP or an email); wired into Better Auth hooks in
+  `packages/services/src/auth/create-auth.ts` (`sign-in` counts failed attempts only: the hit is
+  taken before and given back after a success; password reset counts every call); API routes call
+  `limitApiRequests(session.id)` (`apps/web/src/server/api/rate-limit.ts`). Auth buckets fail closed
+  when the database is down, the API/imports/invites buckets fail open and log. Expired windows are
+  deleted lazily.
+- **Client IP:** in production put the app behind a reverse proxy / CDN and set
+  `TRUSTED_PROXY_HOPS` (1 for one proxy): the `x-forwarded-for` entry counted from the right is the
+  client, and each machine gets its own 5 / 15 min limit, so one attacker never blocks other users.
+  With `TRUSTED_PROXY_HOPS=0` (local development) the header is ignored (Next.js fills it from the
+  socket only when the client did not send it, so it cannot be trusted) and the per-IP check uses a
+  shared, loose bucket (50 / 15 min): 5 failures of one person never lock out others, and the
+  per-email buckets still hold guessing on one account to 5. The web process logs a warning when it
+  runs in production with `TRUSTED_PROXY_HOPS=0`.
+- **Verified by:** `tests/services/rate-limit.integration.test.ts` (6th failed sign-in is 429 per
+  IP and per email, reset after the window, 40 parallel hits let exactly 5 through, spoofed
+  `x-forwarded-for` ignored, injection payload as data, fail closed/open) and
+  `tests/services/client-ip.test.ts`.
 
 ## 12. Bot protection
 - **What (now):** sign-up is closed by default (`ALLOW_SIGNUP=false`); people join through invites

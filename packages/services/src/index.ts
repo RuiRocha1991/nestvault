@@ -4,3 +4,4 @@ export { CENSOR, createLogger, logger, redact, SENSITIVE_KEY, serializeError } f
 export type { Logger, LoggerConfig } from './logger';
 export { HealthDto } from './health/schemas';
 export const packageName = '@nestvault/services';
+export * from './rate-limit';

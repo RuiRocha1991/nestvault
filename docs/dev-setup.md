@@ -48,6 +48,7 @@ variable is added, renamed or removed):
 | ------- | ------ | ------------------------------------------------------------------- |
 | 1       | NES-12 | Postgres, database URLs, test databases, app secrets, SMTP          |
 | 2       | NES-16 | `ENABLE_API_DOCS` (Swagger UI at `/api/docs`, development only)    |
+| 3       | NES-23 | `TRUSTED_PROXY_HOPS` (proxies trusted for `x-forwarded-for`, 0 = none) |
 
 ## 3. What runs
 

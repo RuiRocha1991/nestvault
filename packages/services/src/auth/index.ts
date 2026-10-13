@@ -17,4 +17,4 @@ export type { InviteVerifier } from './signup-policy';
 export { seedOwner } from './seed-owner';
 export type { SeedOwnerInput } from './seed-owner';
 export { createAuthRuntime } from './create-auth-runtime';
-export type { AuthRuntimeConfig } from './create-auth-runtime';
+export type { AuthRuntime, AuthRuntimeConfig } from './create-auth-runtime';
