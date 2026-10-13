@@ -1,29 +1,15 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
+import { alertWith, fillAndSubmit, signInAsOwner } from './support/sign-in';
 import { E2E_ORIGIN, E2E_USER } from './support/user';
 
 const login = messages.auth.login;
 const NAV = messages.nav.label;
 
-// Next.js adds its own `role=alert` route announcer, so the page's alert is picked by its text.
-const alertWith = (page: Page, text: string) => page.getByRole('alert').filter({ hasText: text });
-
 // Every spec here starts signed out (no stored session).
 test.use({ storageState: { cookies: [], origins: [] } });
-
-/** Opens the sign-in screen (or `url`) and signs in as the E2E owner. */
-async function signInAsOwner(page: Page, url = '/login') {
-  await page.goto(url);
-  await fillAndSubmit(page, E2E_USER.email, E2E_USER.password);
-}
-
-async function fillAndSubmit(page: Page, email: string, password: string) {
-  await page.getByLabel(login.email).fill(email);
-  await page.getByLabel(login.password, { exact: true }).fill(password);
-  await page.getByRole('button', { name: login.submit, exact: true }).click();
-}
 
 test('sign in → see the app → sign out → back at the login screen', async ({ page }) => {
   await page.goto('/');

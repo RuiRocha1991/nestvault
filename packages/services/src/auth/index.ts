@@ -9,6 +9,7 @@ export {
   verifyPassword,
 } from './passwords';
 export { getOptionalSession, requireSession } from './require-session';
+export { hasSessionCookie } from './session-cookie';
 export { DEFAULT_AFTER_SIGN_IN, safeNextPath } from './safe-next-path';
 export type { AuthSession } from './require-session';
 export { isSignupAllowed, NO_INVITES } from './signup-policy';

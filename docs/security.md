@@ -98,7 +98,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   dummy password for an unknown email), so neither the message nor the timing reveals which accounts exist.
 - **Verified by:** for every route, a test without a session expects 401 (API) or a redirect (page);
   `tests/e2e/login.spec.ts` (redirect with `next`, open-redirect payloads, identical error, sign-out
-  kills the cookie), `tests/services/safe-next-path.test.ts`, and
+  kills the cookie), `tests/e2e/session.spec.ts` (a revoked or expired session is sent to the
+  sign-in screen with the expiry message), `tests/services/safe-next-path.test.ts`, and
   `tests/services/auth.integration.test.ts` (same status and body, comparable timing).
 
 ## 7. Access control
@@ -126,7 +127,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   sliding, cookie cache off so revocation is immediate); the token hash is stored by
   `hashed-session-adapter.ts` (SHA-256; the hash is useless as a credential).
 - **Verified by:** `tests/services/auth.integration.test.ts` (`Set-Cookie` attributes after login,
-  only the SHA-256 stored, the stored hash rejected as a cookie); `tests/web/api-route.test.ts`
+  only the SHA-256 stored, the stored hash rejected as a cookie, `Secure` and the `__Secure-`
+  prefix only on https, sliding renewal after the update age, expired sessions rejected, a second
+  process accepts the same cookie); `tests/e2e/session.spec.ts` (persistent cookie attributes);
+  `tests/web/api-route.test.ts`
   for the `Origin` check (foreign, missing, look-alike origins).
 
 ## 10. Password hashing

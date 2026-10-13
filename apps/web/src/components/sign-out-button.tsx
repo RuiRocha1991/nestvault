@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { announceSignOut } from '@webapp/lib/auth-channel';
 import { postJson } from '@webapp/lib/post-json';
 
 /**
@@ -22,6 +23,8 @@ export function SignOutButton() {
     try {
       const response = await postJson('/api/v1/auth/sign-out', {});
       if (!response.ok) throw new Error('sign-out failed');
+      // Other tabs of this browser would otherwise keep showing the app until their next reload.
+      announceSignOut();
       router.replace('/login');
       router.refresh();
     } catch {
