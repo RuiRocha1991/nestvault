@@ -40,6 +40,30 @@ NODE_PATH=$(npm root -g) node design/mockups/src/build.cjs [name-filter]
 
 `src/sheet-installments.json` holds the 73 installments extracted from the spreadsheet.
 
+## Authentication, invites, pools, members and account (47–65, modal 66–68, mobile 09–11)
+
+Specified in `FR — Pools, members and user account`. Auth screens use a two-column layout (brand panel +
+card; the panel is hidden on mobile). Sign-up is closed by default, so the login footer points to invites.
+
+| File | Route | What it shows |
+| --- | --- | --- |
+| `47-login` | `/login` | Email, password, forgot link, 30-day session note |
+| `48-login-credenciais-invalidas` | `/login` | Generic error (never says which field is wrong) |
+| `49-login-demasiadas-tentativas` | `/login` | Rate limit: disabled button with countdown |
+| `50-registar` | `/registar` | Sign-up (only when `ALLOW_SIGNUP=true`): password meter and requirements (min 12) |
+| `51-registar-fechado` | `/registar` | Sign-up closed: explains the invite-only rule |
+| `52` / `53` / `54` / `55` | `/recuperar`, `/recuperar/[token]` | Request reset, neutral confirmation, new password, invalid or expired link |
+| `56` / `57` | `/verificar/[token]` | Email verification pending / confirmed |
+| `58` … `61` | `/convite/[token]` | Invite: public, accept (signed in), different email, expired |
+| `62` / `63` | `/pools` | Choose a pool (with pending invite) / create the first pool |
+| `64-definicoes-utilizadores-e-convites` | `/[poolId]/definicoes/membros` | Members, roles, pending invites, ownership |
+| `65-conta` | `/conta` | Profile, password, active sessions, 2FA placeholder (phase 4), export, delete |
+| `modal-66…68` | | Invite user, transfer ownership, delete account blocked |
+| `mobile-09…11` | | Login, sign-up, invite on mobile |
+
+New shared pieces: auth layout, icon inputs with show/hide, password strength meter and requirement list,
+inline alerts (`err`/`warn`/`ok`/`info`), big status icon, divider, `.pool-card`.
+
 ## Installment fields (Prestações)
 
 Basic columns: number/date, amortization, interest, total (plus optional Em falta, Estado, Movimento).
