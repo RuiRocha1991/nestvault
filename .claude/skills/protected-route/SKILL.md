@@ -76,7 +76,7 @@ parameter so they are unit-testable. Errors are typed (`ValidationError`, `NotFo
 export const POST = route(async (req, { params }) => {
   assertSameOrigin(req);                       // CSRF for writes
   const session = await requireSession(req);   // 401
-  await rateLimit('api', session.id);          // 429
+  await limitApiRequests(session.id);          // 429 + Retry-After (apps/web/src/server/api/rate-limit.ts)
   const { poolId } = PoolParams.parse(await params);
   const body = await readJson(req, { maxBytes: 64 * 1024 });
   const dto = await createAccount(session, poolId, body);

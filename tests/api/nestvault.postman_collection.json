@@ -155,6 +155,49 @@
      ]
     },
     {
+     "name": "Sign in - rate limited (6th failed attempt)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "sign-in",
+        "email"
+       ]
+      },
+      "description": "Rate limit demo (control 11): send this request 6 times in a row with a wrong password. The first 5 answer 401, the 6th answers 429 with a Retry-After header (seconds) and keeps answering 429 until the 15 minute window ends. Use an email that is not the one you stay signed in with.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrong-password-123\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 401 (attempts 1-5) or 429 (attempt 6+)', () => pm.expect([401, 429]).to.include(pm.response.code));",
+         "if (pm.response.code === 429) { pm.test('Retry-After is a positive number of seconds', () => pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0)); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Get session",
      "request": {
       "method": "GET",

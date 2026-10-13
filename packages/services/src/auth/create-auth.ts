@@ -2,9 +2,17 @@ import { newId, type IdentityDatabase } from '@nestvault/db';
 import { account, session, user, verification } from '@nestvault/db/identity-schema';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
 
+import { RateLimitError } from '../errors';
 import type { Logger } from '../logger';
+import {
+  createRateLimiter,
+  getClientIp,
+  UNTRUSTED_CLIENT_KEY,
+  type RateLimitBucket,
+  type RateLimiter,
+} from '../rate-limit';
 
 import { isPasswordBreached } from './breached-passwords';
 import { withHashedSessionTokens } from './hashed-session-adapter';
@@ -33,11 +41,37 @@ export interface AuthConfig {
   allowSignup: boolean;
   invites?: InviteVerifier;
   log?: Logger;
+  /** Shared with the API routes; built from `identity` and `secret` when omitted. */
+  limiter?: RateLimiter;
+  /** Proxies we run in front of the app (0 = none: `x-forwarded-for` is ignored). */
+  trustedProxyHops?: number;
   /** Tests replace the HIBP lookup. */
   checkBreached?: (password: string) => Promise<boolean>;
 }
 
 /** Paths whose body carries a new password to screen, and the field that holds it. */
+const SIGN_IN_PATH = '/sign-in/email';
+/** Password reset: request the email and use the token. Every call counts. */
+const RESET_PATHS: ReadonlySet<string> = new Set(['/request-password-reset', '/reset-password']);
+
+function tooManyRequests(error: RateLimitError): APIError {
+  return new APIError(
+    'TOO_MANY_REQUESTS',
+    { code: error.code, message: error.message },
+    { 'Retry-After': String(error.retryAfterSeconds) },
+  );
+}
+
+/** The per-IP bucket, or the loose shared one while the address is unknown. */
+function ipBucket(scope: 'signin' | 'reset', ip: string): RateLimitBucket {
+  return ip === UNTRUSTED_CLIENT_KEY ? `auth.${scope}.untrusted` : `auth.${scope}.ip`;
+}
+
+function emailOf(body: unknown): string | null {
+  const email = (body as { email?: unknown } | undefined)?.email;
+  return typeof email === 'string' && email.length > 0 && email.length <= 254 ? email : null;
+}
+
 const PASSWORD_FIELDS: Readonly<Record<string, string>> = {
   '/sign-up/email': 'password',
   '/change-password': 'newPassword',
@@ -50,6 +84,16 @@ export function createAuth(config: AuthConfig) {
   const checkBreached =
     config.checkBreached ??
     ((password) => isPasswordBreached(password, config.log ? { log: config.log } : {}));
+  const limiter =
+    config.limiter ??
+    createRateLimiter({
+      identity: config.identity,
+      secret: config.secret,
+      ...(config.log ? { log: config.log } : {}),
+    });
+  const proxyHops = config.trustedProxyHops ?? 0;
+  const clientIpOf = (headers: Headers | undefined) =>
+    getClientIp(headers ?? new Headers(), proxyHops);
   const secureCookies = new URL(config.appUrl).protocol === 'https:';
 
   return betterAuth({
@@ -83,9 +127,24 @@ export function createAuth(config: AuthConfig) {
       defaultCookieAttributes: { httpOnly: true, sameSite: 'lax', path: '/' },
       database: { generateId: () => newId() },
     },
-    rateLimit: { enabled: false }, // replaced by the Postgres-backed limiter in NES-23
+    rateLimit: { enabled: false }, // replaced by the Postgres-backed limiter below (control 11)
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        const isSignIn = ctx.path === SIGN_IN_PATH;
+        if (isSignIn || RESET_PATHS.has(ctx.path)) {
+          const scope = isSignIn ? 'signin' : 'reset';
+          const ip = clientIpOf(ctx.headers);
+          const email = emailOf(ctx.body);
+          try {
+            // The hit is counted now and handed back after a successful sign-in, so only failed
+            // attempts stay counted and parallel requests cannot all pass a later check.
+            await limiter.consume(ipBucket(scope, ip), ip);
+            if (email) await limiter.consume(`auth.${scope}.email`, email);
+          } catch (error) {
+            if (error instanceof RateLimitError) throw tooManyRequests(error);
+            throw error;
+          }
+        }
         if (ctx.path === '/sign-up/email') {
           const body = ctx.body as { email?: unknown } | undefined;
           const allowed = await isSignupAllowed({
@@ -104,6 +163,13 @@ export function createAuth(config: AuthConfig) {
             message: 'This password appeared in a data breach. Choose another one.',
           });
         }
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== SIGN_IN_PATH || isAPIError(ctx.context.returned)) return;
+        const email = emailOf(ctx.body);
+        const ip = clientIpOf(ctx.headers);
+        await limiter.release(ipBucket('signin', ip), ip);
+        if (email) await limiter.release('auth.signin.email', email);
       }),
     },
   });

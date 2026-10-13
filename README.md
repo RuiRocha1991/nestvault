@@ -170,6 +170,24 @@ design/  docs/
 tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/api)
 ```
 
+## Before putting it online (reverse proxy)
+
+Not needed for local development. Do this before the app is reachable from the internet:
+
+- Run the app **behind a reverse proxy or CDN** (Caddy, nginx, Cloudflare) that terminates HTTPS
+  and appends the client address to `x-forwarded-for`, and set `APP_URL` to the public `https://`
+  origin.
+- Set `TRUSTED_PROXY_HOPS` to the number of proxies you run in front of the app (`1` for one). The
+  rate limiter then limits each machine separately (5 failed sign-ins / 15 min per IP and per
+  email), so one attacker never blocks other users. With `0` the header is ignored and all clients
+  share one loose limit (50 / 15 min), and the web process logs a warning in production.
+- The app's port must not be reachable except through the proxy (bind it to localhost or a private
+  network, firewall the rest). Otherwise a client can talk to the app directly and send its own
+  `x-forwarded-for`.
+- Count every proxy that appends to the header: CDN + Caddy is `2`.
+
+See `docs/security.md` control 11.
+
 ## Accessing the app from a Mac (local development only)
 
 The project runs on an Ubuntu machine and is reached through SSH port forwarding, so the browser

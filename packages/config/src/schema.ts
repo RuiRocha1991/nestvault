@@ -60,6 +60,13 @@ const strictBoolean = z
   .default('false')
   .transform((value) => value === 'true');
 
+/** Number of reverse proxies we run in front of the app (0-5). 0 ignores `x-forwarded-for`. */
+const proxyHops = z
+  .string()
+  .regex(/^[0-5]$/, 'must be a number from 0 to 5')
+  .default('0')
+  .transform(Number);
+
 const port = z
   .string()
   .regex(/^\d{1,5}$/)
@@ -75,6 +82,8 @@ const runtimeShape = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_URL: appUrl,
   ALLOW_SIGNUP: strictBoolean,
+  // Proxies in front of the app that append to x-forwarded-for; 0 = none (header ignored).
+  TRUSTED_PROXY_HOPS: proxyHops,
   // Swagger UI and the OpenAPI document at /api/docs; never served when NODE_ENV is production.
   ENABLE_API_DOCS: strictBoolean,
   DATABASE_URL_IDENTITY: postgresUrl,

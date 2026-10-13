@@ -15,5 +15,7 @@ export type { PoolRunner } from './app/with-pool';
 
 export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase } from './identity/client';
+export { rateLimitsRepo } from './identity/repositories/rate-limits.repo';
+export type { WindowKey } from './identity/repositories/rate-limits.repo';
 export { usersRepo } from './identity/repositories/users.repo';
 export type { NewCredentialUser } from './identity/repositories/users.repo';
