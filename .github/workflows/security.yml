@@ -86,6 +86,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # The web build and server read the same validated environment as the other job.
       - run: pnpm env:init
+      # The sign-in specs need the `_test` databases (global-setup.ts migrates and seeds them).
+      - name: Start Postgres and Mailpit
+        run: pnpm db:up
       - name: Playwright version
         id: playwright
         run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"

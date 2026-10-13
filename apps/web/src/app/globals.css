@@ -55,3 +55,16 @@
     }
   }
 }
+
+/* Brand panel of the public (auth) screens: decorative gradients, one set per theme. */
+.auth-brand {
+  background:
+    radial-gradient(120% 90% at 0% 0%, #3a2a8f 0%, transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, #6a2bd9 0%, transparent 60%), #1f2044;
+}
+
+:root[data-theme='light'] .auth-brand {
+  background:
+    radial-gradient(120% 90% at 0% 0%, #8b55f5 0%, transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, #5b21c9 0%, transparent 62%), #7c5cff;
+}

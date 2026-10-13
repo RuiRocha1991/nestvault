@@ -50,7 +50,14 @@ NES-25; until then pass the permission names explicitly.
 - `smoke.spec.ts`: the shell loads, navigation works, the theme survives a reload.
   `csp.spec.ts`: no Content-Security-Policy violation on the shell pages.
 - Failures keep a trace and an HTML report (CI uploads them as the `playwright-report` artifact).
-- A fixture for a signed-in owner arrives with sign-in (NES-19/20).
+- Sign-in: `tests/e2e/global-setup.ts` resets the `_test` databases (needs `pnpm db:up`), creates
+  the E2E owner (`tests/e2e/support/user.ts`) and stores a signed-in session in
+  `tests/e2e/.auth/owner.json` (git-ignored). Specs that only need "a signed-in user" declare
+  `test.use({ storageState: STORAGE_STATE })`; `login.spec.ts` starts signed out. The web server
+  of the run uses the `_test` databases and `APP_URL=http://127.0.0.1:4010`.
+- `login.spec.ts`: sign in → app → sign out, revoked cookie, `next` handling (open-redirect
+  payloads), identical message for wrong password and unknown email, rate-limit countdown (429
+  mocked until NES-23), mobile and light layouts.
 
 ## Coverage
 

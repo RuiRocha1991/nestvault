@@ -91,7 +91,15 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** Better Auth with database sessions. Next.js `middleware.ts` only redirects for UX;
   **it is never the security check** (middleware can be bypassed — CVE-2025-29927). The real
   check is `requireSession()` inside every service, Server Action and Route Handler.
-- **Verified by:** for every route, a test without a session expects 401 (API) or a redirect (page).
+- **Pages:** the `(app)` layout reads the session from the database (`getCurrentSession`) and
+  redirects to `/login?next=…`; `/login` redirects signed-in users into the app. `next` goes through
+  `safeNextPath` (same-origin relative paths only, never `/login`), so the sign-in page cannot be used
+  as an open redirect. Wrong password and unknown email get the same answer (and Better Auth hashes a
+  dummy password for an unknown email), so neither the message nor the timing reveals which accounts exist.
+- **Verified by:** for every route, a test without a session expects 401 (API) or a redirect (page);
+  `tests/e2e/login.spec.ts` (redirect with `next`, open-redirect payloads, identical error, sign-out
+  kills the cookie), `tests/services/safe-next-path.test.ts`, and
+  `tests/services/auth.integration.test.ts` (same status and body, comparable timing).
 
 ## 7. Access control
 - **What:** `requirePoolAccess` (404 for non-members, so pool existence is not confirmed) then

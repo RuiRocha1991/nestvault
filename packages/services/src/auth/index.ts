@@ -8,7 +8,8 @@ export {
   PASSWORD_MIN_LENGTH,
   verifyPassword,
 } from './passwords';
-export { requireSession } from './require-session';
+export { getOptionalSession, requireSession } from './require-session';
+export { DEFAULT_AFTER_SIGN_IN, safeNextPath } from './safe-next-path';
 export type { AuthSession } from './require-session';
 export { isSignupAllowed, NO_INVITES } from './signup-policy';
 export type { InviteVerifier } from './signup-policy';

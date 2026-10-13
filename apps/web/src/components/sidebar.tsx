@@ -7,8 +7,10 @@ import { useTranslations } from 'next-intl';
 
 import type { Theme } from '@webapp/lib/theme';
 
+import { Brand } from './brand';
 import { NAV_GROUPS } from './nav';
 import { SIDEBAR_ID, useShell } from './shell';
+import { SignOutButton } from './sign-out-button';
 import { ThemeToggle } from './theme-toggle';
 
 export interface SidebarPortfolio {
@@ -22,6 +24,8 @@ export interface SidebarProps {
   poolId: string;
   portfolios: readonly SidebarPortfolio[];
   theme: Theme;
+  /** Display name of the signed-in user. */
+  userName: string;
 }
 
 const linkStyles =
@@ -29,7 +33,7 @@ const linkStyles =
   'hover:bg-panel-2 hover:text-fg aria-[current=page]:bg-accent aria-[current=page]:text-on-accent ' +
   'aria-[current=page]:shadow-[0_6px_18px_-6px_var(--accent)]';
 
-export function Sidebar({ poolId, portfolios, theme }: SidebarProps) {
+export function Sidebar({ poolId, portfolios, theme, userName }: SidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const { drawerOpen } = useShell();
@@ -53,13 +57,8 @@ export function Sidebar({ poolId, portfolios, theme }: SidebarProps) {
           : 'drawer:invisible drawer:-translate-x-[102%] drawer:[transition:transform_0.2s,visibility_0s_0.2s]',
       )}
     >
-      <div className="flex flex-col px-3 leading-none">
-        <b className="bg-grad-warm bg-clip-text text-[26px] font-extrabold tracking-[0.02em] text-transparent">
-          {t('brand.name')}
-        </b>
-        <span className="mt-[5px] text-[9.5px] font-semibold tracking-[0.32em] text-fg-2">
-          {t('brand.tagline')}
-        </span>
+      <div className="px-3">
+        <Brand variant="sidebar" />
       </div>
 
       <nav aria-label={t('nav.label')} className="flex flex-col gap-0.5">
@@ -110,6 +109,12 @@ export function Sidebar({ poolId, portfolios, theme }: SidebarProps) {
           {t('shell.saveStatus')}
         </p>
         <ThemeToggle initialTheme={theme} />
+        <div className="flex flex-col gap-1 border-t border-line pt-3">
+          <p className="truncate text-xs text-fg-3">
+            {t('shell.signedInAs')} <b className="font-semibold text-fg-2">{userName}</b>
+          </p>
+          <SignOutButton />
+        </div>
       </div>
     </aside>
   );

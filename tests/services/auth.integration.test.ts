@@ -5,8 +5,11 @@ import { testEnv } from '@nestvault/config/node';
 import { createIdentityDatabase, usersRepo } from '@nestvault/db';
 import {
   createAuth,
+  getOptionalSession,
   hashSessionToken,
+  requireSession,
   seedOwner,
+  UnauthorizedError,
   type Auth,
   type InviteVerifier,
 } from '@nestvault/services';
@@ -135,11 +138,15 @@ describe('sessions', () => {
     expect(session?.user.email).toBe('ana@example.com');
   });
 
-  it('ends the session on sign-out', async () => {
+  it('ends the session on sign-out, clears the cookie and the old cookie is no longer a session', async () => {
     const auth = build();
     const cookie = ((await signIn(auth)).headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    await post(auth, '/sign-out', {}, { cookie });
-    expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    const response = await post(auth, '/sign-out', {}, { cookie });
+    expect(response.headers.get('set-cookie') ?? '').toMatch(/nv\.session_token=;|Max-Age=0/i);
+    const headers = new Headers({ cookie });
+    expect(await auth.api.getSession({ headers })).toBeNull();
+    expect(await getOptionalSession(auth, headers)).toBeNull();
+    await expect(requireSession(auth, headers)).rejects.toBeInstanceOf(UnauthorizedError);
     expect(await rows(sql`select 1 from session where token = ${hashed(cookie)}`)).toHaveLength(0);
   });
 

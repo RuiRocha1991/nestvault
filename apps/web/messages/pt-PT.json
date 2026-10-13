@@ -29,7 +29,9 @@
     "searchPlaceholder": "Ticker ou movimento",
     "newTransaction": "Transação",
     "allHolders": "Todos",
-    "saveStatus": "Guardado neste navegador"
+    "saveStatus": "Guardado neste navegador",
+    "signOut": "Terminar sessão",
+    "signedInAs": "Sessão iniciada como"
   },
   "theme": {
     "dark": "Tema escuro",
@@ -43,5 +45,39 @@
   "sections": {
     "comingSoonTitle": "Em construção",
     "comingSoonText": "Este ecrã chega numa fase seguinte."
+  },
+  "auth": {
+    "brand": {
+      "sampleLabel": "Património líquido",
+      "sampleValue": "48 210,35 €",
+      "headline": "As finanças da família, num só cofre.",
+      "lead": "Contas, investimentos, despesas e imobiliário partilhados pelo agregado, cada pessoa com a sua própria conta.",
+      "bullets": {
+        "isolated": "Dados isolados por agregado",
+        "persistent": "A sessão mantém-se, sem voltar a entrar a cada visita",
+        "permissions": "Tu decides quem vê e quem pode alterar"
+      }
+    },
+    "login": {
+      "title": "Entrar",
+      "lead": "Bem-vindo de volta ao teu cofre familiar.",
+      "email": "Email",
+      "emailPlaceholder": "nome@exemplo.pt",
+      "password": "Palavra-passe",
+      "forgot": "Esqueci-me da palavra-passe",
+      "showPassword": "Mostrar palavra-passe",
+      "hidePassword": "Ocultar palavra-passe",
+      "submit": "Entrar",
+      "retryIn": "Tenta novamente em {time}",
+      "invalidTitle": "Email ou palavra-passe incorretos.",
+      "invalidText": "Confirma os dados e tenta novamente.",
+      "errorTitle": "Não foi possível entrar.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "lockedTitle": "Demasiadas tentativas.",
+      "lockedText": "Por segurança, o acesso a esta conta está pausado. Tenta novamente dentro de <time></time>.",
+      "sessionNote": "A sessão mantém-se durante 30 dias de atividade neste dispositivo.",
+      "footClosed": "Ainda não tens conta? O registo é por convite: pede ao proprietário do agregado ou abre a ligação que recebeste por email.",
+      "createAccount": "Criar conta"
+    }
   }
 }

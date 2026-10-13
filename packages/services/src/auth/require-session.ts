@@ -6,6 +6,26 @@ export interface AuthSession {
   userId: string;
   sessionId: string;
   expiresAt: Date;
+  /** Display name, for the shell. Never log it. */
+  name: string;
+}
+
+/**
+ * The caller's session, or `null` when there is none (no cookie, unknown, expired or revoked).
+ * Pages use it to redirect to the sign-in screen; services and Route Handlers use `requireSession`.
+ */
+export async function getOptionalSession(
+  auth: Auth,
+  headers: Headers,
+): Promise<AuthSession | null> {
+  const result = await auth.api.getSession({ headers });
+  if (!result) return null;
+  return {
+    userId: result.user.id,
+    sessionId: result.session.id,
+    expiresAt: result.session.expiresAt,
+    name: result.user.name,
+  };
 }
 
 /**
@@ -14,11 +34,7 @@ export interface AuthSession {
  * the only check.
  */
 export async function requireSession(auth: Auth, headers: Headers): Promise<AuthSession> {
-  const result = await auth.api.getSession({ headers });
-  if (!result) throw new UnauthorizedError();
-  return {
-    userId: result.user.id,
-    sessionId: result.session.id,
-    expiresAt: result.session.expiresAt,
-  };
+  const session = await getOptionalSession(auth, headers);
+  if (!session) throw new UnauthorizedError();
+  return session;
 }

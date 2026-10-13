@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { STORAGE_STATE } from './support/user';
+
+// The shell pages need a session: they run as the E2E owner created in global-setup.ts.
+test.use({ storageState: STORAGE_STATE });
+
 // The shell pages must run under the strict CSP without a single violation (security control 18).
 async function collectViolations(page: Page): Promise<string[]> {
   const violations: string[] = [];
@@ -9,7 +14,9 @@ async function collectViolations(page: Page): Promise<string[]> {
   page.on('pageerror', (error) => violations.push(error.message));
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (event) => {
-      console.error(`Content Security Policy violation: ${event.violatedDirective}`);
+      console.error(
+        `Content Security Policy violation: ${event.violatedDirective} ${event.blockedURI} ${event.sourceFile}:${String(event.lineNumber)} ${event.sample}`,
+      );
     });
   });
   return violations;
@@ -24,6 +31,18 @@ for (const path of ['/demo', '/demo/contas', '/demo/despesas']) {
     expect(violations).toEqual([]);
   });
 }
+
+test.describe('signed out', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test('no CSP violation on /login', async ({ page }) => {
+    const violations = await collectViolations(page);
+    const response = await page.goto('/login');
+    expect(response?.status()).toBe(200);
+    await page.waitForLoadState('networkidle');
+    expect(violations).toEqual([]);
+  });
+});
 
 test('the app is interactive under the CSP (theme switch works)', async ({ page }) => {
   const violations = await collectViolations(page);
