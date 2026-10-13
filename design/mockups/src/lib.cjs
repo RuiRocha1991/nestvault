@@ -47,6 +47,17 @@ const I = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/>',
   trend: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  shield: '<path d="M12 3 4.5 6v6c0 4.5 3.2 7.8 7.5 9 4.3-1.2 7.5-4.5 7.5-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+  alert: '<path d="M12 3 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>',
+  logout: '<path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M16 7l3 3"/>',
+  chevron: '<path d="m9 6 6 6-6 6"/>',
 };
 const ico = (k, cls = 'ico') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>`;
 
@@ -144,6 +155,55 @@ tr.cur td{background:var(--accent-soft)}
 .tgl{width:34px;height:20px;border-radius:999px;background:var(--inset);border:1px solid var(--line-2);position:relative;flex:none}
 .tgl i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--fg-3)}
 .tgl.on{background:var(--accent);border-color:var(--accent)}.tgl.on i{left:16px;background:#fff}.tgl.dis{opacity:.5}
+.auth{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
+.auth-brand{position:relative;overflow:hidden;padding:48px 56px;display:flex;flex-direction:column;gap:32px;background:radial-gradient(120% 90% at 0% 0%,#3a2a8f 0%,transparent 55%),radial-gradient(90% 80% at 100% 100%,#6a2bd9 0%,transparent 60%),#1F2044;color:#F2F2FB}
+:root[data-theme="light"] .auth-brand{background:radial-gradient(120% 90% at 0% 0%,#8b55f5 0%,transparent 55%),radial-gradient(90% 80% at 100% 100%,#5b21c9 0%,transparent 62%),#7c5cff}
+.auth-brand .brand b{font-size:30px;background:none;-webkit-background-clip:initial;color:#fff}
+.auth-brand .brand span{color:rgba(255,255,255,.75)}
+.auth-brand h2{font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:auto 0 0;max-width:460px}
+.auth-brand p{margin:0;font-size:15px;color:rgba(255,255,255,.82);max-width:440px}
+.auth-brand ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;font-size:14px}
+.auth-brand li{display:flex;gap:10px;align-items:center}
+.auth-brand li .ico{width:18px;height:18px;padding:3px;border-radius:50%;background:rgba(255,255,255,.18);stroke-width:2.6}
+.auth-deco{position:absolute;right:40px;top:84px;width:300px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px;backdrop-filter:blur(6px);transform:rotate(3deg)}
+.auth-deco small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75;font-weight:600}
+.auth-deco b{font-size:24px;font-weight:800;display:block;margin:4px 0 8px}
+.auth-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;gap:20px;background:var(--bg)}
+.auth-card{width:min(420px,100%);background:var(--panel);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:32px;display:flex;flex-direction:column;gap:18px}
+.auth-card h1{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.01em}
+.auth-card .lead{margin:-10px 0 0;color:var(--fg-2);font-size:var(--fs-md)}
+.auth-card form{display:flex;flex-direction:column;gap:14px}
+.auth-card .btn.lg{height:42px;width:100%;font-size:var(--fs-base)}
+.auth-foot{font-size:var(--fs-sm);color:var(--fg-3);text-align:center;max-width:420px}
+.auth-foot a,.auth-card a,.link{color:var(--accent-2);font-weight:600;text-decoration:none;cursor:pointer}
+.auth-top{display:none}
+.iw{position:relative;display:flex}
+.iw .input{height:40px;padding-right:40px}
+.iw .ico.l{position:absolute;left:12px;top:11px;width:18px;height:18px;color:var(--fg-3)}
+.iw.has-l .input{padding-left:38px}
+.iw .eye{position:absolute;right:6px;top:5px;width:30px;height:30px;display:grid;place-items:center;color:var(--fg-3);border-radius:6px}
+.input.err{border-color:var(--neg);box-shadow:0 0 0 1px var(--neg) inset}
+.input.dis{opacity:.6}
+.alert{display:flex;gap:10px;align-items:flex-start;border-radius:var(--r-md);padding:10px 12px;font-size:var(--fs-md);border:1px solid}
+.alert .ico{width:18px;height:18px;margin-top:1px}
+.alert.err{background:rgba(242,90,100,.12);border-color:var(--neg);color:var(--fg)}.alert.err .ico{color:var(--neg)}
+.alert.warn{background:rgba(242,166,61,.12);border-color:var(--warn)}.alert.warn .ico{color:var(--warn)}
+.alert.ok{background:rgba(60,203,127,.12);border-color:var(--pos)}.alert.ok .ico{color:var(--pos)}
+.alert.info{background:var(--accent-soft);border-color:var(--accent)}.alert.info .ico{color:var(--accent-2)}
+.fr{display:flex;justify-content:space-between;align-items:center}
+.meter-pw{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.meter-pw i{height:4px;border-radius:4px;background:var(--inset)}
+.reqs{display:flex;flex-direction:column;gap:5px;font-size:var(--fs-sm);color:var(--fg-2)}
+.reqs div{display:flex;gap:7px;align-items:center}.reqs .ico{width:14px;height:14px;stroke-width:2.6}
+.reqs .ok{color:var(--pos)}.reqs .no{color:var(--fg-3)}
+.big-ico{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;align-self:flex-start}
+.big-ico .ico{width:28px;height:28px}
+.pool-card{display:flex;flex-direction:column;gap:12px;border:1px solid transparent;cursor:pointer}
+.pool-card:hover{border-color:var(--accent-2)}
+.divider{display:flex;align-items:center;gap:10px;color:var(--fg-3);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.08em}
+.divider::before,.divider::after{content:"";height:1px;background:var(--line);flex:1}
+.who-box{display:flex;gap:10px;align-items:center;background:var(--inset);border-radius:var(--r-md);padding:10px 12px}
+.pool-top{display:flex;align-items:center;gap:var(--s3);padding:20px 32px}
+@media (max-width:860px){.auth{grid-template-columns:minmax(0,1fr)}.auth-brand{display:none}.auth-top{display:flex;padding:20px 20px 0;background:var(--bg)}.auth-top .brand b{font-size:24px}.auth-main{justify-content:flex-start;padding:24px 16px 32px}.auth-card{padding:24px 20px}.pool-top{padding:16px}}
 .hero-pro{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--grad-violet);color:#fff;box-shadow:0 10px 24px -8px var(--accent)}
 .hero-pro .ico{width:26px;height:26px}
 `;
@@ -217,12 +277,12 @@ function donut(items, centerTop, centerSub) {
 }
 
 /* ---------- HTML document ---------- */
-function doc({ theme, body, modal = '', mobile = false }) {
+function doc({ theme, body, modal = '', mobile = false, bare = false }) {
   const css = fs.readFileSync(path.join(ROOT, 'design/cofre-estilos-completos.css'), 'utf8');
   const f = (file) => 'file://' + path.join(ROOT, 'design/fonts', file);
   const faces = [['Plus Jakarta Sans', 400], ['Plus Jakarta Sans', 500], ['Plus Jakarta Sans', 600], ['Plus Jakarta Sans', 700], ['Plus Jakarta Sans', 800], ['JetBrains Mono', 500], ['JetBrains Mono', 600]]
     .map(([n, w]) => `@font-face{font-family:"${n}";font-weight:${w};src:url("${f(n.toLowerCase().replace(/ /g, '-') + '-latin-' + w + '-normal.woff2')}") format("woff2")}`).join('\n');
-  return `<!doctype html><html lang="pt-PT" data-theme="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${faces}\n${css}\n${CSS_EXTRA}</style></head><body><div class="app">${body}</div>${modal}</body></html>`;
+  return `<!doctype html><html lang="pt-PT" data-theme="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${faces}\n${css}\n${CSS_EXTRA}</style></head><body>${bare ? body : `<div class="app">${body}</div>`}${modal}</body></html>`;
 }
 const page = (active, title, content, opts = {}) =>
   `${sidebar(active, opts)}<main class="main">${topbar(title, opts)}${opts.banner || ''}${content}</main>`;

@@ -3,6 +3,7 @@
    Needs Playwright with Chromium. `filter` renders only outputs whose name contains it. */
 const { fs, path, ROOT, doc } = require('./lib.cjs');
 const P = require('./pages.cjs');
+const A = require('./auth.cjs');
 const { chromium } = require('playwright');
 
 const OUT = path.join(ROOT, 'design/mockups');
@@ -32,6 +33,31 @@ const jobs = [
   ['modal-46-novo-campo-da-prestacao', 'modal', () => P.mNewField()],
   ['modal-44-importar-folha-de-calculo', 'modal', () => P.mImport()],
   ['mobile-07-imovel-resumo', 'mobile', () => P.imovelResumo()],
+  ['47-login', 'auth', () => A.login()],
+  ['48-login-credenciais-invalidas', 'auth', () => A.login({ error: true })],
+  ['49-login-demasiadas-tentativas', 'auth', () => A.login({ locked: true })],
+  ['50-registar', 'auth', () => A.registar()],
+  ['51-registar-fechado', 'auth', () => A.registarFechado()],
+  ['52-recuperar-palavra-passe', 'auth', () => A.recuperar()],
+  ['53-recuperar-email-enviado', 'auth', () => A.recuperarEnviado()],
+  ['54-recuperar-nova-palavra-passe', 'auth', () => A.recuperarNova()],
+  ['55-recuperar-ligacao-invalida', 'auth', () => A.recuperarInvalido()],
+  ['56-verificar-email-pendente', 'auth', () => A.verificarPendente()],
+  ['57-verificar-email-confirmado', 'auth', () => A.verificarSucesso()],
+  ['58-convite', 'auth', () => A.convitePublico()],
+  ['59-convite-aceitar', 'auth', () => A.conviteAceitar()],
+  ['60-convite-email-diferente', 'auth', () => A.conviteDiferente()],
+  ['61-convite-expirado', 'auth', () => A.conviteExpirado()],
+  ['62-agregados-escolher', 'auth', () => A.pools()],
+  ['63-agregados-criar-primeiro', 'auth', () => A.poolsPrimeiro()],
+  ['64-definicoes-utilizadores-e-convites', 'page', () => A.membros()],
+  ['65-conta', 'page', () => A.conta()],
+  ['modal-66-convidar-utilizador', 'modal', () => A.mInvite()],
+  ['modal-67-transferir-propriedade', 'modal', () => A.mTransfer()],
+  ['modal-68-eliminar-conta-bloqueado', 'modal', () => A.mDelete()],
+  ['mobile-09-login', 'auth-mobile', () => A.login()],
+  ['mobile-10-registar', 'auth-mobile', () => A.registar()],
+  ['mobile-11-convite', 'auth-mobile', () => A.convitePublico()],
   ['mobile-08-imobiliario-free-dialogo-pro', 'mobile-view', () => ({ body: P.imobiliarioLista(P.demo, { free: true }), modal: P.dialogPro({ feature: 'real_estate' }) })],
 ];
 
@@ -44,8 +70,9 @@ const jobs = [
     for (const [name, kind, make] of jobs) {
       if (filter && !name.includes(filter)) continue;
       const r = make();
-      const mobile = kind.startsWith('mobile');
-      const html = doc({ theme: theme === 'escuro' ? 'dark' : 'light', body: typeof r === 'string' && kind !== 'modal' ? r : r.body || '', modal: kind === 'modal' ? r : r.modal || '', mobile });
+      const mobile = kind.startsWith('mobile') || kind === 'auth-mobile';
+      const bare = kind.startsWith('auth');
+      const html = doc({ theme: theme === 'escuro' ? 'dark' : 'light', body: typeof r === 'string' && kind !== 'modal' ? r : r.body || '', modal: kind === 'modal' ? r : r.modal || '', mobile, bare });
       const file = path.join(tmp, `${theme}-${name}.html`);
       fs.writeFileSync(file, html);
       const ctx = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: kind === 'modal' ? 1600 : 900 }, deviceScaleFactor: mobile ? 2 : 1, colorScheme: theme === 'escuro' ? 'dark' : 'light' });
@@ -55,6 +82,10 @@ const jobs = [
       const out = path.join(dir, name + '.png');
       if (kind === 'modal') {
         await page.locator('.modal').screenshot({ path: out });
+      } else if (bare) {
+        const h = await page.evaluate(() => Math.ceil(document.querySelector('.auth').scrollHeight));
+        await page.setViewportSize({ width: mobile ? 390 : 1440, height: Math.max(h, mobile ? 844 : 900) });
+        await page.screenshot({ path: out });
       } else if (kind === 'page' || kind === 'mobile') {
         const h = await page.evaluate(() => Math.ceil(document.querySelector('.main').scrollHeight));
         await page.setViewportSize({ width: mobile ? 390 : 1440, height: h });
