@@ -109,6 +109,29 @@ Alternative: VS Code Remote-SSH, which forwards the ports for you.
 `Secure` on localhost. Through the tunnel the browser sees `localhost`, so cookies behave exactly
 like local development, and nothing on your network can reach the app or the database.
 
+### Staying signed in
+
+Sessions live in the database (not in server memory), and the cookie is persistent (30 days,
+renewed after a day of activity), so a refresh, a new tab, a browser restart and a server restart
+all keep you signed in while the session is valid. A session that was ended elsewhere or expired
+sends you to `/login?next=…` with the message "A tua sessão expirou". A tab left open notices it
+by itself: at once when another tab of the same browser signs out, and otherwise when the tab is
+shown again or within a minute (the app checks `/api/v1/auth/get-session`). A second browser has its
+own session, so signing out in one does not end the other.
+
+Two things make a browser drop the session, and both are about how you open the app:
+
+- **Open it as `http://localhost:4000` through the tunnel, never by the machine's LAN IP.** The
+  `Secure` flag follows `APP_URL`: with `APP_URL=http://localhost:4000` the cookie is not `Secure`
+  and works over plain HTTP; with an `https` `APP_URL` a browser refuses to keep it over HTTP.
+- **`APP_URL` must be the address in the address bar.** Writes are accepted only when `Origin`
+  matches it (CSRF), so another host (the LAN IP, `127.0.0.1` instead of `localhost`) fails to sign in.
+
+Manual check (Safari and Chrome on the Mac, through the tunnel; done by hand because it needs real
+browsers): sign in → open `/<pool>/despesas` → press ⌘R → open the same page in a new tab → quit
+and reopen the browser → restart `pnpm dev` and refresh. In every step you must still be signed in
+on the same page, with no login screen showing.
+
 ## Troubleshooting
 
 - `variable is not set` from Compose: `.env.local` is missing; run `pnpm env:init`.

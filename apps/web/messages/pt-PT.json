@@ -78,6 +78,7 @@
       "sessionNote": "A sessão mantém-se durante 30 dias de atividade neste dispositivo.",
       "footClosed": "Ainda não tens conta? O registo é por convite: pede ao proprietário do agregado ou abre a ligação que recebeste por email.",
       "createAccount": "Criar conta"
-    }
+    },
+    "sessionExpired": "A tua sessão expirou. Entra novamente."
   }
 }

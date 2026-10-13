@@ -23,11 +23,16 @@ const testDb = openTestDatabase();
 const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 2);
 
 function build(
-  options: { allowSignup?: boolean; invites?: InviteVerifier; breached?: boolean } = {},
+  options: {
+    allowSignup?: boolean;
+    invites?: InviteVerifier;
+    breached?: boolean;
+    appUrl?: string;
+  } = {},
 ) {
   return createAuth({
     identity,
-    appUrl: APP_URL,
+    appUrl: options.appUrl ?? APP_URL,
     secret: 'x'.repeat(40),
     allowSignup: options.allowSignup ?? true,
     ...(options.invites ? { invites: options.invites } : {}),
@@ -35,18 +40,29 @@ function build(
   });
 }
 
-function post(auth: Auth, path: string, body: unknown, headers: Record<string, string> = {}) {
+function post(
+  auth: Auth,
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+  appUrl = APP_URL,
+) {
   return auth.handler(
-    new Request(`${APP_URL}/api/v1/auth${path}`, {
+    new Request(`${appUrl}/api/v1/auth${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', origin: APP_URL, ...headers },
+      headers: { 'content-type': 'application/json', origin: appUrl, ...headers },
       body: JSON.stringify(body),
     }),
   );
 }
 
-const signUp = (auth: Auth, email = 'ana@example.com', password = PASSWORD, h = {}) =>
-  post(auth, '/sign-up/email', { name: 'Ana', email, password }, h);
+const signUp = (
+  auth: Auth,
+  email = 'ana@example.com',
+  password = PASSWORD,
+  h = {},
+  appUrl?: string,
+) => post(auth, '/sign-up/email', { name: 'Ana', email, password }, h, appUrl);
 
 const hashed = (cookie: string) =>
   hashSessionToken(decodeURIComponent(cookie.split('=')[1] ?? '').split('.')[0] ?? '');
@@ -108,10 +124,19 @@ describe('sign-up', () => {
 });
 
 describe('sessions', () => {
-  async function signIn(auth: Auth) {
-    await signUp(auth);
-    return post(auth, '/sign-in/email', { email: 'ana@example.com', password: PASSWORD });
+  async function signIn(auth: Auth, appUrl?: string) {
+    await signUp(auth, 'ana@example.com', PASSWORD, {}, appUrl);
+    return post(
+      auth,
+      '/sign-in/email',
+      { email: 'ana@example.com', password: PASSWORD },
+      {},
+      appUrl,
+    );
   }
+
+  const cookieOf = (response: Response) =>
+    (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
   it('sets a persistent HttpOnly SameSite=Lax cookie', async () => {
     const cookie = (await signIn(build())).headers.get('set-cookie') ?? '';
@@ -148,6 +173,83 @@ describe('sessions', () => {
     expect(await getOptionalSession(auth, headers)).toBeNull();
     await expect(requireSession(auth, headers)).rejects.toBeInstanceOf(UnauthorizedError);
     expect(await rows(sql`select 1 from session where token = ${hashed(cookie)}`)).toHaveLength(0);
+  });
+
+  it('marks the cookie Secure (with the __Secure- prefix) only when APP_URL is https', async () => {
+    const https = 'https://nestvault.example.test';
+    const secure = (await signIn(build({ appUrl: https }), https)).headers.get('set-cookie') ?? '';
+    expect(secure).toContain('__Secure-nv.session_token=');
+    expect(secure).toMatch(/Secure/);
+    await testDb.truncateAll();
+    const plain = (await signIn(build())).headers.get('set-cookie') ?? '';
+    expect(plain).toContain('nv.session_token=');
+    expect(plain).not.toMatch(/Secure/i); // a Secure cookie over plain http would be dropped
+  });
+
+  it('keeps the session valid for another server process (restart): nothing lives in memory', async () => {
+    const cookie = cookieOf(await signIn(build()));
+    const restarted = build(); // a new instance, as after `next start` again
+    const headers = new Headers({ cookie });
+    expect((await getOptionalSession(restarted, headers))?.userId).toBeTruthy();
+  });
+
+  // Sign-up also opens a session, so every check below reads the row of this cookie only.
+  const rowOf = async (cookie: string) =>
+    (
+      await rows<{ expires_at: Date; updated_at: Date }>(
+        sql`select expires_at, updated_at from session where token = ${hashed(cookie)}`,
+      )
+    )[0];
+
+  it('slides the expiry forward when an old session is used', async () => {
+    const auth = build();
+    const cookie = cookieOf(await signIn(auth));
+    // 28 days left of 30: more than the 1-day update age has passed since the last renewal.
+    await identity.db.execute(
+      sql`update session set expires_at = now() + interval '28 days', updated_at = now() - interval '2 days' where token = ${hashed(cookie)}`,
+    );
+    const before = await rowOf(cookie);
+    await getOptionalSession(auth, new Headers({ cookie }));
+    const after = await rowOf(cookie);
+    const day = 24 * 60 * 60 * 1000;
+    const moved =
+      new Date(after?.expires_at ?? 0).getTime() - new Date(before?.expires_at ?? 0).getTime();
+    expect(moved).toBeGreaterThan(day);
+    expect(Date.now() - new Date(after?.updated_at ?? 0).getTime()).toBeLessThan(60_000);
+  });
+
+  it('does not renew an old session when the check asks for disableRefresh (idle tab polling)', async () => {
+    const auth = build();
+    const cookie = cookieOf(await signIn(auth));
+    await identity.db.execute(
+      sql`update session set expires_at = now() + interval '28 days', updated_at = now() - interval '2 days' where token = ${hashed(cookie)}`,
+    );
+    const before = await rowOf(cookie);
+    const response = await auth.handler(
+      new Request(`${APP_URL}/api/v1/auth/get-session?disableRefresh=true`, {
+        headers: { cookie },
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).not.toBeNull(); // still a valid session
+    expect(await rowOf(cookie)).toEqual(before); // but not extended
+  });
+
+  it('does not renew a session that was used within the update age', async () => {
+    const auth = build();
+    const cookie = cookieOf(await signIn(auth));
+    const before = await rowOf(cookie);
+    await getOptionalSession(auth, new Headers({ cookie }));
+    expect(await rowOf(cookie)).toEqual(before);
+  });
+
+  it('rejects an expired session', async () => {
+    const auth = build();
+    const cookie = cookieOf(await signIn(auth));
+    await identity.db.execute(
+      sql`update session set expires_at = now() - interval '1 second' where token = ${hashed(cookie)}`,
+    );
+    expect(await getOptionalSession(auth, new Headers({ cookie }))).toBeNull();
   });
 
   it('rejects the stored hash used as a cookie', async () => {

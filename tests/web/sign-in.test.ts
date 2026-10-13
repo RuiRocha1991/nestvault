@@ -76,6 +76,12 @@ describe('loginUrl', () => {
     );
   });
 
+  it('adds reason=expired when a session cookie stopped working', () => {
+    expect(loginUrl('/demo', { expired: true })).toBe('/login?next=%2Fdemo&reason=expired');
+    expect(loginUrl(null, { expired: true })).toBe('/login?reason=expired');
+    expect(loginUrl('//evil.com', { expired: true })).toBe('/login?reason=expired');
+  });
+
   it('drops an unsafe or missing path', () => {
     expect(loginUrl('//evil.com')).toBe('/login');
     expect(loginUrl('https://evil.com')).toBe('/login');

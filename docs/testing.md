@@ -58,6 +58,12 @@ NES-25; until then pass the permission names explicitly.
 - `login.spec.ts`: sign in → app → sign out, revoked cookie, `next` handling (open-redirect
   payloads), identical message for wrong password and unknown email, rate-limit countdown (429
   mocked until NES-23), mobile and light layouts.
+- `session.spec.ts`: refresh keeps the page with no request to `/login`, a new tab and a new
+  context with the stored cookies (browser restart) are signed in, the cookie is persistent
+  (30 days, HttpOnly, SameSite=Lax), and a revoked session goes to `/login?…&reason=expired` with
+  the expiry toast; signing out in one tab sends the other tab to the login screen at once, and a
+  tab whose session was ended without telling it leaves the app when it gets focus. The server-restart, sliding-renewal, expiry and `Secure` cases are integration
+  tests in `tests/services/auth.integration.test.ts`.
 
 ## Coverage
 
