@@ -69,7 +69,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                       |
 | `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user      |
 | `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                       |
-| `pnpm db:seed`                          | Seed data. **Placeholder until the first tables**                  |
+| `pnpm db:seed`                          | Create the first owner (`SEED_OWNER_EMAIL`/`_PASSWORD`, else prompted); idempotent |
 | `pnpm test:e2e`                         | Playwright (Chromium): smoke + CSP checks on the production build  |
 | `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)  |
 

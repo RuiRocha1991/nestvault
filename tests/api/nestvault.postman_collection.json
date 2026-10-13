@@ -1,71 +1,287 @@
 {
-  "info": {
-    "name": "NestVault API",
-    "description": "Example requests for the NestVault REST API (/api/v1). Import tests/api/local.postman_environment.json too. The OpenAPI document (docs/api/openapi.json) is the complete reference; see tests/api/README.md.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ "info": {
+  "name": "NestVault API",
+  "description": "Example requests for the NestVault REST API (/api/v1). Import tests/api/local.postman_environment.json too. The OpenAPI document (docs/api/openapi.json) is the complete reference; see tests/api/README.md.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "variable": [
+  {
+   "key": "baseUrl",
+   "value": "http://localhost:4000"
   },
-  "variable": [
+  {
+   "key": "poolId",
+   "value": ""
+  },
+  {
+   "key": "userEmail",
+   "value": ""
+  },
+  {
+   "key": "userPassword",
+   "value": ""
+  },
+  {
+   "key": "newPassword",
+   "value": ""
+  }
+ ],
+ "item": [
+  {
+   "name": "System",
+   "item": [
     {
-      "key": "baseUrl",
-      "value": "http://localhost:4000"
-    },
-    {
-      "key": "poolId",
-      "value": ""
-    }
-  ],
-  "item": [
-    {
-      "name": "System",
-      "item": [
-        {
-          "name": "Health",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
-                  "pm.test('body is { status: \"ok\" }', () => pm.expect(pm.response.json()).to.eql({ status: 'ok' }));",
-                  "pm.test('has a request id', () => pm.expect(pm.response.headers.get('x-request-id')).to.be.a('string').and.not.empty);",
-                  "pm.test('is not cached', () => pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "health"
-              ]
-            },
-            "description": "Liveness check. No authentication, no data."
-          },
-          "response": []
-        }
-      ]
-    }
-  ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
+     "name": "Health",
+     "event": [
+      {
+       "listen": "test",
+       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Write requests (POST/PUT/PATCH/DELETE) are rejected with 403 unless Origin equals the app origin.",
-          "// Postman does not send one by default, so set it for every request in this collection.",
-          "pm.request.headers.upsert({ key: 'Origin', value: pm.variables.get('baseUrl') });"
+         "pm.test('status is 200', () => pm.response.to.have.status(200));",
+         "pm.test('body is { status: \"ok\" }', () => pm.expect(pm.response.json()).to.eql({ status: 'ok' }));",
+         "pm.test('has a request id', () => pm.expect(pm.response.headers.get('x-request-id')).to.be.a('string').and.not.empty);",
+         "pm.test('is not cached', () => pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store'));"
         ]
+       }
       }
+     ],
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/health",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "health"
+       ]
+      },
+      "description": "Liveness check. No authentication, no data."
+     },
+     "response": []
     }
-  ]
+   ]
+  },
+  {
+   "name": "Auth",
+   "item": [
+    {
+     "name": "Sign up",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/sign-up/email",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "sign-up",
+        "email"
+       ]
+      },
+      "description": "Closed unless ALLOW_SIGNUP=true or a valid x-invite-token header is sent.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('201/200 or 403 when closed', () => pm.expect([200,403]).to.include(pm.response.code));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Sign in",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "sign-in",
+        "email"
+       ]
+      },
+      "description": "Sets the nv.session_token cookie (HttpOnly, SameSite=Lax, 30 days). Postman keeps it in the cookie jar.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));",
+         "pm.test('session cookie is set', () => pm.expect(pm.cookies.has('nv.session_token')).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Get session",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/get-session",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "get-session"
+       ]
+      },
+      "description": "The current session, or null."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Change password",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/change-password",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "change-password"
+       ]
+      },
+      "description": "Requires a session. The new password must be 12-128 characters and not in a known breach.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\",\n  \"revokeOtherSessions\": true\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Sign out",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/sign-out",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "sign-out"
+       ]
+      },
+      "description": "Deletes the session and clears the cookie.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "event": [
+  {
+   "listen": "prerequest",
+   "script": {
+    "type": "text/javascript",
+    "exec": [
+     "// Write requests (POST/PUT/PATCH/DELETE) are rejected with 403 unless Origin equals the app origin.",
+     "// Postman does not send one by default, so set it for every request in this collection.",
+     "pm.request.headers.upsert({ key: 'Origin', value: pm.variables.get('baseUrl') });"
+    ]
+   }
+  }
+ ]
 }

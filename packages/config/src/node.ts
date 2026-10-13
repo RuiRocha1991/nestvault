@@ -5,9 +5,11 @@ import {
   EnvValidationError,
   loadEnv,
   loadMigratorEnv,
+  loadSeedEnv,
   loadTestEnv,
   type Env,
   type MigratorEnv,
+  type SeedEnv,
   type TestEnv,
 } from './schema';
 
@@ -37,4 +39,9 @@ export function migratorEnv(): Readonly<MigratorEnv> {
 /** `_test` database connections (integration tests only). */
 export function testEnv(): Readonly<TestEnv> {
   return Object.freeze(orExit(() => loadTestEnv(process.env)));
+}
+
+/** Optional `SEED_OWNER_*` inputs of `pnpm db:seed`. */
+export function seedEnv(): Readonly<SeedEnv> {
+  return Object.freeze(orExit(() => loadSeedEnv(process.env)));
 }

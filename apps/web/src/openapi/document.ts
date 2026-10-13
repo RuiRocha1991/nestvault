@@ -1,5 +1,6 @@
 import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
+import './auth';
 import './health';
 import { registry } from './registry';
 
@@ -14,6 +15,9 @@ export function buildOpenApiDocument() {
     },
     servers: [{ url: 'http://localhost:4000', description: 'Local development' }],
     security: [{ sessionCookie: [] }],
-    tags: [{ name: 'System', description: 'Process-level endpoints' }],
+    tags: [
+      { name: 'System', description: 'Process-level endpoints' },
+      { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },
+    ],
   });
 }

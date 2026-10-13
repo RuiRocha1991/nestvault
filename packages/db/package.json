@@ -26,6 +26,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./pool-context-factory": "./src/pool-context.factory.ts",
-    "./migrate": "./src/migrate.ts"
+    "./migrate": "./src/migrate.ts",
+    "./identity-schema": "./src/identity/schema/index.ts"
   }
 }

@@ -10,7 +10,7 @@ export const registry = new OpenAPIRegistry();
 export const sessionCookie = registry.registerComponent('securitySchemes', 'sessionCookie', {
   type: 'apiKey',
   in: 'cookie',
-  name: 'better-auth.session_token',
+  name: 'nv.session_token',
   description: 'Session cookie set at sign-in. In Postman, sign in once and reuse the cookie jar.',
 });
 

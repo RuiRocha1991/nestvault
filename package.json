@@ -33,7 +33,7 @@
     "db:generate:identity": "pnpm --filter @nestvault/db db:generate:identity",
     "db:generate:app": "pnpm --filter @nestvault/db db:generate:app",
     "db:migrate": "pnpm --filter @nestvault/db db:migrate",
-    "db:seed": "echo 'db:seed: seed arrives with the first tables'",
+    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "openapi": "tsx scripts/openapi.ts"
   },
   "devDependencies": {

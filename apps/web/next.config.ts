@@ -12,8 +12,8 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // Workspace packages ship TypeScript sources.
   transpilePackages: ['@nestvault/ui', '@nestvault/config', '@nestvault/services'],
-  // Loaded by Node as they are: pino for logging, swagger-ui-dist because it is served from disk.
-  serverExternalPackages: ['pino', 'swagger-ui-dist'],
+  // Loaded by Node as they are: pino for logging, swagger-ui-dist because it is served from disk, argon2 because it is a native addon.
+  serverExternalPackages: ['pino', 'swagger-ui-dist', '@node-rs/argon2'],
 };
 
 export default withNextIntl(nextConfig);
