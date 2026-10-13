@@ -2,10 +2,15 @@ import { expect, test } from '@playwright/test';
 
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
+import { STORAGE_STATE } from './support/user';
+
 // Texts come from the message catalogue, so a copy edit does not break these tests.
 // The document title is a literal in apps/web/src/app/layout.tsx, not a message.
 const TITLE = 'Cofre Familiar';
 const NAV = messages.nav.label;
+
+// These pages need a session: they run as the E2E owner created in global-setup.ts.
+test.use({ storageState: STORAGE_STATE });
 
 // Smoke test: the shell loads. A failure here means the app does not start or render at all.
 test('the shell loads: redirect, title, main navigation and page heading', async ({ page }) => {
@@ -33,7 +38,7 @@ test('the chosen theme is stored in the nv-theme cookie and rendered by the serv
   page,
 }) => {
   // Start from a known state: no cookie means the default theme (dark).
-  await context.clearCookies();
+  await context.clearCookies({ name: 'nv-theme' }); // keep the session cookie
   await page.goto('/demo');
   const html = page.locator('html');
   await expect(html).toHaveAttribute('data-theme', 'dark');
