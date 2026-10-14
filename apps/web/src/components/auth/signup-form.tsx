@@ -4,7 +4,7 @@ import { Button } from '@nestvault/ui';
 import { Mail, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useId, useMemo, useState, type SyntheticEvent } from 'react';
 
 import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
 import { Field, IconInput } from '@webapp/components/auth/field';
@@ -41,7 +41,7 @@ export function SignupForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [locked, startLock] = useCountdown();
 
-  const check = checkPassword(password, email);
+  const check = useMemo(() => checkPassword(password, email), [password, email]);
   const mismatch = confirm.length > 0 && confirm !== password;
   const ready =
     name.trim().length > 0 &&

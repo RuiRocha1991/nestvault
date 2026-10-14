@@ -4,7 +4,7 @@ import { Button } from '@nestvault/ui';
 import { Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useId, useMemo, useState, type SyntheticEvent } from 'react';
 
 import { Alert, Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
 import { Field } from '@webapp/components/auth/field';
@@ -30,7 +30,7 @@ export function ResetForm({ token }: { token: string }) {
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
   const [locked, startLock] = useCountdown();
-  const check = checkPassword(password);
+  const check = useMemo(() => checkPassword(password), [password]);
   const mismatch = confirm.length > 0 && confirm !== password;
   const ready = check.longEnough && check.notCommon && confirm === password;
 

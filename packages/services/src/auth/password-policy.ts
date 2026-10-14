@@ -28,8 +28,20 @@ const COMMON = new Set([
 export function isCommonPassword(value: string): boolean {
   const lower = value.toLowerCase();
   if (COMMON.has(lower)) return true;
-  if (new Set(lower).size <= 3) return true; // "aaaaaaaaaaaa", "abababababab"
-  return /^(?:0123456789|1234567890|abcdefghij|qwertyuiop)/.test(lower) && lower.length < 16;
+  if (/^(?:0123456789|1234567890|abcdefghij|qwertyuiop)/.test(lower) && lower.length < 16) {
+    return true;
+  }
+  return hasAtMostDistinctCharacters(lower, 3); // "aaaaaaaaaaaa", "abababababab"
+}
+
+/** True when `value` has `max` different characters or fewer; stops as soon as it has more. */
+function hasAtMostDistinctCharacters(value: string, max: number): boolean {
+  const seen = new Set<string>();
+  for (const char of value) {
+    seen.add(char);
+    if (seen.size > max) return false;
+  }
+  return true;
 }
 
 /** Names of 6 or more characters are always too close to the email; shorter ones only count when the password is little else. */
