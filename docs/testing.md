@@ -92,3 +92,11 @@ totals in the job summary. React pages and components are covered by Playwright,
   lint, typecheck, `pnpm openapi --check`, `pnpm test:coverage`.
 - **Browser checks (Playwright)**: separate job, Chromium cached by Playwright version.
 - **Secret scan (gitleaks)**.
+- **JUnit XML**: both test jobs write `reports/junit-vitest.xml` / `reports/junit-e2e.xml`, upload them
+  as the `junit-vitest` / `junit-e2e` artifacts and publish a per-test check on the pull request
+  (`Test results (Vitest)` / `Test results (Playwright)`, via `mikepenz/action-junit-report`).
+- **Reports on the Jira issue**: when the branch is named after a Jira key (`NES-12`), each test job
+  also attaches its JUnit file to that issue (`scripts/ci/attach-junit-to-jira.sh`, one file per run
+  and commit). It needs the repository secrets `JIRA_BASE_URL` (`https://<site>.atlassian.net`),
+  `JIRA_USER_EMAIL` and `JIRA_API_TOKEN`; without them, or on pull requests from forks, the step is
+  skipped and the build is unaffected. The token is only read from the environment and never printed.
