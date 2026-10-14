@@ -23,6 +23,8 @@ interface Layout {
   heading: string;
   paragraphs: readonly string[];
   action?: { label: string; url: string };
+  /** A plain link under the button (for example "recover the password"). */
+  secondaryAction?: { label: string; url: string };
   footer: string;
 }
 
@@ -34,6 +36,9 @@ function render(layout: Layout): EmailContent {
     ? `<p style="margin:22px 0"><a href="${escapeHtml(layout.action.url)}" style="background:#7c3aed;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600;display:inline-block">${escapeHtml(layout.action.label)}</a></p>` +
       `<p style="margin:0 0 14px;font-size:13px;color:#6b7280;word-break:break-all">${escapeHtml(layout.action.url)}</p>`
     : '';
+  const secondaryHtml = layout.secondaryAction
+    ? `<p style="margin:0 0 14px"><a href="${escapeHtml(layout.secondaryAction.url)}" style="color:#7c3aed;font-weight:600">${escapeHtml(layout.secondaryAction.label)}</a></p>`
+    : '';
   const html =
     `<!doctype html><html lang="pt-PT"><body style="margin:0;background:#f4f4f8;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#1f2937">` +
     `<div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px">` +
@@ -41,6 +46,7 @@ function render(layout: Layout): EmailContent {
     `<h1 style="margin:0 0 16px;font-size:20px">${escapeHtml(layout.heading)}</h1>` +
     paragraphsHtml +
     actionHtml +
+    secondaryHtml +
     `<p style="margin:18px 0 0;font-size:13px;color:#6b7280">${escapeHtml(layout.footer)}</p>` +
     `</div></body></html>`;
   const text = [
@@ -48,6 +54,9 @@ function render(layout: Layout): EmailContent {
     '',
     ...layout.paragraphs,
     ...(layout.action ? ['', `${layout.action.label}: ${layout.action.url}`] : []),
+    ...(layout.secondaryAction
+      ? [`${layout.secondaryAction.label}: ${layout.secondaryAction.url}`]
+      : []),
     '',
     layout.footer,
   ].join('\n');
@@ -122,9 +131,10 @@ export function existingAccountTemplate(input: {
     heading: 'Já tens uma conta',
     paragraphs: [
       `Olá ${input.name}, alguém tentou criar uma conta com este email, mas já tens uma. Nada foi alterado.`,
-      `Se te esqueceste da palavra-passe, podes recuperá-la em ${input.resetUrl}.`,
+      'Se te esqueceste da palavra-passe, podes recuperá-la.',
     ],
     action: { label: 'Entrar', url: input.loginUrl },
+    secondaryAction: { label: 'Recuperar a palavra-passe', url: input.resetUrl },
     footer: IGNORE_FOOTER,
   });
 }

@@ -32,16 +32,33 @@ export function isCommonPassword(value: string): boolean {
   return /^(?:0123456789|1234567890|abcdefghij|qwertyuiop)/.test(lower) && lower.length < 16;
 }
 
-const MIN_LOCAL_PART_LENGTH = 6;
+/** Names of 6 or more characters are always too close to the email; shorter ones only count when the password is little else. */
+const LONG_NAME_LENGTH = 6;
+const MIN_NAME_LENGTH = 3;
+/** A short name plus fewer than this many different other characters is "based on the email". */
+const MIN_OTHER_DISTINCT = 6;
 
-/** The password is the email, or contains it or (when long enough to mean something) its name part. */
+/** Lower case, no accents (`João` -> `joao`), so look-alike spellings compare equal. */
+const fold = (value: string) => value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+
+/**
+ * The password is the email, or contains it, or the name part of it (also without dots and without
+ * a `+tag`). A name of 6+ characters is always refused; a name of 3 to 5 characters only when what
+ * is left of the password is mostly that name over and over (`rui-rui-rui-rui-2024`).
+ */
 export function isPasswordBasedOnEmail(password: string, email: string): boolean {
-  const lower = password.toLowerCase();
-  const address = email.trim().toLowerCase();
+  const lower = fold(password);
+  const address = fold(email).trim();
   if (address.length === 0) return false;
   if (lower.includes(address)) return true;
-  const local = address.split('@')[0] ?? '';
-  return local.length >= MIN_LOCAL_PART_LENGTH && lower.includes(local);
+  const local = (address.split('@')[0] ?? '').split('+')[0] ?? '';
+  const names = new Set([local, local.replaceAll('.', '')]);
+  for (const name of names) {
+    if (name.length < MIN_NAME_LENGTH || !lower.includes(name)) continue;
+    if (name.length >= LONG_NAME_LENGTH) return true;
+    if (new Set(lower.replaceAll(name, '')).size < MIN_OTHER_DISTINCT) return true;
+  }
+  return false;
 }
 
 export interface PasswordRuleContext {

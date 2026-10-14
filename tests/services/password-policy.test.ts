@@ -36,6 +36,23 @@ describe('password policy', () => {
   });
 });
 
+describe('isPasswordBasedOnEmail with short names, tags, dots and accents', () => {
+  it.each([
+    ['rui-rui-rui-rui-2024', 'rui@example.com', true],
+    ['rui1234rui1234', 'rui@example.com', true],
+    ['RUI-rui-RUI-rui-1', 'rui@example.com', true],
+    ['ruirruirruir-ruir', 'rui.r+work@example.com', true], // dotless local part, +tag dropped
+    ['joaomartins-123456', 'joão.martins@example.com', true], // accents folded, dots dropped
+    ['João.Martins-9', 'joao.martins@example.com', true],
+    ['rui-correct-horse-9', 'rui@example.com', false], // a short name inside a real passphrase
+    ['my-ana-secret-phrase', 'ana@example.com', false],
+    ['xyz-correct-horse-battery', 'rui+xyz@example.com', false], // the tag is not the name
+    ['ru-correct-horse', 'ru@example.com', false], // names under 3 characters are ignored
+  ])('%j with %s is based on the email: %s', (password, email, expected) => {
+    expect(isPasswordBasedOnEmail(password, email)).toBe(expected);
+  });
+});
+
 describe('password rules', () => {
   const email = 'ana.silva@example.com';
 

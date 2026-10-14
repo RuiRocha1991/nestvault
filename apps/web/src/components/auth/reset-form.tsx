@@ -10,6 +10,7 @@ import { Alert, Countdown, LockedAlert, ProblemAlert } from '@webapp/components/
 import { Field } from '@webapp/components/auth/field';
 import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
+import { passwordProblemOf, type PasswordProblem } from '@webapp/lib/password-problem';
 import { checkPassword } from '@webapp/lib/password-strength';
 import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
@@ -17,12 +18,7 @@ import { useCountdown } from '@webapp/lib/use-countdown';
 
 const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
 
-type Problem = 'breached' | 'tooCommon' | 'error' | null;
-
-const PROBLEM_BY_CODE: Record<string, Problem> = {
-  PASSWORD_BREACHED: 'breached',
-  PASSWORD_TOO_COMMON: 'tooCommon',
-};
+type Problem = PasswordProblem | 'error' | null;
 
 /** Screen 54. The token only travels in the request body; a used or expired one reloads into screen 55. */
 export function ResetForm({ token }: { token: string }) {
@@ -58,13 +54,15 @@ export function ResetForm({ token }: { token: string }) {
       } else if (outcome.status === 400 && outcome.code === 'INVALID_TOKEN') {
         router.refresh(); // used up or expired: screen 55
       } else {
-        setProblem((outcome.status === 400 && PROBLEM_BY_CODE[String(outcome.code)]) || 'error');
+        setProblem((outcome.status === 400 && passwordProblemOf(outcome.code)) || 'error');
       }
     } catch {
       setProblem('error');
     }
     setPending(false);
   }
+
+  const fieldProblem = problem !== null && problem !== 'error' ? problem : null;
 
   return (
     <>
@@ -92,7 +90,7 @@ export function ResetForm({ token }: { token: string }) {
             value={password}
             showLabel={t('showPassword')}
             hideLabel={t('hidePassword')}
-            invalid={problem === 'breached' || problem === 'tooCommon'}
+            invalid={fieldProblem !== null}
             onChange={(event) => {
               setPassword(event.target.value);
               setProblem(null);
@@ -108,8 +106,7 @@ export function ResetForm({ token }: { token: string }) {
               { ok: check.notCommon, label: t('rules.common') },
             ]}
           />
-          {problem === 'breached' && <p className="text-sm text-neg">{t('breached')}</p>}
-          {problem === 'tooCommon' && <p className="text-sm text-neg">{t('tooCommon')}</p>}
+          {fieldProblem !== null && <p className="text-sm text-neg">{t(fieldProblem)}</p>}
         </Field>
 
         <Field id={ids.confirm} label={t('confirmPassword')}>

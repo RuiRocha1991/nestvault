@@ -134,7 +134,10 @@
       "invalidTitle": "Esta ligação já não é válida",
       "invalidText": "Expirou ou já foi utilizada. As ligações de recuperação só podem ser usadas uma vez.",
       "requestNew": "Pedir nova ligação",
-      "backToLogin": "Voltar a entrar"
+      "backToLogin": "Voltar a entrar",
+      "tooShort": "A palavra-passe tem de ter pelo menos 12 caracteres.",
+      "tooLong": "A palavra-passe pode ter no máximo 128 caracteres.",
+      "basedOnEmail": "A palavra-passe não pode conter o teu email."
     },
     "verify": {
       "pendingTitle": "Confirma o teu email",
@@ -196,7 +199,9 @@
       "closedLead": "Esta instalação só aceita novas pessoas por convite.",
       "closedNote": "Pede ao proprietário do agregado para te convidar. Vais receber um email com uma ligação de uso único, válida durante 7 dias.",
       "closedBack": "Voltar a entrar",
-      "closedFoot": "Já tens um convite? Abre a ligação que recebeste por email."
+      "closedFoot": "Já tens um convite? Abre a ligação que recebeste por email.",
+      "tooShort": "A palavra-passe tem de ter pelo menos 12 caracteres.",
+      "tooLong": "A palavra-passe pode ter no máximo 128 caracteres."
     }
   },
   "account": {
@@ -233,7 +238,10 @@
       "tooCommon": "Esta palavra-passe é demasiado comum. Escolhe outra.",
       "mismatch": "As palavras-passe não coincidem.",
       "errorText": "Não foi possível alterar. Tenta novamente dentro de instantes.",
-      "lockedText": "Demasiadas tentativas. Tenta novamente dentro de <time></time>."
+      "lockedText": "Demasiadas tentativas. Tenta novamente dentro de <time></time>.",
+      "tooShort": "A palavra-passe tem de ter pelo menos 12 caracteres.",
+      "tooLong": "A palavra-passe pode ter no máximo 128 caracteres.",
+      "basedOnEmail": "A palavra-passe não pode conter o teu email."
     },
     "sessions": {
       "title": "Sessões ativas",
