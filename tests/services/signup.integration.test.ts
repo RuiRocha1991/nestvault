@@ -12,11 +12,15 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
-import { verifyAllUsers } from '../support/verify-users';
-
-const APP_URL = 'http://localhost:4000';
-const PASSWORD = 'a-long-unique-passphrase';
-const SECRET = 'x'.repeat(40);
+import {
+  APP_URL,
+  PASSWORD,
+  postAuth,
+  SECRET,
+  tokenIn,
+  verifyEmail,
+  waitForMail,
+} from '../support/auth-harness';
 
 const testDb = openTestDatabase();
 const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 4);
@@ -37,27 +41,11 @@ function build(allowSignup = true, trustedProxyHops = 0) {
   });
 }
 
-const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
-  auth.handler(
-    new Request(`${APP_URL}/api/v1/auth${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: APP_URL, ...headers },
-      body: JSON.stringify(body),
-    }),
-  );
-
 const signUp = (email: string, password = PASSWORD, name = 'Ana', headers = {}) =>
-  post('/sign-up/email', { name, email, password }, headers);
+  postAuth(auth, '/sign-up/email', { name, email, password }, headers);
 
 const users = async () =>
   (await identity.db.execute(sql`select email, email_verified from "user"`)).rows;
-
-const waitForMail = async (count = 1) => {
-  await vi.waitFor(() => {
-    expect(mail.sent.length).toBeGreaterThanOrEqual(count);
-  });
-  return mail.sent[count - 1] as (typeof mail.sent)[number];
-};
 
 beforeEach(async () => {
   await testDb.truncateAll();
@@ -76,35 +64,39 @@ describe('sign-up with email verification', () => {
     expect((await res.json()) as { token: unknown }).toMatchObject({ token: null });
     expect(await users()).toEqual([{ email: 'ana@example.com', email_verified: false }]);
 
-    const message = await waitForMail();
+    const message = await waitForMail(mail);
     expect(message.to).toBe('ana@example.com');
     expect(message.subject).toBe('Confirma o teu email');
   });
 
   it('refuses to sign in before the link is used, and resends it; afterwards it works', async () => {
     await signUp('ana@example.com');
-    const first = await waitForMail();
+    const first = await waitForMail(mail);
 
-    const early = await post('/sign-in/email', { email: 'ana@example.com', password: PASSWORD });
+    const early = await postAuth(auth, '/sign-in/email', {
+      email: 'ana@example.com',
+      password: PASSWORD,
+    });
     expect(early.status).toBe(403);
     expect(early.headers.get('set-cookie')).toBeNull();
     expect(((await early.json()) as { code: string }).code).toBe('EMAIL_NOT_VERIFIED');
-    await waitForMail(2);
+    await waitForMail(mail, 2);
 
-    const token = decodeURIComponent(
-      new RegExp(`${APP_URL}/verificar/([^\\s"<]+)`).exec(first.text)?.[1] ?? '',
-    );
+    const token = tokenIn(first.text, 'verificar');
     expect(await verifyEmailWithToken(auth, token)).toBe(true);
-    const late = await post('/sign-in/email', { email: 'ana@example.com', password: PASSWORD });
+    const late = await postAuth(auth, '/sign-in/email', {
+      email: 'ana@example.com',
+      password: PASSWORD,
+    });
     expect(late.status).toBe(200);
     expect(late.headers.get('set-cookie')).toContain('nv.session_token=');
   });
 
   it('answers a registered email like a new one, creates nothing and warns the owner', async () => {
     await signUp('ana@example.com');
-    await waitForMail();
+    await waitForMail(mail);
     mail.clear();
-    await verifyAllUsers(identity);
+    await verifyEmail(identity, 'ana@example.com');
 
     const fresh = await signUp('bob@example.com');
     const again = await signUp('ana@example.com', PASSWORD, 'Intruder');
@@ -127,16 +119,14 @@ describe('sign-up with email verification', () => {
 
   it('sends a new verification link when the address exists but was never verified', async () => {
     await signUp('ana@example.com');
-    await waitForMail();
+    await waitForMail(mail);
     mail.clear();
 
     expect((await signUp('ana@example.com')).status).toBe(200);
-    const message = await waitForMail();
+    const message = await waitForMail(mail);
     expect(message.subject).toBe('Confirma o teu email');
     expect(message.to).toBe('ana@example.com');
-    const token = decodeURIComponent(
-      new RegExp(`${APP_URL}/verificar/([^\\s"<]+)`).exec(message.text)?.[1] ?? '',
-    );
+    const token = tokenIn(message.text, 'verificar');
     expect(await verifyEmailWithToken(auth, token)).toBe(true);
     expect(await users()).toHaveLength(1);
   });
@@ -195,12 +185,12 @@ describe('sign-up with email verification', () => {
 
   it('a password reset also confirms the address (the link came by email)', async () => {
     await signUp('ana@example.com');
-    await waitForMail();
+    await waitForMail(mail);
     mail.clear();
-    await post('/request-password-reset', { email: 'ana@example.com' });
-    const message = await waitForMail();
+    await postAuth(auth, '/request-password-reset', { email: 'ana@example.com' });
+    const message = await waitForMail(mail);
     const token = new RegExp(`${APP_URL}/recuperar/([^\\s"<]+)`).exec(message.text)?.[1] ?? '';
-    const done = await post('/reset-password', {
+    const done = await postAuth(auth, '/reset-password', {
       token,
       newPassword: 'another-long-unique-passphrase',
     });

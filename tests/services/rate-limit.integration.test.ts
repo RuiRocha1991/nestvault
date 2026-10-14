@@ -13,11 +13,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
-import { verifyAllUsers } from '../support/verify-users';
-
-const APP_URL = 'http://localhost:4000';
-const PASSWORD = 'a-long-unique-passphrase';
-const SECRET = 'x'.repeat(40);
+import { APP_URL, PASSWORD, postAuth, registerUser, SECRET } from '../support/auth-harness';
 
 const testDb = openTestDatabase();
 const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 10);
@@ -157,22 +153,11 @@ describe('rate limits on the auth routes', () => {
     });
   }
 
-  const post = (auth: Auth, path: string, body: unknown, headers: Record<string, string> = {}) =>
-    auth.handler(
-      new Request(`${APP_URL}/api/v1/auth${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', origin: APP_URL, ...headers },
-        body: JSON.stringify(body),
-      }),
-    );
   const signIn = (auth: Auth, email: string, password: string, headers = {}) =>
-    post(auth, '/sign-in/email', { email, password }, headers);
+    postAuth(auth, '/sign-in/email', { email, password }, headers);
 
   async function register(auth: Auth, email: string) {
-    expect(
-      (await post(auth, '/sign-up/email', { name: 'Ana', email, password: PASSWORD })).status,
-    ).toBe(200);
-    await verifyAllUsers(identity);
+    await registerUser(auth, identity, email);
   }
 
   it('answers the 6th failed sign-in for one email with 429 and Retry-After (any IP)', async () => {
@@ -256,7 +241,7 @@ describe('rate limits on the auth routes', () => {
   it('limits password reset per email', async () => {
     const auth = build(1);
     for (let i = 0; i < 5; i += 1) {
-      const res = await post(
+      const res = await postAuth(
         auth,
         '/request-password-reset',
         { email: 'ana@example.com' },
@@ -266,7 +251,7 @@ describe('rate limits on the auth routes', () => {
       );
       expect(res.status).not.toBe(429);
     }
-    const blocked = await post(
+    const blocked = await postAuth(
       auth,
       '/request-password-reset',
       { email: 'ana@example.com' },

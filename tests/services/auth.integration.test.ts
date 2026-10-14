@@ -15,10 +15,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
-import { verifyAllUsers } from '../support/verify-users';
-
-const APP_URL = 'http://localhost:4000';
-const PASSWORD = 'a-long-unique-passphrase';
+import { APP_URL, cookieOf, PASSWORD, postAuth, rows, verifyEmail } from '../support/auth-harness';
 
 const testDb = openTestDatabase();
 const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 2);
@@ -41,22 +38,6 @@ function build(
   });
 }
 
-function post(
-  auth: Auth,
-  path: string,
-  body: unknown,
-  headers: Record<string, string> = {},
-  appUrl = APP_URL,
-) {
-  return auth.handler(
-    new Request(`${appUrl}/api/v1/auth${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: appUrl, ...headers },
-      body: JSON.stringify(body),
-    }),
-  );
-}
-
 /** Signs up and confirms the address, as the emailed link would (sign-in needs a verified email). */
 async function signUp(
   auth: Auth,
@@ -65,18 +46,19 @@ async function signUp(
   h = {},
   appUrl?: string,
 ) {
-  const response = await post(auth, '/sign-up/email', { name: 'Ana', email, password }, h, appUrl);
-  await verifyAllUsers(identity);
+  const response = await postAuth(
+    auth,
+    '/sign-up/email',
+    { name: 'Ana', email, password },
+    h,
+    appUrl,
+  );
+  if (response.ok) await verifyEmail(identity, email);
   return response;
 }
 
 const hashed = (cookie: string) =>
   hashSessionToken(decodeURIComponent(cookie.split('=')[1] ?? '').split('.')[0] ?? '');
-
-async function rows<T extends Record<string, unknown>>(query: ReturnType<typeof sql>) {
-  const result = await identity.db.execute<T>(query);
-  return result.rows;
-}
 
 beforeEach(() => testDb.truncateAll());
 afterAll(async () => {
@@ -88,7 +70,7 @@ describe('sign-up', () => {
   it('stores an argon2id hash, never the password', async () => {
     const response = await signUp(build());
     expect(response.status).toBe(200);
-    const [account] = await rows<{ password: string }>(sql`select password from account`);
+    const [account] = await rows<{ password: string }>(identity, sql`select password from account`);
     expect(account?.password.startsWith('$argon2id$')).toBe(true);
     expect(account?.password).not.toContain(PASSWORD);
   });
@@ -96,7 +78,7 @@ describe('sign-up', () => {
   it('returns 403 when sign-up is closed and there is no invite', async () => {
     const response = await signUp(build({ allowSignup: false }));
     expect(response.status).toBe(403);
-    expect(await rows(sql`select 1 from "user"`)).toHaveLength(0);
+    expect(await rows(identity, sql`select 1 from "user"`)).toHaveLength(0);
   });
 
   it('opens a closed sign-up only for a valid invite for that email', async () => {
@@ -132,7 +114,7 @@ describe('sign-up', () => {
 describe('sessions', () => {
   async function signIn(auth: Auth, appUrl?: string) {
     await signUp(auth, 'ana@example.com', PASSWORD, {}, appUrl);
-    return post(
+    return postAuth(
       auth,
       '/sign-in/email',
       { email: 'ana@example.com', password: PASSWORD },
@@ -140,9 +122,6 @@ describe('sessions', () => {
       appUrl,
     );
   }
-
-  const cookieOf = (response: Response) =>
-    (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
   it('sets a persistent HttpOnly SameSite=Lax cookie', async () => {
     const cookie = (await signIn(build())).headers.get('set-cookie') ?? '';
@@ -160,6 +139,7 @@ describe('sessions', () => {
     const cookie = (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
     const token = decodeURIComponent(cookie.split('=')[1] ?? '').split('.')[0] ?? '';
     const [stored] = await rows<{ token: string }>(
+      identity,
       sql`select token from session order by created_at desc, id desc`,
     );
     expect(stored?.token).toBe(hashSessionToken(token));
@@ -172,13 +152,15 @@ describe('sessions', () => {
   it('ends the session on sign-out, clears the cookie and the old cookie is no longer a session', async () => {
     const auth = build();
     const cookie = ((await signIn(auth)).headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    const response = await post(auth, '/sign-out', {}, { cookie });
+    const response = await postAuth(auth, '/sign-out', {}, { cookie });
     expect(response.headers.get('set-cookie') ?? '').toMatch(/nv\.session_token=;|Max-Age=0/i);
     const headers = new Headers({ cookie });
     expect(await auth.api.getSession({ headers })).toBeNull();
     expect(await getOptionalSession(auth, headers)).toBeNull();
     await expect(requireSession(auth, headers)).rejects.toBeInstanceOf(UnauthorizedError);
-    expect(await rows(sql`select 1 from session where token = ${hashed(cookie)}`)).toHaveLength(0);
+    expect(
+      await rows(identity, sql`select 1 from session where token = ${hashed(cookie)}`),
+    ).toHaveLength(0);
   });
 
   it('marks the cookie Secure (with the __Secure- prefix) only when APP_URL is https', async () => {
@@ -203,6 +185,7 @@ describe('sessions', () => {
   const rowOf = async (cookie: string) =>
     (
       await rows<{ expires_at: Date; updated_at: Date }>(
+        identity,
         sql`select expires_at, updated_at from session where token = ${hashed(cookie)}`,
       )
     )[0];
@@ -262,6 +245,7 @@ describe('sessions', () => {
     const auth = build();
     await signIn(auth);
     const [stored] = await rows<{ token: string }>(
+      identity,
       sql`select token from session order by created_at desc, id desc`,
     );
     const forged = `nv.session_token=${stored?.token ?? ''}`;
@@ -271,17 +255,17 @@ describe('sessions', () => {
   it('treats an injection payload as data when signing in', async () => {
     const auth = build();
     await signUp(auth);
-    const response = await post(auth, '/sign-in/email', {
+    const response = await postAuth(auth, '/sign-in/email', {
       email: "' OR 1=1 --",
       password: PASSWORD,
     });
     expect(response.status).toBeGreaterThanOrEqual(400);
-    const wrong = await post(auth, '/sign-in/email', {
+    const wrong = await postAuth(auth, '/sign-in/email', {
       email: 'ana@example.com',
       password: "' OR 1=1 --x-y-z",
     });
     expect(wrong.status).toBe(401);
-    expect(await rows(sql`select 1 from "user"`)).toHaveLength(1);
+    expect(await rows(identity, sql`select 1 from "user"`)).toHaveLength(1);
   });
 });
 
@@ -292,14 +276,14 @@ describe('seedOwner', () => {
     const second = await seedOwner(identity, { ...input, password: 'another-long-passphrase' });
     expect(first.created).toBe(true);
     expect(second).toEqual({ userId: first.userId, created: false });
-    const accounts = await rows<{ password: string }>(sql`select password from account`);
+    const accounts = await rows<{ password: string }>(identity, sql`select password from account`);
     expect(accounts).toHaveLength(1);
     expect(accounts[0]?.password.startsWith('$argon2id$')).toBe(true);
   });
 
   it('the seeded owner can sign in', async () => {
     await seedOwner(identity, { name: 'Owner', email: 'owner@example.com', password: PASSWORD });
-    const response = await post(build({ allowSignup: false }), '/sign-in/email', {
+    const response = await postAuth(build({ allowSignup: false }), '/sign-in/email', {
       email: 'owner@example.com',
       password: PASSWORD,
     });
@@ -313,7 +297,7 @@ describe('seedOwner', () => {
     await expect(
       seedOwner(identity, { name: 'O', email: "' OR 1=1 --", password: PASSWORD }),
     ).rejects.toThrow('The seed owner is not valid.');
-    expect(await rows(sql`select 1 from "user"`)).toHaveLength(0);
+    expect(await rows(identity, sql`select 1 from "user"`)).toHaveLength(0);
   });
 });
 
@@ -325,6 +309,6 @@ describe('usersRepo', () => {
       await usersRepo.findIdByEmail(identity.db, 'x\'; DROP TABLE "user"; --'),
     ).toBeUndefined();
     expect(await usersRepo.findIdByEmail(identity.db, 'O@EXAMPLE.COM')).toBeDefined();
-    expect(await rows(sql`select 1 from "user"`)).toHaveLength(1);
+    expect(await rows(identity, sql`select 1 from "user"`)).toHaveLength(1);
   });
 });
