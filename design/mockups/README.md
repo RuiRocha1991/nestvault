@@ -58,7 +58,10 @@ card; the panel is hidden on mobile). Sign-up is closed by default, so the login
 | `62` / `63` | `/pools` | Choose a pool (with pending invite) / create the first pool |
 | `64-definicoes-utilizadores-e-convites` | `/[poolId]/definicoes/membros` | Members, roles, pending invites, ownership |
 | `65-conta` | `/conta` | Profile, password, active sessions, 2FA placeholder (phase 4), export, delete |
+| `69-definicoes-agregado` | `/[poolId]/definicoes` | Pool settings: name, base currency, parameters, backup/export, danger zone (transfer, leave, delete) |
+| `70-seletor-de-agregado` | sidebar | Pool switcher open (shown only when the user belongs to more than one pool) |
 | `modal-66…68` | | Invite user, transfer ownership, delete account blocked |
+| `modal-71…75` | | Delete pool, leave pool, leave blocked (last owner), remove member, change role |
 | `mobile-09…11` | | Login, sign-up, invite on mobile |
 
 New shared pieces: auth layout, icon inputs with show/hide, password strength meter and requirement list,

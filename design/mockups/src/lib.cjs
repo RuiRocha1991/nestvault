@@ -85,11 +85,12 @@ const avatar = (n, c) => `<span class="av" style="background:${c}">${n[0]}</span
 const C = { capital: '#9D6BFF', interest: '#F2913D', ins: '#3BA7F2', fees: '#E5424D', teal: '#2BC6B4', yellow: '#F2C43D', green: '#3CCB7F', grey: '#8C8FB8', pink: '#E356A8' };
 
 /* ---------- shell ---------- */
-function sidebar(active, { free = false, property = 'Apartamento T3' } = {}) {
+function sidebar(active, { free = false, property = 'Apartamento T3', switcher = '' } = {}) {
   const a = (id, label, icon, extra = '') => `<a href="#" ${active === id ? 'aria-current="page"' : ''}>${ico(icon)}${label}${extra}</a>`;
   const sub = (name, color, cur) => `<a class="sub" href="#" ${cur ? 'aria-current="page"' : ''}><i style="background:${color}"></i>${name}</a>`;
   const proTag = free ? '<span class="pro-chip" style="margin-left:auto">PRO</span>' : '';
-  return `<aside class="side"><div class="brand"><b>COFRE</b><span>FINANÇAS FAMILIARES</span></div>
+  const sw = switcher ? `<div class="pool-sw"><button class="pool-btn ${switcher === 'open' ? 'open' : ''}"><span class="type-ico" style="width:30px;height:30px;background:#F2913D2e;color:#F2913D">${ico('users')}</span><span class="pn"><b>Família Rocha</b><small>Proprietário · Pro</small></span>${ico('chevron')}</button>${switcher === 'open' ? `<div class="pool-menu"><span class="eyebrow">Os teus agregados</span><a class="cur"><span class="type-ico" style="width:26px;height:26px;background:#F2913D2e;color:#F2913D">${ico('users')}</span><span class="pn"><b>Família Rocha</b><small>Proprietário · Pro</small></span>${ico('check')}</a><a><span class="type-ico" style="width:26px;height:26px;background:#3BA7F22e;color:#3BA7F2">${ico('users')}</span><span class="pn"><b>Casa de Família Silva</b><small>Membro · 2 pessoas</small></span></a><div class="menu-sep"></div><a>${ico('plus')}<span>Criar agregado</span></a><a>${ico('users')}<span>Todos os agregados</span></a></div>` : ''}</div>` : '';
+  return `<aside class="side"><div class="brand"><b>COFRE</b><span>FINANÇAS FAMILIARES</span></div>${sw}
   <nav class="nav">
     <div class="nav-h">Geral</div>${a('geral', 'Visão geral', 'home')}
     <div class="nav-h">Investimentos</div>${a('portfolios', 'Portfolios', 'pie')}
@@ -204,6 +205,15 @@ tr.cur td{background:var(--accent-soft)}
 .who-box{display:flex;gap:10px;align-items:center;background:var(--inset);border-radius:var(--r-md);padding:10px 12px}
 .pool-top{display:flex;align-items:center;gap:var(--s3);padding:20px 32px}
 @media (max-width:860px){.auth{grid-template-columns:minmax(0,1fr)}.auth-brand{display:none}.auth-top{display:flex;padding:20px 20px 0;background:var(--bg)}.auth-top .brand b{font-size:24px}.auth-main{justify-content:flex-start;padding:24px 16px 32px}.auth-card{padding:24px 20px}.pool-top{padding:16px}}
+.pool-sw{position:relative;margin:-4px 0 -4px}
+.pool-btn{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-md);background:var(--panel-2);border:1px solid var(--line);cursor:pointer}
+.pool-btn.open{border-color:var(--accent-2)}.pool-btn>.ico:last-child{margin-left:auto;transform:rotate(90deg);color:var(--fg-3);width:16px;height:16px}
+.pn{display:flex;flex-direction:column;min-width:0;line-height:1.2}.pn b{font-size:13px}.pn small{font-size:11px;color:var(--fg-3)}
+.pool-menu{position:absolute;left:0;right:0;top:54px;z-index:20;background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-lg);box-shadow:0 18px 48px rgba(0,0,0,.35);padding:10px;display:flex;flex-direction:column;gap:2px}
+.pool-menu .eyebrow{padding:4px 6px}
+.pool-menu a{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:var(--r-sm);font-size:13px;color:var(--fg-2);cursor:pointer}
+.pool-menu a:hover,.pool-menu a.cur{background:var(--panel-2);color:var(--fg)}.pool-menu a>.ico:last-child{margin-left:auto;color:var(--pos);width:16px;height:16px}.pool-menu a .ico{width:16px;height:16px}
+.menu-sep{height:1px;background:var(--line);margin:4px 0}
 .hero-pro{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--grad-violet);color:#fff;box-shadow:0 10px 24px -8px var(--accent)}
 .hero-pro .ico{width:26px;height:26px}
 `;
