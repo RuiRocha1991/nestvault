@@ -126,6 +126,8 @@ tests/api/           Postman/Insomnia collections and environments (JSON)
 - All visible text comes from `apps/web/messages/pt-PT.json` (`useTranslations` /
   `getTranslations`); ESLint rejects text and `title`/`alt`/`placeholder`/`aria-label` literals in
   JSX under `apps/web` and `packages/ui`. Shared components take their labels as props.
+- Conditional JSX is `cond && <X />`, never `cond ? <X /> : null` (ESLint enforces it); write
+  `!!value && …` when the value is a ReactNode that can be `0`.
 - Colours, spacing, radii and fonts come from `design/tokens.css` through the Tailwind preset
   (`bg-panel`, `text-fg-2`, …); no hard-coded hex values in components except data colours.
 - Money, dates and percentages are formatted only with `formatMoney`, `formatDate` and

@@ -18,7 +18,7 @@ export function EmptyState({ title, description, action, className }: EmptyState
       )}
     >
       <b className="text-lg text-fg">{title}</b>
-      {description ? <p>{description}</p> : null}
+      {!!description && <p>{description}</p>}
       {action}
     </div>
   );

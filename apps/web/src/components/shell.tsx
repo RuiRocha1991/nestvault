@@ -88,7 +88,7 @@ export function AppShell({ sidebar, scrimLabel, skipLabel, children }: AppShellP
           {skipLabel}
         </a>
         {sidebar}
-        {drawerOpen ? (
+        {drawerOpen && (
           <button
             type="button"
             aria-label={scrimLabel}
@@ -96,7 +96,7 @@ export function AppShell({ sidebar, scrimLabel, skipLabel, children }: AppShellP
             onClick={closeDrawer}
             className="fixed inset-0 z-30 hidden bg-[var(--overlay)] drawer:block"
           />
-        ) : null}
+        )}
         <div className="min-w-0 px-6 pb-10 pt-6 drawer:px-4">{children}</div>
       </div>
     </ShellContext.Provider>
