@@ -8,10 +8,14 @@ import { useEffect, useRef } from 'react';
  * Toast shown once when the sign-in screen is reached because the session ended. `reason` is then
  * removed from the address, so a reload or going back does not show it again.
  */
-export function SessionExpiredNotice() {
+export function SessionExpiredNotice({
+  message: key = 'sessionExpired',
+}: {
+  message?: 'sessionExpired' | 'passwordChanged';
+}) {
   const t = useTranslations('auth');
   const toast = useToast();
-  const message = t('sessionExpired');
+  const message = t(key);
   const shown = useRef(false); // React StrictMode runs effects twice in development
 
   useEffect(() => {

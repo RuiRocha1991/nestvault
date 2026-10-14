@@ -5,3 +5,4 @@ export type { Logger, LoggerConfig } from './logger';
 export { HealthDto } from './health/schemas';
 export const packageName = '@nestvault/services';
 export * from './rate-limit';
+export * from './email';

@@ -38,12 +38,17 @@ export function buildCsp({ nonce, development, pathname }: HeaderOptions): strin
     .join('; ');
 }
 
+/** Pages whose address carries a secret token (emailed links): nothing may leak it as a Referer. */
+const TOKEN_PAGE = /^\/(?:recuperar|verificar)\/[^/]+/;
+
 export function buildSecurityHeaders(options: HeaderOptions): Record<string, string> {
   return {
     'Content-Security-Policy': buildCsp(options),
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': TOKEN_PAGE.test(options.pathname)
+      ? 'no-referrer'
+      : 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'Cross-Origin-Opener-Policy': 'same-origin',
     // Browsers ignore HSTS over plain HTTP, but we also never send it there (localhost stays usable).

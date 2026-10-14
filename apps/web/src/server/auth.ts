@@ -1,5 +1,6 @@
 import {
   createAuthRuntime,
+  createSmtpSender,
   logger,
   type Auth,
   type AuthRuntime,
@@ -26,6 +27,14 @@ function getRuntime(): Promise<AuthRuntime> {
       secret: env.BETTER_AUTH_SECRET,
       allowSignup: env.ALLOW_SIGNUP,
       trustedProxyHops: env.TRUSTED_PROXY_HOPS,
+      email: createSmtpSender({
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        user: env.SMTP_USER,
+        password: env.SMTP_PASSWORD,
+        from: env.SMTP_FROM,
+        log: logger,
+      }),
       log: logger,
     });
   });

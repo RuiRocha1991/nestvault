@@ -1,42 +1,15 @@
 'use client';
 
 import { Button, cn, Input } from '@nestvault/ui';
-import { Clock, Eye, EyeOff, KeyRound, Mail, TriangleAlert } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useState, type SyntheticEvent, type ReactNode } from 'react';
+import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 
+import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
 import { postJson } from '@webapp/lib/post-json';
 import { formatCountdown, interpretSignInResponse, signInSchema } from '@webapp/lib/sign-in';
-
-const alertStyles = {
-  error: 'border-neg bg-[color-mix(in_srgb,var(--neg)_12%,transparent)] [&_svg]:text-neg',
-  warning: 'border-warn bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] [&_svg]:text-warn',
-};
-
-function Alert({
-  tone,
-  icon,
-  children,
-}: {
-  tone: keyof typeof alertStyles;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      role="alert"
-      className={cn(
-        'flex items-start gap-2.5 rounded-md border px-3 py-2.5 text-md [&_svg]:mt-px [&_svg]:size-[18px] [&_svg]:shrink-0',
-        alertStyles[tone],
-      )}
-    >
-      {icon}
-      <div>{children}</div>
-    </div>
-  );
-}
 
 type Problem = 'invalid' | 'error' | null;
 
@@ -109,24 +82,13 @@ export function LoginForm({ destination }: LoginFormProps) {
         <p className="text-md text-fg-2">{t('lead')}</p>
       </div>
 
-      {problem ? (
-        <Alert tone="error" icon={<TriangleAlert aria-hidden />}>
-          <b>{t(`${problem}Title`)}</b>
-          <br />
-          <span className="text-fg-2">{t(`${problem}Text`)}</span>
-        </Alert>
-      ) : null}
-      {locked ? (
-        <Alert tone="warning" icon={<Clock aria-hidden />}>
-          <b>{t('lockedTitle')}</b>
-          <br />
-          <span className="text-fg-2">
-            {t.rich('lockedText', {
-              time: () => <b className="tabular-nums">{formatCountdown(secondsLeft)}</b>,
-            })}
-          </span>
-        </Alert>
-      ) : null}
+      {problem && <ProblemAlert title={t(`${problem}Title`)} text={t(`${problem}Text`)} />}
+      {locked && (
+        <LockedAlert
+          title={t('lockedTitle')}
+          text={t.rich('lockedText', { time: () => <Countdown seconds={secondsLeft} /> })}
+        />
+      )}
 
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1.5">

@@ -24,6 +24,14 @@
   {
    "key": "newPassword",
    "value": ""
+  },
+  {
+   "key": "resetToken",
+   "value": ""
+  },
+  {
+   "key": "verifyToken",
+   "value": ""
   }
  ],
  "item": [
@@ -306,6 +314,168 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('status is 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Request password reset",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/request-password-reset",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "request-password-reset"
+       ]
+      },
+      "description": "Always 200 with the same body, whether or not the account exists. The email (in Mailpit, http://localhost:8025) links to /recuperar/<token>: single use, valid for 1 hour. Limited to 5 per 15 min per IP and per email (429 + Retry-After).",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));",
+         "pm.test('neutral body', () => pm.expect(pm.response.json().status).to.be.true);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Reset password (token from the email)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "reset-password"
+       ]
+      },
+      "description": "Paste the token from the link of the email into the `resetToken` collection variable. Uses the token up (a second call answers 400), ends every session of the user and emails a notice.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"a-new-long-unique-passphrase\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200 (first use) or 400 (used or expired)', () => pm.expect([200, 400]).to.include(pm.response.code));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Send verification email",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/send-verification-email",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "send-verification-email"
+       ]
+      },
+      "description": "Same neutral answer whether or not the address belongs to an unverified account. The link opens /verificar/<token> (valid 24 hours). Shares the reset rate limit.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Verify email (token from the email)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/api/v1/auth/verify-email?token={{verifyToken}}",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "api",
+        "v1",
+        "auth",
+        "verify-email"
+       ],
+       "query": [
+        {
+         "key": "token",
+         "value": "{{verifyToken}}"
+        }
+       ]
+      },
+      "description": "Paste the token of the /verificar/<token> link into the `verifyToken` collection variable. 200 marks the email as verified; a bad or expired token answers 401."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('status is 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));"
         ]
        }
       }

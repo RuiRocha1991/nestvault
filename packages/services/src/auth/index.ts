@@ -1,5 +1,11 @@
 export { isPasswordBreached } from './breached-passwords';
-export { createAuth } from './create-auth';
+export {
+  createAuth,
+  RESET_PAGE_PATH,
+  RESET_TOKEN_EXPIRES_IN_SECONDS,
+  VERIFY_EMAIL_EXPIRES_IN_SECONDS,
+  VERIFY_PAGE_PATH,
+} from './create-auth';
 export type { Auth, AuthConfig } from './create-auth';
 export { hashSessionToken, withHashedSessionTokens } from './hashed-session-adapter';
 export {
@@ -18,3 +24,5 @@ export { seedOwner } from './seed-owner';
 export type { SeedOwnerInput } from './seed-owner';
 export { createAuthRuntime } from './create-auth-runtime';
 export type { AuthRuntime, AuthRuntimeConfig } from './create-auth-runtime';
+export { getEmailStatus, isResetTokenValid, verifyEmailWithToken } from './email-tokens';
+export type { EmailStatus } from './email-tokens';
