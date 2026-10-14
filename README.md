@@ -101,6 +101,10 @@ chooser yet (NES-26): `/pools` sends you to `/demo`, which stands in for `/[pool
 toggle in the sidebar footer. On a phone-width window (≤ 860 px) the sidebar becomes a drawer.
 The design reference (tokens, components, mockups) lives in Confluence and `design/`, not in a route.
 
+- **Forgotten password and email verification:** `/recuperar` (ask for the link), `/recuperar/<token>`
+  (new password) and `/verificar/<token>` (confirm the email). In development every email lands in
+  Mailpit (http://localhost:8025); open the link from there. `/verificar` shows "confirm your email"
+  to a signed-in user whose address is not verified.
 - **Theme:** dark by default; the choice is stored in the `nv-theme` cookie and rendered on the
   server, so a refresh does not flash.
 - **Texts:** every visible string lives in `apps/web/messages/pt-PT.json` (English keys). ESLint
@@ -184,6 +188,10 @@ Not needed for local development. Do this before the app is reachable from the i
 - The app's port must not be reachable except through the proxy (bind it to localhost or a private
   network, firewall the rest). Otherwise a client can talk to the app directly and send its own
   `x-forwarded-for`.
+- Replace Mailpit with a real SMTP server: set `SMTP_HOST`, `SMTP_PORT` (587 STARTTLS or 465),
+  `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM` (an address on a domain with SPF and DKIM). With a
+  login, the connection must use TLS or nothing is sent. Reset and verification emails use `APP_URL`
+  for their links, so it must be the public `https://` origin.
 - Count every proxy that appends to the header: CDN + Caddy is `2`.
 
 See `docs/security.md` control 11.

@@ -102,6 +102,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   sign-in screen with the expiry message), `tests/services/safe-next-path.test.ts`, and
   `tests/services/auth.integration.test.ts` (same status and body, comparable timing).
 
+- **Password reset and email verification (NES-22):** `/recuperar` always answers with the same
+  neutral screen and the API with the same body, whether or not the account exists; the email is
+  sent in the background so the timing does not tell either. The reset link opens
+  `/recuperar/{token}`: the token is 24 random characters, single use, valid for 1 hour and stored
+  only as a hash (`verification.storeIdentifier: 'hashed'`); using it ends every session of the user
+  and sends a "password changed" notice. The verification link (`/verificar/{token}`) is a signed
+  token valid for 24 hours. Emails are built from pt-PT templates that escape every interpolated
+  value (`packages/services/src/email/`); the sender never logs the recipient, the subject or the
+  body (the links carry tokens), and the web process logs only the error type of a failed delivery.
+  SMTP needs TLS whenever it logs in or the host is not loopback. The pages whose address carries a token (`/recuperar/{token}`, `/verificar/{token}`) send `Referrer-Policy: no-referrer`. Requests are rate limited by control 11 (resending the verification email has its own bucket, so it never uses up a reset).
+- **Verified by:** `tests/services/password-reset.integration.test.ts` (link works once, expired
+  token, identical answer for unknown email, sessions ended, token hashed and absent from logs and
+  console, forged verification token), `tests/services/email.test.ts` (escaping, TLS, no recipient in
+  the log), `tests/e2e/password-reset.spec.ts` (full flow through Mailpit in both themes).
+
 ## 7. Access control
 - **What:** `requirePoolAccess` (404 for non-members, so pool existence is not confirmed) then
   `can(ctx, 'resource.action')` (403). Roles are permission sets; feature code never checks role names.
@@ -246,6 +261,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** `pnpm-lock.yaml` committed; `pnpm audit --audit-level=high` in CI; Dependabot for npm
   and GitHub Actions; pnpm `onlyBuiltDependencies` allow-list so dependency install scripts do not
   run by default; new dependencies justified in the PR.
+- **Mail:** `nodemailer` (`packages/services`) is the only SMTP client: no runtime dependencies of
+  its own, no install script, and the de-facto Node library for SMTP (the alternative is writing the
+  protocol by hand).
 - **Verified by:** CI job `security.yml`; Dependabot PRs.
 
 ## 21. Parser isolation and AI safety

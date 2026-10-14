@@ -139,3 +139,76 @@ registry.registerPath({
     ...errorResponses(400, 401, 403, 429, 500),
   },
 });
+
+const StatusResponse = registry.register(
+  'StatusResponse',
+  z.object({ status: z.boolean(), message: z.string().optional() }),
+);
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/auth/request-password-reset',
+  operationId: 'requestPasswordReset',
+  summary: 'Ask for a password reset link by email',
+  description:
+    'Always answers 200 with the same body, whether or not the account exists (no account enumeration); the email is sent in the background. The link opens `/recuperar/{token}`: single use, valid for 1 hour, the token is stored hashed. Limited to 5 requests / 15 min per IP and per email (429 with `Retry-After`).',
+  tags: ['Auth'],
+  security: [],
+  request: { body: { required: true, ...json(z.object({ email }).strict()) } },
+  responses: {
+    200: { description: 'Neutral confirmation', ...json(StatusResponse) },
+    ...errorResponses(400, 403, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/auth/reset-password',
+  operationId: 'resetPassword',
+  summary: 'Set a new password with the token of the emailed link',
+  description:
+    'Uses the token up. On success every session of the user is revoked and a "password changed" notice is emailed. A used, expired or unknown token answers 400. A password found in a known breach answers 400 with code `PASSWORD_BREACHED`. Limited like the request.',
+  tags: ['Auth'],
+  security: [],
+  request: {
+    body: {
+      required: true,
+      ...json(z.object({ token: z.string().min(16).max(128), newPassword: password }).strict()),
+    },
+  },
+  responses: {
+    200: { description: 'Password changed, all sessions ended', ...json(StatusResponse) },
+    ...errorResponses(400, 403, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/auth/send-verification-email',
+  operationId: 'sendVerificationEmail',
+  summary: 'Send (or resend) the email verification link',
+  description:
+    'Same neutral answer whether or not the address belongs to an unverified account. The link opens `/verificar/{token}` and is valid for 24 hours. Limited to 5 / 15 min per IP and per email, apart from the reset limit.',
+  tags: ['Auth'],
+  security: [],
+  request: { body: { required: true, ...json(z.object({ email }).strict()) } },
+  responses: {
+    200: { description: 'Neutral confirmation', ...json(StatusResponse) },
+    ...errorResponses(400, 403, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/auth/verify-email',
+  operationId: 'verifyEmail',
+  summary: 'Mark the email of the token as verified',
+  description: 'Used by the `/verificar/{token}` page. A bad, forged or expired token answers 401.',
+  tags: ['Auth'],
+  security: [],
+  request: { query: z.object({ token: z.string().max(2048) }) },
+  responses: {
+    200: { description: 'Email verified', ...json(StatusResponse) },
+    ...errorResponses(401, 500),
+  },
+});

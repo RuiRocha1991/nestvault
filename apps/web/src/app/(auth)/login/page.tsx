@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { AuthCard, AuthFoot } from '@webapp/components/auth/auth-shell';
 import { LoginForm } from '@webapp/components/auth/login-form';
 import { SessionExpiredNotice } from '@webapp/components/auth/session-expired-notice';
-import { SESSION_EXPIRED_REASON } from '@webapp/lib/session-reason';
+import { PASSWORD_CHANGED_REASON, SESSION_EXPIRED_REASON } from '@webapp/lib/session-reason';
 import { getCurrentSession } from '@webapp/server/session';
 
 export const dynamic = 'force-dynamic';
@@ -28,20 +28,21 @@ export default async function LoginPage({
 
   return (
     <>
-      {reason === SESSION_EXPIRED_REASON ? <SessionExpiredNotice /> : null}
+      {reason === SESSION_EXPIRED_REASON && <SessionExpiredNotice />}
+      {reason === PASSWORD_CHANGED_REASON && <SessionExpiredNotice message="passwordChanged" />}
       <AuthCard>
         <LoginForm destination={destination} />
       </AuthCard>
       <AuthFoot>
         {t('footClosed')}
-        {env.ALLOW_SIGNUP ? (
+        {env.ALLOW_SIGNUP && (
           <>
             {' '}
             <a href="/registar" className="font-semibold text-accent-2 no-underline">
               {t('createAccount')}
             </a>
           </>
-        ) : null}
+        )}
       </AuthFoot>
     </>
   );

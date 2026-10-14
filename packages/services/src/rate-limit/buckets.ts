@@ -20,6 +20,9 @@ export const RATE_LIMIT_BUCKETS = {
   // one shared key, so the limit is loose and 5 failures of one person never lock out everybody.
   // Per-account guessing is still held to 5 by the `.email` buckets.
   'auth.signin.untrusted': { limit: 50, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  'auth.verify.ip': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  'auth.verify.email': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  'auth.verify.untrusted': { limit: 50, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.reset.untrusted': { limit: 50, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.reset.ip': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.reset.email': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },

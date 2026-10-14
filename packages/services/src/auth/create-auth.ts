@@ -4,6 +4,8 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
 
+import type { EmailSender } from '../email';
+import { passwordChangedTemplate, resetPasswordTemplate, verifyEmailTemplate } from '../email';
 import { RateLimitError } from '../errors';
 import type { Logger } from '../logger';
 import {
@@ -41,6 +43,8 @@ export interface AuthConfig {
   allowSignup: boolean;
   invites?: InviteVerifier;
   log?: Logger;
+  /** Sends the verification, reset and "password changed" emails. */
+  email?: EmailSender;
   /** Shared with the API routes; built from `identity` and `secret` when omitted. */
   limiter?: RateLimiter;
   /** Proxies we run in front of the app (0 = none: `x-forwarded-for` is ignored). */
@@ -53,6 +57,27 @@ export interface AuthConfig {
 const SIGN_IN_PATH = '/sign-in/email';
 /** Password reset: request the email and use the token. Every call counts. */
 const RESET_PATHS: ReadonlySet<string> = new Set(['/request-password-reset', '/reset-password']);
+/** Resending the verification email has its own limit, so it never uses up a password reset. */
+const VERIFY_PATH = '/send-verification-email';
+
+type LimitScope = 'signin' | 'reset' | 'verify';
+const scopeOf = (path: string): LimitScope | null =>
+  path === SIGN_IN_PATH
+    ? 'signin'
+    : path === VERIFY_PATH
+      ? 'verify'
+      : RESET_PATHS.has(path)
+        ? 'reset'
+        : null;
+
+export const RESET_TOKEN_EXPIRES_IN_SECONDS = 60 * 60;
+export const VERIFY_EMAIL_EXPIRES_IN_SECONDS = 24 * 60 * 60;
+/** Where the links of the emails land (pages of the web app, not the API). */
+export const RESET_PAGE_PATH = '/recuperar';
+export const VERIFY_PAGE_PATH = '/verificar';
+
+/** Used when no sender is wired: the message is dropped (never printed: it carries a token). */
+const NO_EMAIL: EmailSender = { send: () => Promise.resolve() };
 
 function tooManyRequests(error: RateLimitError): APIError {
   return new APIError(
@@ -63,7 +88,7 @@ function tooManyRequests(error: RateLimitError): APIError {
 }
 
 /** The per-IP bucket, or the loose shared one while the address is unknown. */
-function ipBucket(scope: 'signin' | 'reset', ip: string): RateLimitBucket {
+function ipBucket(scope: LimitScope, ip: string): RateLimitBucket {
   return ip === UNTRUSTED_CLIENT_KEY ? `auth.${scope}.untrusted` : `auth.${scope}.ip`;
 }
 
@@ -91,6 +116,17 @@ export function createAuth(config: AuthConfig) {
       secret: config.secret,
       ...(config.log ? { log: config.log } : {}),
     });
+  const email = config.email ?? NO_EMAIL;
+  /**
+   * Sends without waiting, so the answer takes the same time whether or not the account exists
+   * (no enumeration by timing). A failure is logged by the sender and never reaches the client.
+   */
+  const sendInBackground = (message: Parameters<EmailSender['send']>[0]) => {
+    // The sender logs its own failure; this only keeps it from becoming an unhandled rejection.
+    email.send(message).catch(() => undefined);
+  };
+  const link = (path: string, token: string) =>
+    `${config.appUrl}${path}/${encodeURIComponent(token)}`;
   const proxyHops = config.trustedProxyHops ?? 0;
   const clientIpOf = (headers: Headers | undefined) =>
     getClientIp(headers ?? new Headers(), proxyHops);
@@ -114,7 +150,31 @@ export function createAuth(config: AuthConfig) {
       maxPasswordLength: PASSWORD_MAX_LENGTH,
       password: { hash: hashPassword, verify: verifyPassword },
       revokeSessionsOnPasswordReset: true,
+      resetPasswordTokenExpiresIn: RESET_TOKEN_EXPIRES_IN_SECONDS,
+      sendResetPassword: ({ user: target, token }) => {
+        sendInBackground({
+          to: target.email,
+          ...resetPasswordTemplate({ name: target.name, url: link(RESET_PAGE_PATH, token) }),
+        });
+        return Promise.resolve();
+      },
+      onPasswordReset: ({ user: target }) => {
+        sendInBackground({ to: target.email, ...passwordChangedTemplate({ name: target.name }) });
+        return Promise.resolve();
+      },
     },
+    emailVerification: {
+      expiresIn: VERIFY_EMAIL_EXPIRES_IN_SECONDS,
+      sendVerificationEmail: ({ user: target, token }) => {
+        sendInBackground({
+          to: target.email,
+          ...verifyEmailTemplate({ name: target.name, url: link(VERIFY_PAGE_PATH, token) }),
+        });
+        return Promise.resolve();
+      },
+    },
+    // Reset tokens are stored as a hash: a database leak does not give working links.
+    verification: { storeIdentifier: 'hashed' },
     session: {
       expiresIn: SESSION_MAX_AGE_SECONDS,
       updateAge: SESSION_UPDATE_AGE_SECONDS,
@@ -130,9 +190,8 @@ export function createAuth(config: AuthConfig) {
     rateLimit: { enabled: false }, // replaced by the Postgres-backed limiter below (control 11)
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        const isSignIn = ctx.path === SIGN_IN_PATH;
-        if (isSignIn || RESET_PATHS.has(ctx.path)) {
-          const scope = isSignIn ? 'signin' : 'reset';
+        const scope = scopeOf(ctx.path);
+        if (scope) {
           const ip = clientIpOf(ctx.headers);
           const email = emailOf(ctx.body);
           try {

@@ -45,6 +45,17 @@ describe('buildCsp', () => {
 });
 
 describe('buildSecurityHeaders', () => {
+  it('sends no Referer from pages whose address carries a token', () => {
+    for (const pathname of ['/recuperar/abc123', '/verificar/abc123']) {
+      expect(buildSecurityHeaders({ ...base, pathname })['Referrer-Policy']).toBe('no-referrer');
+    }
+    for (const pathname of ['/recuperar', '/verificar', '/login', '/recuperar/']) {
+      expect(buildSecurityHeaders({ ...base, pathname })['Referrer-Policy']).toBe(
+        'strict-origin-when-cross-origin',
+      );
+    }
+  });
+
   it('sets the fixed headers', () => {
     const headers = buildSecurityHeaders(base);
     expect(headers['X-Frame-Options']).toBe('DENY');

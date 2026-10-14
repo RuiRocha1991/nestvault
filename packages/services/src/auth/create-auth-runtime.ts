@@ -1,5 +1,6 @@
 import { createIdentityDatabase } from '@nestvault/db';
 
+import type { EmailSender } from '../email';
 import type { Logger } from '../logger';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
 
@@ -11,6 +12,7 @@ export interface AuthRuntimeConfig {
   secret: string;
   allowSignup: boolean;
   trustedProxyHops?: number;
+  email: EmailSender;
   log?: Logger;
 }
 
@@ -34,6 +36,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     secret: config.secret,
     allowSignup: config.allowSignup,
     limiter,
+    email: config.email,
     ...(config.trustedProxyHops !== undefined ? { trustedProxyHops: config.trustedProxyHops } : {}),
     ...(config.log ? { log: config.log } : {}),
   });

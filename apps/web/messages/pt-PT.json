@@ -79,6 +79,74 @@
       "footClosed": "Ainda não tens conta? O registo é por convite: pede ao proprietário do agregado ou abre a ligação que recebeste por email.",
       "createAccount": "Criar conta"
     },
-    "sessionExpired": "A tua sessão expirou. Entra novamente."
+    "sessionExpired": "A tua sessão expirou. Entra novamente.",
+    "passwordChanged": "Palavra-passe alterada. Entra com a nova palavra-passe.",
+    "forgot": {
+      "title": "Recuperar palavra-passe",
+      "lead": "Indica o email da tua conta e enviamos uma ligação para criares uma nova palavra-passe.",
+      "email": "Email",
+      "emailPlaceholder": "nome@exemplo.pt",
+      "submit": "Enviar ligação",
+      "invalid": "Indica um email válido.",
+      "errorTitle": "Não foi possível enviar a ligação.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "lockedTitle": "Demasiados pedidos.",
+      "lockedText": "Por segurança, os pedidos estão pausados. Tenta novamente dentro de <time></time>.",
+      "sentTitle": "Verifica o teu email",
+      "sentText": "Se existir uma conta para <email></email>, enviámos uma ligação para criares uma nova palavra-passe. A ligação é de uso único e expira em pouco tempo.",
+      "sentHint": "Não aparece? Procura na pasta de spam. Por segurança, esta mensagem é igual quer a conta exista quer não.",
+      "notReceived": "Não recebeste?",
+      "resend": "Reenviar",
+      "resendIn": "(disponível em {time})",
+      "backToLogin": "Voltar a entrar"
+    },
+    "reset": {
+      "title": "Nova palavra-passe",
+      "lead": "Escolhe uma palavra-passe que não uses em mais lado nenhum.",
+      "newPassword": "Nova palavra-passe",
+      "confirmPassword": "Confirmar palavra-passe",
+      "showPassword": "Mostrar palavra-passe",
+      "hidePassword": "Ocultar palavra-passe",
+      "submit": "Guardar palavra-passe",
+      "note": "Ao guardar, terminamos a sessão em todos os outros dispositivos.",
+      "strength": {
+        "label": "Força da palavra-passe",
+        "veryWeak": "Muito fraca",
+        "weak": "Fraca",
+        "fair": "Razoável",
+        "good": "Boa",
+        "strong": "Forte"
+      },
+      "rules": {
+        "length": "Pelo menos 12 caracteres",
+        "common": "Não é uma palavra-passe comum"
+      },
+      "mismatch": "As palavras-passe não coincidem.",
+      "breached": "Esta palavra-passe apareceu numa fuga de dados. Escolhe outra.",
+      "errorTitle": "Não foi possível guardar.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "lockedTitle": "Demasiadas tentativas.",
+      "lockedText": "Tenta novamente dentro de <time></time>.",
+      "invalidTitle": "Esta ligação já não é válida",
+      "invalidText": "Expirou ou já foi utilizada. As ligações de recuperação só podem ser usadas uma vez.",
+      "requestNew": "Pedir nova ligação",
+      "backToLogin": "Voltar a entrar"
+    },
+    "verify": {
+      "pendingTitle": "Confirma o teu email",
+      "pendingText": "Enviámos uma ligação de confirmação para <email></email>. Abre-a para ativar a conta.",
+      "resend": "Reenviar email",
+      "resent": "Enviámos outra mensagem.",
+      "change": "Alterar o email",
+      "pendingHint": "Podes fechar esta página. Quando confirmares, continuas de onde ficaste.",
+      "lockedText": "Demasiados pedidos. Tenta novamente dentro de <time></time>.",
+      "errorText": "Não foi possível reenviar. Tenta novamente dentro de instantes.",
+      "doneTitle": "Email confirmado",
+      "doneText": "A tua conta está ativa. Já podes escolher ou criar um agregado.",
+      "continue": "Continuar",
+      "invalidTitle": "Esta ligação já não é válida",
+      "invalidText": "A ligação de confirmação expirou ou não é válida. Pede uma nova a partir da tua conta.",
+      "cooldown": " · {time}"
+    }
   }
 }
