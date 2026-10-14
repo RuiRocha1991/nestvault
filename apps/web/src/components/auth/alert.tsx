@@ -1,5 +1,5 @@
 import { cn } from '@nestvault/ui';
-import { Clock, TriangleAlert } from 'lucide-react';
+import { Clock, Mail, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { formatCountdown } from '@webapp/lib/sign-in';
@@ -81,10 +81,21 @@ export function LinkButton({
   );
 }
 
-/** Error banner of the auth forms: a bold title and a muted explanation. */
-export function ProblemAlert({ title, text }: { title: string; text: string }) {
+/** Banner of the auth forms: a bold title and a muted explanation (red, or amber for a notice). */
+export function ProblemAlert({
+  title,
+  text,
+  tone = 'error',
+}: {
+  title: string;
+  text: string;
+  tone?: 'error' | 'warning';
+}) {
   return (
-    <Alert tone="error" icon={<TriangleAlert aria-hidden />}>
+    <Alert
+      tone={tone}
+      icon={tone === 'warning' ? <Mail aria-hidden /> : <TriangleAlert aria-hidden />}
+    >
       <b>{title}</b>
       <br />
       <span className="text-fg-2">{text}</span>
