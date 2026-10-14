@@ -47,6 +47,14 @@ const dbImport = {
   message: 'apps/web reaches the database only through packages/services.',
 };
 
+// Client components must not pull the whole services package (argon2, the database driver) into the
+// browser bundle: only the pure subpath exports, such as `@nestvault/services/password-policy`.
+const servicesRootImport = {
+  name: '@nestvault/services',
+  message:
+    'Client components import only pure subpaths (@nestvault/services/password-policy), never the services root.',
+};
+
 const baseRestrictions = [noSqlRaw, noProcessEnv, noPoolContextCast, noPoolContextAngleCast];
 
 // All visible text goes through next-intl (messages/pt-PT.json): no literal strings in JSX.
@@ -148,6 +156,15 @@ export default defineConfig(
     files: ['apps/web/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [dbImport, configNodeImport] }],
+    },
+  },
+  {
+    files: ['apps/web/src/components/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [servicesRootImport], patterns: [dbImport, configNodeImport] },
+      ],
     },
   },
   {

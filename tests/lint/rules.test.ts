@@ -141,3 +141,25 @@ describe('conditional JSX', () => {
     );
   });
 });
+
+describe('services in client components', () => {
+  const root =
+    "import { safeNextPath } from '@nestvault/services';\nexport const x = safeNextPath;\n";
+  const subpath =
+    "import { isCommonPassword } from '@nestvault/services/password-policy';\nexport const x = isCommonPassword;\n";
+
+  it('is blocked from the services root in components and allowed for the pure subpath', async () => {
+    expect(await ruleIds(root, 'apps/web/src/components/auth/x.ts')).toContain(
+      'no-restricted-imports',
+    );
+    expect(await ruleIds(subpath, 'apps/web/src/components/auth/x.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+  });
+
+  it('is still allowed on the server side of the web app', async () => {
+    expect(await ruleIds(root, 'apps/web/src/lib/auth-redirect.ts')).not.toContain(
+      'no-restricted-imports',
+    );
+  });
+});
