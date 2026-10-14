@@ -11,6 +11,7 @@ import { Field, IconInput } from '@webapp/components/auth/field';
 import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { VerifyPending } from '@webapp/components/auth/verify-pending';
+import { passwordProblemOf, type PasswordProblem } from '@webapp/lib/password-problem';
 import { checkPassword } from '@webapp/lib/password-strength';
 import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
@@ -19,13 +20,7 @@ import { useCountdown } from '@webapp/lib/use-countdown';
 
 const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
 
-type Problem = 'breached' | 'tooCommon' | 'basedOnEmail' | 'error' | null;
-
-const PROBLEM_BY_CODE: Record<string, Problem> = {
-  PASSWORD_BREACHED: 'breached',
-  PASSWORD_TOO_COMMON: 'tooCommon',
-  PASSWORD_BASED_ON_EMAIL: 'basedOnEmail',
-};
+type Problem = PasswordProblem | 'error' | null;
 
 /**
  * Screen 50. The server answers the same for a new address and one that already has an account, so
@@ -84,7 +79,8 @@ export function SignupForm() {
       } else if (outcome.status === 403 && outcome.code === 'signup_closed') {
         router.refresh(); // the page now shows the closed screen
       } else {
-        setProblem(PROBLEM_BY_CODE[String(outcome.code)] ?? 'error');
+        if (outcome.code === 'INVALID_EMAIL') setFieldError('email');
+        else setProblem((outcome.status === 400 && passwordProblemOf(outcome.code)) || 'error');
       }
     } catch {
       setProblem('error');

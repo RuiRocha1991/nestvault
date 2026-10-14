@@ -126,7 +126,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   timing close) and the owner is told by email ("Já tens uma conta"): no account enumeration. Using
   a password-reset link also confirms the address. The server enforces the password rules: 12 to 128
   characters, not a common password (`PASSWORD_TOO_COMMON`), not based on the email
-  (`PASSWORD_BASED_ON_EMAIL`), not in a known breach. The rules are one list (`PASSWORD_RULES` in
+  (`PASSWORD_BASED_ON_EMAIL`: the address, or its name part with accents folded and without dots or a
+  `+tag`; a name of 6+ characters is always refused, one of 3 to 5 only when the rest of the password
+  has fewer than 6 different characters), not in a known breach. The rules are one list (`PASSWORD_RULES` in
   `@nestvault/services/password-policy`): the Better Auth hook applies it to sign-up, change-password
   and reset-password (the email comes from the body, the session or the reset token's user; a rule
   that needs an email is skipped when it cannot be told), and the forms show the same list as

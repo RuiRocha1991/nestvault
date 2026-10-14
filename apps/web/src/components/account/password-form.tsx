@@ -8,18 +8,17 @@ import { useId, useState, type SyntheticEvent } from 'react';
 
 import { Alert, Countdown } from '@webapp/components/auth/alert';
 import { PasswordInput } from '@webapp/components/auth/password-input';
+import {
+  isPasswordProblem,
+  passwordProblemOf,
+  type PasswordProblem,
+} from '@webapp/lib/password-problem';
 import { checkPassword } from '@webapp/lib/password-strength';
 import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
 import { useCountdown } from '@webapp/lib/use-countdown';
 
-type Status = 'idle' | 'saved' | 'wrongCurrent' | 'breached' | 'tooCommon' | 'error';
-
-const STATUS_BY_CODE: Record<string, Status> = {
-  PASSWORD_BREACHED: 'breached',
-  PASSWORD_TOO_COMMON: 'tooCommon',
-  INVALID_PASSWORD: 'wrongCurrent',
-};
+type Status = 'idle' | 'saved' | 'wrongCurrent' | PasswordProblem | 'error';
 
 /** The other sessions end with the change, so the form says so before it is used. */
 export function PasswordForm() {
@@ -31,6 +30,7 @@ export function PasswordForm() {
   const [confirm, setConfirm] = useState('');
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
+  const fieldProblem = isPasswordProblem(status) ? status : null;
   const [locked, startLock] = useCountdown();
 
   const check = checkPassword(next);
@@ -59,7 +59,11 @@ export function PasswordForm() {
       } else if (outcome.status === 429) {
         startLock(parseRetryAfter(outcome.retryAfter));
       } else {
-        setStatus((outcome.status === 400 && STATUS_BY_CODE[String(outcome.code)]) || 'error');
+        setStatus(
+          outcome.status === 400 && outcome.code === 'INVALID_PASSWORD'
+            ? 'wrongCurrent'
+            : (outcome.status === 400 && passwordProblemOf(outcome.code)) || 'error',
+        );
       }
     } catch {
       setStatus('error');
@@ -121,14 +125,14 @@ export function PasswordForm() {
               value={next}
               showLabel={t('showPassword')}
               hideLabel={t('hidePassword')}
-              invalid={status === 'breached' || status === 'tooCommon'}
+              invalid={fieldProblem !== null}
               onChange={(event) => {
                 setNext(event.target.value);
               }}
             />
-            {(status === 'breached' || status === 'tooCommon') && (
+            {fieldProblem !== null && (
               <p role="alert" className="text-sm text-neg">
-                {t(status)}
+                {t(fieldProblem)}
               </p>
             )}
           </div>

@@ -4,6 +4,7 @@ import {
   createMemoryEmailSender,
   createSmtpSender,
   escapeHtml,
+  existingAccountTemplate,
   inviteTemplate,
   passwordChangedTemplate,
   resetPasswordTemplate,
@@ -55,6 +56,31 @@ describe('email templates', () => {
     const invite = inviteTemplate({ inviter: 'Rui', poolName: 'Casa', url: 'http://x/i' });
     expect(invite.subject).toBe('Convite para o agregado Casa');
     expect(invite.text).toContain('http://x/i');
+  });
+});
+
+describe('existing account email', () => {
+  const input = {
+    name: 'Ana <b>',
+    loginUrl: 'http://localhost:4000/login',
+    resetUrl: 'http://localhost:4000/recuperar',
+  };
+
+  it('has a real link for signing in and one for recovering the password, in HTML and text', () => {
+    const { subject, html, text } = existingAccountTemplate(input);
+    expect(subject).toBe('Já tens uma conta');
+    expect(html).toContain('<a href="http://localhost:4000/login"');
+    expect(html).toContain('<a href="http://localhost:4000/recuperar"');
+    expect(html).toContain('Recuperar a palavra-passe</a>');
+    expect(text).toContain('Entrar: http://localhost:4000/login');
+    expect(text).toContain('Recuperar a palavra-passe: http://localhost:4000/recuperar');
+  });
+
+  it('escapes the name and keeps tokens out of it', () => {
+    const { html, text } = existingAccountTemplate(input);
+    expect(html).not.toContain('<b>');
+    expect(html).toContain('Ana &lt;b&gt;');
+    expect(text).not.toMatch(/\/(verificar|recuperar)\/\S/);
   });
 });
 
