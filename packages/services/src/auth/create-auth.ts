@@ -269,7 +269,13 @@ export function createAuth(config: AuthConfig) {
     rateLimit: { enabled: false }, // replaced by the Postgres-backed limiter below (control 11)
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        const scope = scopeOf(ctx.path);
+        // A sign-up that the closed instance refuses from the config alone (no invite to look up)
+        // costs nothing, so it does not write to the limiter either.
+        const refusedForFree =
+          ctx.path === SIGN_UP_PATH &&
+          !config.allowSignup &&
+          !ctx.headers?.get(INVITE_TOKEN_HEADER);
+        const scope = refusedForFree ? null : scopeOf(ctx.path);
         if (scope) {
           const ip = clientIpOf(ctx.headers);
           // Account changes are limited per signed-in user; the others per email in the body.

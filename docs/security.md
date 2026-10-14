@@ -202,7 +202,11 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   signed-in user and per IP); API routes call
   `limitApiRequests(session.id)` (`apps/web/src/server/api/rate-limit.ts`). Auth buckets fail closed
   when the database is down, the API/imports/invites buckets fail open and log. Expired windows are
-  deleted lazily.
+  deleted lazily. A sign-up that a closed instance refuses from the config alone (`ALLOW_SIGNUP=false`
+  and no invite token) answers 403 without touching the limiter: it costs no database work. With an
+  invite token the invite is looked up, so those attempts are counted. The IP and the email buckets
+  are consumed one after the other on purpose: a request from a blocked IP never uses up the email
+  bucket of someone else.
 - **Client IP:** in production put the app behind a reverse proxy / CDN and set
   `TRUSTED_PROXY_HOPS` (1 for one proxy): the `x-forwarded-for` entry counted from the right is the
   client, and each machine gets its own 5 / 15 min limit, so one attacker never blocks other users.
@@ -212,7 +216,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   per-email buckets still hold guessing on one account to 5. The web process logs a warning when it
   runs in production with `TRUSTED_PROXY_HOPS=0`.
 - **Verified by:** `tests/services/rate-limit.integration.test.ts` (6th failed sign-in is 429 per
-  IP and per email, reset after the window, 40 parallel hits let exactly 5 through, spoofed
+  IP and per email, a closed sign-up writes nothing but an invite-token attempt is counted, reset after the window, 40 parallel hits let exactly 5 through, spoofed
   `x-forwarded-for` ignored, injection payload as data, fail closed/open) and
   `tests/services/client-ip.test.ts`.
 
