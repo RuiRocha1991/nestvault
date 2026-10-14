@@ -8,6 +8,17 @@ export const APP_URL = 'http://localhost:4000';
 export const PASSWORD = 'a-long-unique-passphrase';
 export const SECRET = 'x'.repeat(40);
 
+/** A clock for the rate limiter, so a test can let a window pass instead of waiting for it. */
+export function createTestClock(start = '2026-01-01T10:00:00Z') {
+  let current = new Date(start);
+  return {
+    now: () => current,
+    advance(seconds: number) {
+      current = new Date(current.getTime() + seconds * 1000);
+    },
+  };
+}
+
 /** POST to the Better Auth handler as the browser does (JSON body, same Origin). */
 export const postAuth = (
   auth: Auth,

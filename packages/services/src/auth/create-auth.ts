@@ -169,6 +169,25 @@ export function createAuth(config: AuthConfig) {
     // The sender logs its own failure; this only keeps it from becoming an unhandled rejection.
     email.send(message).catch(() => undefined);
   };
+  /**
+   * The one place a verification email leaves from. At most one per minute and ten per hour per
+   * address, whatever asked for it; over that it is dropped quietly (the answer to the request does
+   * not change, so nothing is revealed). The limiter runs in the background like the send.
+   */
+  const sendVerification = (target: { email: string; name: string }, token: string) => {
+    void (async () => {
+      try {
+        await limiter.consume('auth.verifymail.cooldown', target.email);
+        await limiter.consume('auth.verifymail.hour', target.email);
+      } catch {
+        return; // over the limit, or the limiter is down: no email, no error for the caller
+      }
+      sendInBackground({
+        to: target.email,
+        ...verifyEmailTemplate({ name: target.name, url: link(VERIFY_PAGE_PATH, token) }),
+      });
+    })();
+  };
   const link = (path: string, token: string) =>
     `${config.appUrl}${path}/${encodeURIComponent(token)}`;
   const proxyHops = config.trustedProxyHops ?? 0;
@@ -207,10 +226,7 @@ export function createAuth(config: AuthConfig) {
             undefined,
             VERIFY_EMAIL_EXPIRES_IN_SECONDS,
           );
-          sendInBackground({
-            to: target.email,
-            ...verifyEmailTemplate({ name: target.name, url: link(VERIFY_PAGE_PATH, token) }),
-          });
+          sendVerification(target, token);
           return;
         }
         sendInBackground({
@@ -242,10 +258,7 @@ export function createAuth(config: AuthConfig) {
       sendOnSignUp: true,
       sendOnSignIn: true,
       sendVerificationEmail: ({ user: target, token }) => {
-        sendInBackground({
-          to: target.email,
-          ...verifyEmailTemplate({ name: target.name, url: link(VERIFY_PAGE_PATH, token) }),
-        });
+        sendVerification(target, token);
         return Promise.resolve();
       },
     },
