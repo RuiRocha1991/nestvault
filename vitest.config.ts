@@ -42,6 +42,8 @@ export default defineConfig({
           exclude: ['**/node_modules/**', '**/*.integration.test.{ts,tsx}'],
         },
         resolve,
+        // apps/web keeps `jsx: preserve` for Next; the tests compile the components themselves.
+        oxc: { jsx: { runtime: 'automatic' as const } },
       })),
       {
         test: {

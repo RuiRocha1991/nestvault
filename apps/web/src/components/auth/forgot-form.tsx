@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, cn, Input } from '@nestvault/ui';
+import { Button, cn } from '@nestvault/ui';
 import { ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -14,6 +14,7 @@ import {
   LockedAlert,
   ProblemAlert,
 } from '@webapp/components/auth/alert';
+import { Field, IconInput } from '@webapp/components/auth/field';
 import { postJson } from '@webapp/lib/post-json';
 import { formatCountdown, parseRetryAfter } from '@webapp/lib/sign-in';
 import { RESEND_COOLDOWN_SECONDS, useCountdown } from '@webapp/lib/use-countdown';
@@ -120,39 +121,26 @@ export function ForgotForm() {
       </div>
       {alerts}
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3.5">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={emailId} className="text-sm font-medium text-fg-2">
-            {t('email')}
-          </label>
-          <div className="relative flex">
-            <Mail
-              aria-hidden
-              className="pointer-events-none absolute left-3 top-[11px] size-[18px] text-fg-3"
-            />
-            <Input
-              id={emailId}
-              type="email"
-              name="email"
-              autoComplete="username"
-              inputMode="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              required
-              maxLength={254}
-              value={email}
-              placeholder={t('emailPlaceholder')}
-              aria-invalid={invalid}
-              onChange={(event) => {
-                setEmail(event.target.value);
-              }}
-              className={cn(
-                'h-10 pl-[38px]',
-                invalid && 'border-neg shadow-[inset_0_0_0_1px_var(--neg)]',
-              )}
-            />
-          </div>
-          {invalid && <p className="text-sm text-neg">{t('invalid')}</p>}
-        </div>
+        <Field id={emailId} label={t('email')} error={invalid && t('invalid')}>
+          <IconInput
+            icon={Mail}
+            id={emailId}
+            type="email"
+            name="email"
+            autoComplete="username"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            maxLength={254}
+            value={email}
+            placeholder={t('emailPlaceholder')}
+            invalid={invalid}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
+        </Field>
         <Button
           type="submit"
           variant="primary"

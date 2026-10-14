@@ -1,12 +1,13 @@
 'use client';
 
-import { Button, cn, Input } from '@nestvault/ui';
+import { Button } from '@nestvault/ui';
 import { Mail, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type SyntheticEvent } from 'react';
 
 import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
+import { Field, IconInput } from '@webapp/components/auth/field';
 import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { VerifyPending } from '@webapp/components/auth/verify-pending';
@@ -96,9 +97,6 @@ export function SignupForm() {
 
   if (sentTo) return <VerifyPending email={sentTo} variant="signup" />;
 
-  const iconStyles = 'pointer-events-none absolute left-3 top-[11px] size-[18px] text-fg-3';
-  const fieldStyles = (invalid: boolean) =>
-    cn('h-10 pl-[38px]', invalid && 'border-neg shadow-[inset_0_0_0_1px_var(--neg)]');
   const problemText: Record<Exclude<Problem, 'error' | null>, string> = {
     breached: t('breached'),
     tooCommon: t('tooCommon'),
@@ -121,59 +119,46 @@ export function SignupForm() {
       )}
 
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-3.5">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={ids.name} className="text-sm font-medium text-fg-2">
-            {t('name')}
-          </label>
-          <div className="relative flex">
-            <User aria-hidden className={iconStyles} />
-            <Input
-              id={ids.name}
-              name="name"
-              autoComplete="name"
-              maxLength={120}
-              required
-              placeholder={t('namePlaceholder')}
-              value={name}
-              aria-invalid={fieldError === 'name'}
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              className={fieldStyles(fieldError === 'name')}
-            />
-          </div>
-          {fieldError === 'name' && <p className="text-sm text-neg">{t('nameRequired')}</p>}
-        </div>
+        <Field id={ids.name} label={t('name')} error={fieldError === 'name' && t('nameRequired')}>
+          <IconInput
+            icon={User}
+            id={ids.name}
+            name="name"
+            autoComplete="name"
+            maxLength={120}
+            required
+            placeholder={t('namePlaceholder')}
+            value={name}
+            invalid={fieldError === 'name'}
+            onChange={(event) => {
+              setName(event.target.value);
+            }}
+          />
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={ids.email} className="text-sm font-medium text-fg-2">
-            {t('email')}
-          </label>
-          <div className="relative flex">
-            <Mail aria-hidden className={iconStyles} />
-            <Input
-              id={ids.email}
-              name="email"
-              type="email"
-              autoComplete="email"
-              maxLength={254}
-              required
-              placeholder={t('emailPlaceholder')}
-              value={email}
-              aria-invalid={fieldError === 'email'}
-              onChange={(event) => {
-                setEmail(event.target.value);
-              }}
-              className={fieldStyles(fieldError === 'email')}
-            />
-          </div>
-          {fieldError === 'email' && <p className="text-sm text-neg">{t('invalidEmail')}</p>}
-        </div>
+        <Field
+          id={ids.email}
+          label={t('email')}
+          error={fieldError === 'email' && t('invalidEmail')}
+        >
+          <IconInput
+            icon={Mail}
+            id={ids.email}
+            name="email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            required
+            placeholder={t('emailPlaceholder')}
+            value={email}
+            invalid={fieldError === 'email'}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={ids.password} className="text-sm font-medium text-fg-2">
-            {t('password')}
-          </label>
+        <Field id={ids.password} label={t('password')}>
           <PasswordInput
             id={ids.password}
             name="new-password"
@@ -206,12 +191,9 @@ export function SignupForm() {
               {problemText[problem]}
             </p>
           )}
-        </div>
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={ids.confirm} className="text-sm font-medium text-fg-2">
-            {t('confirmPassword')}
-          </label>
+        <Field id={ids.confirm} label={t('confirmPassword')}>
           <PasswordInput
             id={ids.confirm}
             name="confirm-password"
@@ -227,7 +209,7 @@ export function SignupForm() {
             }}
           />
           {mismatch && <p className="text-sm text-neg">{t('mismatch')}</p>}
-        </div>
+        </Field>
 
         <Button
           type="submit"
