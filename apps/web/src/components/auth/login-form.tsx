@@ -1,13 +1,15 @@
 'use client';
 
-import { Button, cn, Input } from '@nestvault/ui';
-import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
+import { Button } from '@nestvault/ui';
+import { Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 
 import { Alert, Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
+import { Field, IconInput } from '@webapp/components/auth/field';
+import { PasswordInput } from '@webapp/components/auth/password-input';
 import { postJson } from '@webapp/lib/post-json';
 import { formatCountdown, interpretSignInResponse, signInSchema } from '@webapp/lib/sign-in';
 
@@ -24,7 +26,6 @@ export function LoginForm({ destination }: LoginFormProps) {
   const ids = { email: useId(), password: useId() };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
   // Seconds left of a rate-limit pause; the server decides it, the page only counts down.
@@ -76,11 +77,6 @@ export function LoginForm({ destination }: LoginFormProps) {
   }
 
   const invalid = problem === 'invalid';
-  const fieldStyles = cn(
-    'h-10 pl-[38px]',
-    invalid && 'border-neg shadow-[inset_0_0_0_1px_var(--neg)]',
-  );
-  const iconStyles = 'pointer-events-none absolute left-3 top-[11px] size-[18px] text-fg-3';
 
   return (
     <>
@@ -107,75 +103,51 @@ export function LoginForm({ destination }: LoginFormProps) {
       )}
 
       <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-3.5">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={ids.email} className="text-sm font-medium text-fg-2">
-            {t('email')}
-          </label>
-          <div className="relative flex">
-            <Mail aria-hidden className={iconStyles} />
-            <Input
-              id={ids.email}
-              type="email"
-              name="email"
-              autoComplete="username"
-              inputMode="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              required
-              maxLength={254}
-              value={email}
-              placeholder={t('emailPlaceholder')}
-              aria-invalid={invalid}
-              onChange={(event) => {
-                setEmail(event.target.value);
-              }}
-              className={fieldStyles}
-            />
-          </div>
-        </div>
+        <Field id={ids.email} label={t('email')}>
+          <IconInput
+            icon={Mail}
+            id={ids.email}
+            type="email"
+            name="email"
+            autoComplete="username"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            maxLength={254}
+            value={email}
+            placeholder={t('emailPlaceholder')}
+            invalid={invalid}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
+          />
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <label htmlFor={ids.password} className="text-sm font-medium text-fg-2">
-              {t('password')}
-            </label>
+        <Field
+          id={ids.password}
+          label={t('password')}
+          aside={
             <Link href="/recuperar" className="text-sm font-semibold text-accent-2 no-underline">
               {t('forgot')}
             </Link>
-          </div>
-          <div className="relative flex">
-            <KeyRound aria-hidden className={iconStyles} />
-            <Input
-              id={ids.password}
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              autoComplete="current-password"
-              required
-              maxLength={128}
-              value={password}
-              aria-invalid={invalid}
-              onChange={(event) => {
-                setPassword(event.target.value);
-              }}
-              className={cn(fieldStyles, 'pr-10')}
-            />
-            <button
-              type="button"
-              aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-              aria-pressed={showPassword}
-              onClick={() => {
-                setShowPassword((current) => !current);
-              }}
-              className="absolute right-1.5 top-[5px] grid size-[30px] place-items-center rounded-sm border-0 bg-transparent p-0 text-fg-3 hover:text-fg"
-            >
-              {showPassword ? (
-                <EyeOff aria-hidden className="size-4" />
-              ) : (
-                <Eye aria-hidden className="size-4" />
-              )}
-            </button>
-          </div>
-        </div>
+          }
+        >
+          <PasswordInput
+            id={ids.password}
+            name="password"
+            autoComplete="current-password"
+            required
+            maxLength={128}
+            value={password}
+            showLabel={t('showPassword')}
+            hideLabel={t('hidePassword')}
+            invalid={invalid}
+            onChange={(event) => {
+              setPassword(event.target.value);
+            }}
+          />
+        </Field>
 
         <Button
           type="submit"

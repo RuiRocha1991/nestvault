@@ -4,6 +4,8 @@ import { cn, Input } from '@nestvault/ui';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useState, type ComponentProps } from 'react';
 
+import { fieldClass, FIELD_ICON_CLASS } from '@webapp/components/auth/field';
+
 export interface PasswordInputProps extends Omit<ComponentProps<typeof Input>, 'type'> {
   showLabel: string;
   hideLabel: string;
@@ -21,19 +23,12 @@ export function PasswordInput({
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative flex">
-      <KeyRound
-        aria-hidden
-        className="pointer-events-none absolute left-3 top-[11px] size-[18px] text-fg-3"
-      />
+      <KeyRound aria-hidden className={FIELD_ICON_CLASS} />
       <Input
         {...props}
         type={visible ? 'text' : 'password'}
         aria-invalid={invalid}
-        className={cn(
-          'h-10 pl-[38px] pr-10',
-          invalid && 'border-neg shadow-[inset_0_0_0_1px_var(--neg)]',
-          className,
-        )}
+        className={cn(fieldClass(invalid), 'pr-10', className)}
       />
       <button
         type="button"
