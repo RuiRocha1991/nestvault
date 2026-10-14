@@ -1,8 +1,4 @@
-import {
-  isCommonPassword,
-  isPasswordBasedOnEmail,
-  PASSWORD_MIN_LENGTH,
-} from '@nestvault/services/password-policy';
+import { PASSWORD_RULES } from '@nestvault/services/password-policy';
 
 export interface PasswordCheck {
   longEnough: boolean;
@@ -15,9 +11,12 @@ export interface PasswordCheck {
 
 /** Client-side guidance only. The rules that count are enforced by the server. */
 export function checkPassword(value: string, email = ''): PasswordCheck {
-  const longEnough = value.length >= PASSWORD_MIN_LENGTH;
-  const notCommon = value.length > 0 && !isCommonPassword(value);
-  const notEmail = value.length > 0 && !isPasswordBasedOnEmail(value, email);
+  // The same rules as the server; an empty field meets none of them (nothing to say yet).
+  const met = (id: (typeof PASSWORD_RULES)[number]['id']) =>
+    value.length > 0 && !!PASSWORD_RULES.find((rule) => rule.id === id)?.passes(value, { email });
+  const longEnough = met('length');
+  const notCommon = met('common');
+  const notEmail = met('email');
   if (value.length === 0) return { longEnough, notCommon, notEmail, score: 0 };
   let score = 0;
   if (longEnough) score += 1;
