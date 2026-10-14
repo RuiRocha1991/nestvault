@@ -162,7 +162,8 @@ folder and one migrations folder each, in `packages/db`).
   you like. To change the schema use the `db-migration` skill (`pnpm db:generate:app`).
 - Application code reaches `nestvault_app` only through `withPool(ctx, tx => …)`, where `ctx` is a
   `PoolContext` that only `requirePoolAccess` can create; Postgres Row-Level Security then enforces
-  the pool as a second lock.
+  the pool as a second lock. Services then call `can(ctx, 'accounts.write')`; roles are permission
+  sets (`packages/services/src/guards`) and feature code never compares role names.
 - `pnpm test` includes the database tests (RLS, pool isolation, injection payloads). They run on the
   `_test` databases, which are dropped and migrated again at the start of each run, so
   **`pnpm db:up` must be running**; if not, the run stops with a message saying so.

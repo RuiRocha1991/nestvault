@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, ne } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne, or } from 'drizzle-orm';
 
 import type { IdentityDatabase } from '../client';
 import { session } from '../schema';
@@ -32,6 +32,28 @@ export const sessionsRepo = {
       .from(session)
       .where(and(eq(session.userId, userId), gt(session.expiresAt, now)))
       .orderBy(desc(session.updatedAt));
+  },
+
+  /**
+   * Remembers the pool the session is working in. Only touches the user's own session, and only
+   * writes when the value changes, so switching nothing costs no update.
+   */
+  async setActivePool(
+    db: IdentityDatabase['db'],
+    userId: string,
+    sessionId: string,
+    poolId: string,
+  ): Promise<void> {
+    await db
+      .update(session)
+      .set({ activePoolId: poolId })
+      .where(
+        and(
+          eq(session.id, sessionId),
+          eq(session.userId, userId),
+          or(isNull(session.activePoolId), ne(session.activePoolId, poolId)),
+        ),
+      );
   },
 
   /** Deletes one session of the user. `false` when it does not exist or belongs to someone else. */

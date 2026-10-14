@@ -15,6 +15,7 @@ export type { PoolRunner } from './app/with-pool';
 
 export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase } from './identity/client';
+export { poolMembersRepo, poolsRepo } from './identity/repositories/pool-members.repo';
 export { rateLimitsRepo } from './identity/repositories/rate-limits.repo';
 export type { WindowKey } from './identity/repositories/rate-limits.repo';
 export { sessionsRepo } from './identity/repositories/sessions.repo';

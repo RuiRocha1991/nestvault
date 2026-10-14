@@ -55,7 +55,22 @@ const servicesRootImport = {
     'Client components import only pure subpaths (@nestvault/services/password-policy), never the services root.',
 };
 
-const baseRestrictions = [noSqlRaw, noProcessEnv, noPoolContextCast, noPoolContextAngleCast];
+// Permissions, not role names, decide what a caller may do (architecture rule 5): feature code
+// calls `can(ctx, 'accounts.write')`. Only the permission table (packages/services/src/guards) and
+// the context factory know role names.
+const noRoleComparison = {
+  selector:
+    ":matches(BinaryExpression[operator=/^[!=]==?$/] > MemberExpression[property.name='role'], BinaryExpression[operator=/^[!=]==?$/] > Identifier[name='role'], SwitchStatement > MemberExpression.discriminant[property.name='role'])",
+  message: 'Do not compare roles. Check a permission with can(ctx, permission) instead.',
+};
+
+const baseRestrictions = [
+  noSqlRaw,
+  noProcessEnv,
+  noPoolContextCast,
+  noPoolContextAngleCast,
+  noRoleComparison,
+];
 
 // All visible text goes through next-intl (messages/pt-PT.json): no literal strings in JSX.
 const noJsxText = {

@@ -1,5 +1,7 @@
 import { customType, index, pgTable, text, timestamp, uuid, boolean } from 'drizzle-orm/pg-core';
 
+import { pools } from './pools';
+
 // Better Auth core tables (user, session, account, verification) in nestvault_identity. Names and
 // columns follow what Better Auth expects; ids are UUID v7 generated in application code
 // (`advanced.database.generateId` in packages/services/src/auth). No two-factor columns yet: the
@@ -37,6 +39,8 @@ export const session = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    // The pool this session last worked in (set by requirePoolAccess); null until one is used.
+    activePoolId: uuid('active_pool_id').references(() => pools.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

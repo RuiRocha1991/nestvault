@@ -7,3 +7,4 @@ export const packageName = '@nestvault/services';
 export * from './rate-limit';
 export * from './email';
 export * from './account';
+export * from './guards';

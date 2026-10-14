@@ -1,4 +1,5 @@
-// Tables of nestvault_identity. Pools, members, invites and audit arrive with NES-25 onwards.
-// Use the `db-migration` skill to add them.
+// Tables of nestvault_identity. Invites and audit arrive with later tasks (`db-migration` skill).
 export { account, session, user, verification } from './auth';
+export { poolMembers } from './pool-members';
+export { pools } from './pools';
 export { rateLimits } from './rate-limits';
