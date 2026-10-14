@@ -6,6 +6,7 @@ import { createIdentityDatabase } from '@nestvault/db';
 import {
   createAuth,
   createMemoryEmailSender,
+  createRateLimiter,
   getOptionalSession,
   isResetTokenValid,
   verifyEmailWithToken,
@@ -16,6 +17,7 @@ import {
 import { openTestDatabase } from '../db/harness';
 import {
   APP_URL,
+  createTestClock,
   PASSWORD,
   postAuth,
   registerUser,
@@ -30,6 +32,7 @@ const NEW_PASSWORD = 'another-long-unique-passphrase';
 const testDb = openTestDatabase();
 const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 4);
 
+const clock = createTestClock();
 let mail: MemoryEmailSender;
 let auth: Auth;
 const logged: unknown[] = [];
@@ -42,6 +45,7 @@ function build() {
     secret: SECRET,
     allowSignup: true,
     email: mail,
+    limiter: createRateLimiter({ identity, secret: SECRET, now: clock.now }),
     // Every log call the app makes is kept so the tests can look for tokens in it.
     log: {
       error: (...args: unknown[]) => logged.push(args),
@@ -228,6 +232,7 @@ describe('password reset', () => {
 describe('email verification', () => {
   it('marks the email as verified with the link of the email, and rejects a forged token', async () => {
     await register('ana@example.com', { verified: false });
+    clock.advance(61); // past the one-a-minute limit on verification emails
     expect(await rows(identity, sql`select email_verified from "user"`)).toEqual([
       { email_verified: false },
     ]);

@@ -209,6 +209,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   invite token the invite is looked up, so those attempts are counted. The IP and the email buckets
   are consumed one after the other on purpose: a request from a blocked IP never uses up the email
   bucket of someone else.
+  Verification emails also share one limit per address whatever asked for them (sign-up, sign-in
+  with the right password, the resend button, sign-up of an unverified address): one a minute and ten
+  an hour (`auth.verifymail.*`). Over it nothing is sent but the request answers as usual, so the limit
+  reveals nothing; a person who lost the link gets a new one a minute after the last.
 - **Client IP:** in production put the app behind a reverse proxy / CDN and set
   `TRUSTED_PROXY_HOPS` (1 for one proxy): the `x-forwarded-for` entry counted from the right is the
   client, and each machine gets its own 5 / 15 min limit, so one attacker never blocks other users.

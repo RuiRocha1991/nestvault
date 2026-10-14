@@ -780,7 +780,7 @@
       "post": {
         "operationId": "sendVerificationEmail",
         "summary": "Send (or resend) the email verification link",
-        "description": "Same neutral answer whether or not the address belongs to an unverified account. The link opens `/verificar/{token}` and is valid for 24 hours. Limited to 5 / 15 min per IP and per email, apart from the reset limit.",
+        "description": "Same neutral answer whether or not the address belongs to an unverified account. The link opens `/verificar/{token}` and is valid for 24 hours. Limited to 5 / 15 min per IP and per email, apart from the reset limit. The email itself is sent at most once a minute and ten times an hour per address (shared with sign-up and sign-in); over that the answer is the same but nothing is sent.",
         "tags": [
           "Auth"
         ],

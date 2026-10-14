@@ -41,6 +41,11 @@ export const RATE_LIMIT_BUCKETS = {
   ...authScope('signup', 'email'),
   // Changing the password or the email of a signed-in account (wrong current password counts).
   ...authScope('account', 'user'),
+  // Verification emails per address, whatever asked for them (sign-up, sign-in, resend button,
+  // sign-up of an unverified address). One per minute, ten per hour; over that nothing is sent but the
+  // request still gets its usual answer. Keyed by email.
+  'auth.verifymail.cooldown': { limit: 1, windowSeconds: MINUTE, onError: 'closed' },
+  'auth.verifymail.hour': { limit: 10, windowSeconds: HOUR, onError: 'closed' },
   api: { limit: 300, windowSeconds: MINUTE, onError: 'open' },
   imports: { limit: 20, windowSeconds: HOUR, onError: 'open' },
   invites: { limit: 20, windowSeconds: DAY, onError: 'open' },
