@@ -29,6 +29,13 @@
       "when": 1791997425042,
       "tag": "0003_pools_and_members",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792007189356,
+      "tag": "0004_audit_log",
+      "breakpoints": true
     }
   ]
 }

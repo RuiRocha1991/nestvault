@@ -1,7 +1,9 @@
 import { isUuid, sessionsRepo, type IdentityDatabase } from '@nestvault/db';
 
+import { recordAccountAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { NotFoundError, UnauthorizedError } from '../errors';
+import { clientIpResolver } from '../rate-limit/client-ip';
 
 import { maskIp } from './mask-ip';
 import {
@@ -29,8 +31,11 @@ export interface AccountService {
 export function createAccountService(deps: {
   auth: Auth;
   identity: IdentityDatabase;
+  /** Hops of the proxies we run; 0 (the default) records no address. */
+  trustedProxyHops?: number;
 }): AccountService {
   const { auth, identity } = deps;
+  const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
 
   async function current(headers: Headers) {
     const result = await auth.api.getSession({ headers });
@@ -80,11 +85,24 @@ export function createAccountService(deps: {
       if (!(await sessionsRepo.deleteOwned(identity.db, user.id, sessionId))) {
         throw new NotFoundError();
       }
+      await recordAccountAudit(identity, 'session.revoked', {
+        userId: user.id,
+        target: sessionId,
+        meta: { count: 1 },
+        ip: ipOf(headers),
+      });
     },
 
     async revokeOtherSessions(headers) {
       const { user, session } = await current(headers);
       const revoked = await sessionsRepo.deleteOthers(identity.db, user.id, session.id);
+      if (revoked > 0) {
+        await recordAccountAudit(identity, 'session.revoked', {
+          userId: user.id,
+          meta: { count: revoked },
+          ip: ipOf(headers),
+        });
+      }
       return RevokedSessionsDto.parse({ revoked });
     },
   };

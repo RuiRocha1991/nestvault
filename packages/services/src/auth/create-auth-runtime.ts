@@ -43,5 +43,15 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     ...(config.trustedProxyHops !== undefined ? { trustedProxyHops: config.trustedProxyHops } : {}),
     ...(config.log ? { log: config.log } : {}),
   });
-  return { auth, limiter, account: createAccountService({ auth, identity }) };
+  return {
+    auth,
+    limiter,
+    account: createAccountService({
+      auth,
+      identity,
+      ...(config.trustedProxyHops !== undefined
+        ? { trustedProxyHops: config.trustedProxyHops }
+        : {}),
+    }),
+  };
 }

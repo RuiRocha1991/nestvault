@@ -15,6 +15,13 @@ export type { PoolRunner } from './app/with-pool';
 
 export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase } from './identity/client';
+export { auditLogRepo } from './identity/repositories/audit-log.repo';
+export type {
+  AuditFilter,
+  AuditMeta,
+  AuditRow,
+  NewAuditEntry,
+} from './identity/repositories/audit-log.repo';
 export { poolMembersRepo, poolsRepo } from './identity/repositories/pool-members.repo';
 export { rateLimitsRepo } from './identity/repositories/rate-limits.repo';
 export type { WindowKey } from './identity/repositories/rate-limits.repo';

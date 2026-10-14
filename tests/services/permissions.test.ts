@@ -34,6 +34,8 @@ const PRD_MATRIX: Record<Permission, readonly [boolean, boolean, boolean, boolea
   'pool.export': [true, false, false, false],
   // Not in the PRD table: pool settings are a management action, so owner and admin.
   'settings.write': [true, true, false, false],
+  // Not in the PRD table: the audit log shows who did what, so only the owner reads it (NES-29).
+  'audit.read': [true, false, false, false],
 };
 
 const ROLE_ORDER: readonly Role[] = ['owner', 'admin', 'member', 'viewer'];

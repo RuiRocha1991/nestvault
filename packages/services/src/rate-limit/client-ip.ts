@@ -27,3 +27,9 @@ export function getClientIp(headers: Headers, trustedProxyHops: number): string 
   const candidate = entries[entries.length - trustedProxyHops];
   return candidate && isIp(candidate) ? candidate : UNTRUSTED_CLIENT_KEY;
 }
+
+/** `getClientIp` with the proxy hops fixed once; a missing `Headers` counts as no header at all. */
+export const clientIpResolver =
+  (trustedProxyHops: number) =>
+  (headers?: Headers): string =>
+    getClientIp(headers ?? new Headers(), trustedProxyHops);

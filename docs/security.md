@@ -164,6 +164,20 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   matrix with the PRD table; `pool-access.integration.test.ts` covers identical 404s (also for
   injection payloads and timing) and the active pool; the ESLint rule `noRoleComparison` rejects
   `role ===` / `switch (x.role)` outside the context factory (`tests/lint/rules.test.ts`).
+- **Audit log:** security-relevant actions are written to the insert-only `audit_log` table in the
+  identity database (`packages/services/src/audit`: `recordAudit` for pool actions, with pool and
+  actor taken from the `PoolContext`; `recordAccountAudit` for sign-in, failed sign-in, password
+  change and session revocation, wired into the Better Auth hooks and the account service). The
+  migration revokes UPDATE, DELETE and TRUNCATE from `identity_rw`; the table has no foreign keys,
+  so no cascade can erase history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`) with
+  short codes, numbers or booleans, so amounts, IBANs, notes, emails and tokens cannot get in; the
+  target must be an id, the placeholder for an unknown address is not stored. A failed account
+  entry is logged and never blocks the user; a pool entry throws, so the action does not look done.
+  Failed sign-ins carry no user (looking the address up would leak by timing). Only the owner
+  (`audit.read`) can list a pool's entries (`listAuditLog`, addresses masked). Verified by
+  `tests/services/audit.integration.test.ts` (UPDATE/DELETE/TRUNCATE refused, one entry per
+  action, forbidden meta dropped, injection payloads, 403 for non-owners, pool isolation) and
+  `tests/services/audit-meta.test.ts`.
 
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
