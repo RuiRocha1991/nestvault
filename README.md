@@ -105,6 +105,10 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   (new password) and `/verificar/<token>` (confirm the email). In development every email lands in
   Mailpit (http://localhost:8025); open the link from there. `/verificar` shows "confirm your email"
   to a signed-in user whose address is not verified.
+- **Sign-up:** `/registar` (open only with `ALLOW_SIGNUP=true`; closed by default it explains that
+  people join by invite). Registering sends a confirmation link (Mailpit in development) and starts
+  no session: you can only sign in after opening it. Registering an email that already has an
+  account looks the same and warns the owner by email.
 - **My account:** `/conta` (link "A minha conta" in the sidebar footer): change the name, change the
   email (the link goes to the new address and the email only changes once it is used), change the
   password (the other sessions end and a notice is emailed) and see or end the active sessions. The

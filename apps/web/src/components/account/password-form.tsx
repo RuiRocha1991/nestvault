@@ -13,7 +13,7 @@ import { postJson } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
 import { useCountdown } from '@webapp/lib/use-countdown';
 
-type Status = 'idle' | 'saved' | 'wrongCurrent' | 'breached' | 'error';
+type Status = 'idle' | 'saved' | 'wrongCurrent' | 'breached' | 'tooCommon' | 'error';
 
 /** The other sessions end with the change, so the form says so before it is used. */
 export function PasswordForm() {
@@ -55,9 +55,11 @@ export function PasswordForm() {
         setStatus(
           body?.code === 'PASSWORD_BREACHED'
             ? 'breached'
-            : body?.code === 'INVALID_PASSWORD'
-              ? 'wrongCurrent'
-              : 'error',
+            : body?.code === 'PASSWORD_TOO_COMMON'
+              ? 'tooCommon'
+              : body?.code === 'INVALID_PASSWORD'
+                ? 'wrongCurrent'
+                : 'error',
         );
       } else {
         setStatus('error');
@@ -122,14 +124,14 @@ export function PasswordForm() {
               value={next}
               showLabel={t('showPassword')}
               hideLabel={t('hidePassword')}
-              invalid={status === 'breached'}
+              invalid={status === 'breached' || status === 'tooCommon'}
               onChange={(event) => {
                 setNext(event.target.value);
               }}
             />
-            {status === 'breached' && (
+            {(status === 'breached' || status === 'tooCommon') && (
               <p role="alert" className="text-sm text-neg">
-                {t('breached')}
+                {t(status)}
               </p>
             )}
           </div>

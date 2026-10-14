@@ -1,11 +1,22 @@
-import { newId, type IdentityDatabase } from '@nestvault/db';
+import { newId, usersRepo, type IdentityDatabase } from '@nestvault/db';
 import { account, session, user, verification } from '@nestvault/db/identity-schema';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { APIError, createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
+import {
+  APIError,
+  createAuthMiddleware,
+  createEmailVerificationToken,
+  getSessionFromCtx,
+  isAPIError,
+} from 'better-auth/api';
 
 import type { EmailSender } from '../email';
-import { passwordChangedTemplate, resetPasswordTemplate, verifyEmailTemplate } from '../email';
+import {
+  existingAccountTemplate,
+  passwordChangedTemplate,
+  resetPasswordTemplate,
+  verifyEmailTemplate,
+} from '../email';
 import { RateLimitError } from '../errors';
 import type { Logger } from '../logger';
 import {
@@ -18,6 +29,7 @@ import {
 
 import { isPasswordBreached } from './breached-passwords';
 import { withHashedSessionTokens } from './hashed-session-adapter';
+import { isCommonPassword, isPasswordBasedOnEmail } from './password-policy';
 import {
   hashPassword,
   PASSWORD_MAX_LENGTH,
@@ -55,6 +67,7 @@ export interface AuthConfig {
 
 /** Paths whose body carries a new password to screen, and the field that holds it. */
 const SIGN_IN_PATH = '/sign-in/email';
+const SIGN_UP_PATH = '/sign-up/email';
 /** Password reset: request the email and use the token. Every call counts. */
 const RESET_PATHS: ReadonlySet<string> = new Set(['/request-password-reset', '/reset-password']);
 /** Resending the verification email has its own limit, so it never uses up a password reset. */
@@ -63,17 +76,15 @@ const VERIFY_PATH = '/send-verification-email';
 /** Account changes of a signed-in user: the current password is guessable here, so every call counts. */
 const ACCOUNT_PATHS: ReadonlySet<string> = new Set(['/change-password', '/change-email']);
 
-type LimitScope = 'signin' | 'reset' | 'verify' | 'account';
-const scopeOf = (path: string): LimitScope | null =>
-  path === SIGN_IN_PATH
-    ? 'signin'
-    : path === VERIFY_PATH
-      ? 'verify'
-      : RESET_PATHS.has(path)
-        ? 'reset'
-        : ACCOUNT_PATHS.has(path)
-          ? 'account'
-          : null;
+type LimitScope = 'signin' | 'signup' | 'reset' | 'verify' | 'account';
+const SCOPE_BY_PATH = new Map<string, LimitScope>([
+  [SIGN_IN_PATH, 'signin'],
+  [SIGN_UP_PATH, 'signup'],
+  [VERIFY_PATH, 'verify'],
+  ...[...RESET_PATHS].map((path): [string, LimitScope] => [path, 'reset']),
+  ...[...ACCOUNT_PATHS].map((path): [string, LimitScope] => [path, 'account']),
+]);
+const scopeOf = (path: string): LimitScope | null => SCOPE_BY_PATH.get(path) ?? null;
 
 export const RESET_TOKEN_EXPIRES_IN_SECONDS = 60 * 60;
 export const VERIFY_EMAIL_EXPIRES_IN_SECONDS = 24 * 60 * 60;
@@ -159,7 +170,35 @@ export function createAuth(config: AuthConfig) {
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
       password: { hash: hashPassword, verify: verifyPassword },
+      // No session exists for an address nobody has confirmed, so the app cannot be used before
+      // verifying. A sign-up for an address that already has an account answers like a new one.
+      requireEmailVerification: true,
       revokeSessionsOnPasswordReset: true,
+      onExistingUserSignUp: async ({ user: target }) => {
+        // Still unverified: the person probably lost the first link, so send a new one instead of
+        // "you already have an account" (which they cannot use yet).
+        if (!target.emailVerified) {
+          const token = await createEmailVerificationToken(
+            config.secret,
+            target.email,
+            undefined,
+            VERIFY_EMAIL_EXPIRES_IN_SECONDS,
+          );
+          sendInBackground({
+            to: target.email,
+            ...verifyEmailTemplate({ name: target.name, url: link(VERIFY_PAGE_PATH, token) }),
+          });
+          return;
+        }
+        sendInBackground({
+          to: target.email,
+          ...existingAccountTemplate({
+            name: target.name,
+            loginUrl: `${config.appUrl}/login`,
+            resetUrl: `${config.appUrl}${RESET_PAGE_PATH}`,
+          }),
+        });
+      },
       resetPasswordTokenExpiresIn: RESET_TOKEN_EXPIRES_IN_SECONDS,
       sendResetPassword: ({ user: target, token }) => {
         sendInBackground({
@@ -168,13 +207,17 @@ export function createAuth(config: AuthConfig) {
         });
         return Promise.resolve();
       },
-      onPasswordReset: ({ user: target }) => {
+      onPasswordReset: async ({ user: target }) => {
         sendInBackground({ to: target.email, ...passwordChangedTemplate({ name: target.name }) });
-        return Promise.resolve();
+        // The link came by email, so the person has read this mailbox. The password is already
+        // changed: a failure here must not turn the reset into an error.
+        await usersRepo.markEmailVerified(config.identity.db, target.id).catch(() => undefined);
       },
     },
     emailVerification: {
       expiresIn: VERIFY_EMAIL_EXPIRES_IN_SECONDS,
+      sendOnSignUp: true,
+      sendOnSignIn: true,
       sendVerificationEmail: ({ user: target, token }) => {
         sendInBackground({
           to: target.email,
@@ -229,15 +272,37 @@ export function createAuth(config: AuthConfig) {
             inviteToken: ctx.headers?.get(INVITE_TOKEN_HEADER),
             invites,
           });
-          if (!allowed) throw new APIError('FORBIDDEN', { message: 'Sign-up is closed.' });
+          if (!allowed) {
+            throw new APIError('FORBIDDEN', {
+              code: 'signup_closed',
+              message: 'Sign-up is closed.',
+            });
+          }
         }
         const field = PASSWORD_FIELDS[ctx.path];
         const password = field ? (ctx.body as Record<string, unknown> | undefined)?.[field] : null;
-        if (typeof password === 'string' && (await checkBreached(password))) {
-          throw new APIError('BAD_REQUEST', {
-            code: 'PASSWORD_BREACHED',
-            message: 'This password appeared in a data breach. Choose another one.',
-          });
+        if (typeof password === 'string') {
+          if (isCommonPassword(password)) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'PASSWORD_TOO_COMMON',
+              message: 'This password is too common. Choose another one.',
+            });
+          }
+          if (
+            ctx.path === SIGN_UP_PATH &&
+            isPasswordBasedOnEmail(password, emailOf(ctx.body) ?? '')
+          ) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'PASSWORD_BASED_ON_EMAIL',
+              message: 'The password must not contain the email address.',
+            });
+          }
+          if (await checkBreached(password)) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'PASSWORD_BREACHED',
+              message: 'This password appeared in a data breach. Choose another one.',
+            });
+          }
         }
       }),
       after: createAuthMiddleware(async (ctx) => {

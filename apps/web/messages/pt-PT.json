@@ -78,7 +78,9 @@
       "lockedText": "Por segurança, o acesso a esta conta está pausado. Tenta novamente dentro de <time></time>.",
       "sessionNote": "A sessão mantém-se durante 30 dias de atividade neste dispositivo.",
       "footClosed": "Ainda não tens conta? O registo é por convite: pede ao proprietário do agregado ou abre a ligação que recebeste por email.",
-      "createAccount": "Criar conta"
+      "createAccount": "Criar conta",
+      "unverifiedTitle": "Confirma o teu email.",
+      "unverifiedText": "Ainda não confirmaste o endereço. Enviámos-te uma nova ligação de confirmação."
     },
     "sessionExpired": "A tua sessão expirou. Entra novamente.",
     "passwordChanged": "Palavra-passe alterada. Entra com a nova palavra-passe.",
@@ -124,6 +126,7 @@
       },
       "mismatch": "As palavras-passe não coincidem.",
       "breached": "Esta palavra-passe apareceu numa fuga de dados. Escolhe outra.",
+      "tooCommon": "Esta palavra-passe é demasiado comum. Escolhe outra.",
       "errorTitle": "Não foi possível guardar.",
       "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
       "lockedTitle": "Demasiadas tentativas.",
@@ -147,7 +150,53 @@
       "continue": "Continuar",
       "invalidTitle": "Esta ligação já não é válida",
       "invalidText": "A ligação de confirmação expirou ou não é válida. Pede uma nova a partir da tua conta.",
-      "cooldown": " · {time}"
+      "cooldown": " · {time}",
+      "changeSignup": "Usar outro email"
+    },
+    "signup": {
+      "title": "Criar conta",
+      "lead": "Cria a tua conta pessoal. Depois escolhes ou crias um agregado.",
+      "name": "Nome",
+      "namePlaceholder": "Ana Rocha",
+      "email": "Email",
+      "emailPlaceholder": "ana@exemplo.pt",
+      "password": "Palavra-passe",
+      "confirmPassword": "Confirmar palavra-passe",
+      "showPassword": "Mostrar palavra-passe",
+      "hidePassword": "Ocultar palavra-passe",
+      "submit": "Criar conta",
+      "note": "Vais receber um email para confirmar o endereço.",
+      "haveAccount": "Já tens conta?",
+      "signIn": "Entrar",
+      "strength": {
+        "label": "Força da palavra-passe",
+        "veryWeak": "Muito fraca",
+        "weak": "Fraca",
+        "fair": "Razoável",
+        "good": "Boa",
+        "strong": "Forte",
+        "hint": "usa uma frase longa para ficar ainda mais forte"
+      },
+      "rules": {
+        "length": "Pelo menos 12 caracteres",
+        "common": "Não é uma palavra-passe comum",
+        "email": "Diferente do teu email"
+      },
+      "mismatch": "As palavras-passe não coincidem.",
+      "invalidEmail": "Indica um email válido.",
+      "nameRequired": "Indica o teu nome.",
+      "breached": "Esta palavra-passe apareceu numa fuga de dados. Escolhe outra.",
+      "tooCommon": "Esta palavra-passe é demasiado comum. Escolhe outra.",
+      "basedOnEmail": "A palavra-passe não pode conter o teu email.",
+      "errorTitle": "Não foi possível criar a conta.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "lockedTitle": "Demasiadas tentativas.",
+      "lockedText": "Tenta novamente dentro de <time></time>.",
+      "closedTitle": "O registo está fechado",
+      "closedLead": "Esta instalação só aceita novas pessoas por convite.",
+      "closedNote": "Pede ao proprietário do agregado para te convidar. Vais receber um email com uma ligação de uso único, válida durante 7 dias.",
+      "closedBack": "Voltar a entrar",
+      "closedFoot": "Já tens um convite? Abre a ligação que recebeste por email."
     }
   },
   "account": {
@@ -181,6 +230,7 @@
       "saved": "Palavra-passe alterada.",
       "wrongCurrent": "A palavra-passe atual está incorreta.",
       "breached": "Esta palavra-passe apareceu numa fuga de dados. Escolhe outra.",
+      "tooCommon": "Esta palavra-passe é demasiado comum. Escolhe outra.",
       "mismatch": "As palavras-passe não coincidem.",
       "errorText": "Não foi possível alterar. Tenta novamente dentro de instantes.",
       "lockedText": "Demasiadas tentativas. Tenta novamente dentro de <time></time>."

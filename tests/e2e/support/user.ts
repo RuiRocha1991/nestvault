@@ -11,3 +11,6 @@ export const E2E_USER = {
 export const STORAGE_STATE = resolve(import.meta.dirname, '../.auth/owner.json');
 
 export const E2E_ORIGIN = 'http://127.0.0.1:4010';
+
+/** A second server on the same build with `ALLOW_SIGNUP=true`, for the sign-up tests. */
+export const E2E_OPEN_SIGNUP_ORIGIN = 'http://127.0.0.1:4011';

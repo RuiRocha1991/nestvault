@@ -46,7 +46,9 @@ NES-25; until then pass the permission names explicitly.
 
 - `playwright.config.ts` builds the web app and starts it with `next start` on port **4010**
   (4000 stays free for `pnpm dev`). Chromium comes from `pnpm exec playwright install chromium`,
-  or from `/opt/pw-browsers` when that folder exists.
+  or from `/opt/pw-browsers` when that folder exists. A second server on port **4011** (same build,
+  same `_test` databases) runs with `ALLOW_SIGNUP=true` for the sign-up tests; the first keeps
+  sign-up closed. Each has its own `APP_URL`, because the Origin check compares against it.
 - `smoke.spec.ts`: the shell loads, navigation works, the theme survives a reload.
   `csp.spec.ts`: no Content-Security-Policy violation on the shell pages.
 - Failures keep a trace and an HTML report (CI uploads them as the `playwright-report` artifact).

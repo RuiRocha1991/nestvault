@@ -1,0 +1,244 @@
+'use client';
+
+import { Button, cn, Input } from '@nestvault/ui';
+import { Mail, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useId, useState, type SyntheticEvent } from 'react';
+
+import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
+import { PasswordGuide } from '@webapp/components/auth/password-guide';
+import { PasswordInput } from '@webapp/components/auth/password-input';
+import { VerifyPending } from '@webapp/components/auth/verify-pending';
+import { checkPassword } from '@webapp/lib/password-strength';
+import { postJson } from '@webapp/lib/post-json';
+import { parseRetryAfter } from '@webapp/lib/sign-in';
+import { signUpSchema } from '@webapp/lib/sign-up';
+import { useCountdown } from '@webapp/lib/use-countdown';
+
+const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
+
+type Problem = 'breached' | 'tooCommon' | 'basedOnEmail' | 'error' | null;
+
+const PROBLEM_BY_CODE: Record<string, Problem> = {
+  PASSWORD_BREACHED: 'breached',
+  PASSWORD_TOO_COMMON: 'tooCommon',
+  PASSWORD_BASED_ON_EMAIL: 'basedOnEmail',
+};
+
+/**
+ * Screen 50. The server answers the same for a new address and one that already has an account, so
+ * the next screen ("confirm your email") is shown either way; the rules shown here are guidance and
+ * the server enforces them again.
+ */
+export function SignupForm() {
+  const t = useTranslations('auth.signup');
+  const router = useRouter();
+  const ids = { name: useId(), email: useId(), password: useId(), confirm: useId() };
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [pending, setPending] = useState(false);
+  const [problem, setProblem] = useState<Problem>(null);
+  const [fieldError, setFieldError] = useState<'name' | 'email' | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [locked, startLock] = useCountdown();
+
+  const check = checkPassword(password, email);
+  const mismatch = confirm.length > 0 && confirm !== password;
+  const ready =
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    check.longEnough &&
+    check.notCommon &&
+    check.notEmail &&
+    confirm === password;
+
+  async function onSubmit(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending || locked > 0) return;
+    const parsed = signUpSchema.safeParse({ name: name.trim(), email: email.trim(), password });
+    if (!parsed.success) {
+      const first = parsed.error.issues[0]?.path[0];
+      if (first === 'name' || first === 'email') {
+        setFieldError(first);
+        return;
+      }
+      setProblem('error');
+      return;
+    }
+    if (!ready) return;
+    setFieldError(null);
+    setPending(true);
+    setProblem(null);
+    try {
+      const response = await postJson('/api/v1/auth/sign-up/email', parsed.data);
+      if (response.ok) {
+        setSentTo(parsed.data.email);
+        return;
+      }
+      const body = (await response.json().catch(() => null)) as { code?: unknown } | null;
+      if (response.status === 429) {
+        startLock(parseRetryAfter(response.headers.get('Retry-After')));
+      } else if (response.status === 403 && body?.code === 'signup_closed') {
+        router.refresh(); // the page now shows the closed screen
+      } else if (response.status === 400 && typeof body?.code === 'string') {
+        setProblem(PROBLEM_BY_CODE[body.code] ?? 'error');
+      } else {
+        setProblem('error');
+      }
+    } catch {
+      setProblem('error');
+    }
+    setPending(false);
+  }
+
+  if (sentTo) return <VerifyPending email={sentTo} variant="signup" />;
+
+  const iconStyles = 'pointer-events-none absolute left-3 top-[11px] size-[18px] text-fg-3';
+  const fieldStyles = (invalid: boolean) =>
+    cn('h-10 pl-[38px]', invalid && 'border-neg shadow-[inset_0_0_0_1px_var(--neg)]');
+  const problemText: Record<Exclude<Problem, 'error' | null>, string> = {
+    breached: t('breached'),
+    tooCommon: t('tooCommon'),
+    basedOnEmail: t('basedOnEmail'),
+  };
+
+  return (
+    <>
+      <div className="flex flex-col gap-2.5">
+        <h1 className="text-2xl font-bold tracking-[-0.01em]">{t('title')}</h1>
+        <p className="text-md text-fg-2">{t('lead')}</p>
+      </div>
+
+      {problem === 'error' && <ProblemAlert title={t('errorTitle')} text={t('errorText')} />}
+      {locked > 0 && (
+        <LockedAlert
+          title={t('lockedTitle')}
+          text={t.rich('lockedText', { time: () => <Countdown seconds={locked} /> })}
+        />
+      )}
+
+      <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={ids.name} className="text-sm font-medium text-fg-2">
+            {t('name')}
+          </label>
+          <div className="relative flex">
+            <User aria-hidden className={iconStyles} />
+            <Input
+              id={ids.name}
+              name="name"
+              autoComplete="name"
+              maxLength={120}
+              required
+              placeholder={t('namePlaceholder')}
+              value={name}
+              aria-invalid={fieldError === 'name'}
+              onChange={(event) => {
+                setName(event.target.value);
+              }}
+              className={fieldStyles(fieldError === 'name')}
+            />
+          </div>
+          {fieldError === 'name' && <p className="text-sm text-neg">{t('nameRequired')}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={ids.email} className="text-sm font-medium text-fg-2">
+            {t('email')}
+          </label>
+          <div className="relative flex">
+            <Mail aria-hidden className={iconStyles} />
+            <Input
+              id={ids.email}
+              name="email"
+              type="email"
+              autoComplete="email"
+              maxLength={254}
+              required
+              placeholder={t('emailPlaceholder')}
+              value={email}
+              aria-invalid={fieldError === 'email'}
+              onChange={(event) => {
+                setEmail(event.target.value);
+              }}
+              className={fieldStyles(fieldError === 'email')}
+            />
+          </div>
+          {fieldError === 'email' && <p className="text-sm text-neg">{t('invalidEmail')}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={ids.password} className="text-sm font-medium text-fg-2">
+            {t('password')}
+          </label>
+          <PasswordInput
+            id={ids.password}
+            name="new-password"
+            autoComplete="new-password"
+            required
+            maxLength={128}
+            value={password}
+            showLabel={t('showPassword')}
+            hideLabel={t('hidePassword')}
+            invalid={problem !== null && problem !== 'error'}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setProblem(null);
+            }}
+          />
+          <PasswordGuide
+            score={check.score}
+            active={password.length > 0}
+            meterLabel={t('strength.label')}
+            levels={STRENGTH_KEYS.map((key) => t(`strength.${key}`))}
+            hint={t('strength.hint')}
+            rules={[
+              { ok: check.longEnough, label: t('rules.length') },
+              { ok: check.notCommon, label: t('rules.common') },
+              { ok: check.notEmail, label: t('rules.email') },
+            ]}
+          />
+          {problem !== null && problem !== 'error' && (
+            <p role="alert" className="text-sm text-neg">
+              {problemText[problem]}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={ids.confirm} className="text-sm font-medium text-fg-2">
+            {t('confirmPassword')}
+          </label>
+          <PasswordInput
+            id={ids.confirm}
+            name="confirm-password"
+            autoComplete="new-password"
+            required
+            maxLength={128}
+            value={confirm}
+            showLabel={t('showPassword')}
+            hideLabel={t('hidePassword')}
+            invalid={mismatch}
+            onChange={(event) => {
+              setConfirm(event.target.value);
+            }}
+          />
+          {mismatch && <p className="text-sm text-neg">{t('mismatch')}</p>}
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={pending || locked > 0 || !ready}
+          className="h-[42px] w-full text-base"
+        >
+          {t('submit')}
+        </Button>
+        <p className="text-center text-sm text-fg-3">{t('note')}</p>
+      </form>
+    </>
+  );
+}

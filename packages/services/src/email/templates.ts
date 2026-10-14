@@ -110,3 +110,21 @@ export function inviteTemplate(input: {
     footer: IGNORE_FOOTER,
   });
 }
+
+/** Sent to an address that already has an account when somebody tries to register with it. */
+export function existingAccountTemplate(input: {
+  name: string;
+  loginUrl: string;
+  resetUrl: string;
+}): EmailContent {
+  return render({
+    subject: 'Já tens uma conta',
+    heading: 'Já tens uma conta',
+    paragraphs: [
+      `Olá ${input.name}, alguém tentou criar uma conta com este email, mas já tens uma. Nada foi alterado.`,
+      `Se te esqueceste da palavra-passe, podes recuperá-la em ${input.resetUrl}.`,
+    ],
+    action: { label: 'Entrar', url: input.loginUrl },
+    footer: IGNORE_FOOTER,
+  });
+}

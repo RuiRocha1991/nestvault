@@ -13,6 +13,7 @@ export const signInSchema = z
 export type SignInResult =
   | { status: 'ok' }
   | { status: 'invalid' }
+  | { status: 'unverified' }
   | { status: 'rate_limited'; retryAfterSeconds: number }
   | { status: 'error' };
 
@@ -27,11 +28,17 @@ export function parseRetryAfter(value: string | null): number {
 }
 
 /** Maps the sign-in response to what the screen shows. Wrong email and wrong password look the same. */
-export function interpretSignInResponse(status: number, retryAfter: string | null): SignInResult {
+export function interpretSignInResponse(
+  status: number,
+  retryAfter: string | null,
+  code?: unknown,
+): SignInResult {
   if (status >= 200 && status < 300) return { status: 'ok' };
   if (status === 429) {
     return { status: 'rate_limited', retryAfterSeconds: parseRetryAfter(retryAfter) };
   }
+  // Right password, address not confirmed yet: a new link was sent.
+  if (status === 403 && code === 'EMAIL_NOT_VERIFIED') return { status: 'unverified' };
   if (status === 400 || status === 401 || status === 403) return { status: 'invalid' };
   return { status: 'error' };
 }

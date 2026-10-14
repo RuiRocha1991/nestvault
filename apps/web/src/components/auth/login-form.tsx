@@ -7,11 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 
-import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
+import { Alert, Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
 import { postJson } from '@webapp/lib/post-json';
 import { formatCountdown, interpretSignInResponse, signInSchema } from '@webapp/lib/sign-in';
 
-type Problem = 'invalid' | 'error' | null;
+type Problem = 'invalid' | 'unverified' | 'error' | null;
 
 export interface LoginFormProps {
   /** Already validated with `safeNextPath` on the server; falls back to the pool chooser. */
@@ -53,7 +53,14 @@ export function LoginForm({ destination }: LoginFormProps) {
     setProblem(null);
     try {
       const response = await postJson('/api/v1/auth/sign-in/email', parsed.data);
-      const result = interpretSignInResponse(response.status, response.headers.get('Retry-After'));
+      const body = response.ok
+        ? null
+        : ((await response.json().catch(() => null)) as { code?: unknown } | null);
+      const result = interpretSignInResponse(
+        response.status,
+        response.headers.get('Retry-After'),
+        body?.code,
+      );
       if (result.status === 'ok') {
         router.replace(destination);
         router.refresh();
@@ -82,7 +89,16 @@ export function LoginForm({ destination }: LoginFormProps) {
         <p className="text-md text-fg-2">{t('lead')}</p>
       </div>
 
-      {problem && <ProblemAlert title={t(`${problem}Title`)} text={t(`${problem}Text`)} />}
+      {problem === 'unverified' && (
+        <Alert tone="warning" icon={<Mail aria-hidden />}>
+          <b>{t('unverifiedTitle')}</b>
+          <br />
+          <span className="text-fg-2">{t('unverifiedText')}</span>
+        </Alert>
+      )}
+      {(problem === 'invalid' || problem === 'error') && (
+        <ProblemAlert title={t(`${problem}Title`)} text={t(`${problem}Text`)} />
+      )}
       {locked && (
         <LockedAlert
           title={t('lockedTitle')}

@@ -26,3 +26,4 @@ export { createAuthRuntime } from './create-auth-runtime';
 export type { AuthRuntime, AuthRuntimeConfig } from './create-auth-runtime';
 export { getEmailStatus, isResetTokenValid, verifyEmailWithToken } from './email-tokens';
 export type { EmailStatus } from './email-tokens';
+export { isCommonPassword, isPasswordBasedOnEmail } from './password-policy';

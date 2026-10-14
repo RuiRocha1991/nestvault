@@ -117,6 +117,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   console, forged verification token), `tests/services/email.test.ts` (escaping, TLS, no recipient in
   the log), `tests/e2e/password-reset.spec.ts` (full flow through Mailpit in both themes).
 
+- **Sign-up (NES-105):** `/registar` (screen 50) is open only with `ALLOW_SIGNUP=true`; closed, it
+  shows screen 51 and the API answers 403 `signup_closed`. Better Auth runs with
+  `requireEmailVerification`: sign-up creates an unverified account and **no session**, sends the
+  verification link, and sign-in answers 403 `EMAIL_NOT_VERIFIED` (and sends a new link) until it is
+  used, so the app cannot be used before verifying. Registering an address that already has an
+  account answers exactly like a new one (same status and body shape, a dummy password hash keeps the
+  timing close) and the owner is told by email ("Já tens uma conta"): no account enumeration. Using
+  a password-reset link also confirms the address. The server enforces the password rules: 12 to 128
+  characters, not a common password (`PASSWORD_TOO_COMMON`), not based on the email
+  (`PASSWORD_BASED_ON_EMAIL`), not in a known breach; the form shows the same rules from the shared
+  `@nestvault/services/password-policy` module, as guidance only. Sign-up is rate limited like sign-in
+  (control 11).
+- **Verified by:** `tests/services/signup.integration.test.ts` (no session, verification email, 403
+  until verified, identical answer for an existing email and the warning mail, closed, password
+  rules, injection payload as data, 6th sign-up is 429, reset confirms the address),
+  `tests/web/password-strength.test.ts`, `tests/e2e/signup.spec.ts` (closed and open servers, both
+  themes).
 - **Account page (NES-24):** `/conta` and `/api/v1/me*` belong to the signed-in user and are outside
   every pool. Each service function starts with the session, and every session query filters by the
   caller's `userId` (`sessionsRepo`), so the id of another user's session matches nothing and answers
@@ -170,7 +187,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   breached and too short/long passwords rejected); `tests/services/auth-passwords.test.ts`.
 
 ## 11. Rate limiting
-- **What:** login, password reset, resending the verification email and changing the password or
+- **What:** login, sign-up, password reset, resending the verification email and changing the password or
   the email of an account: 5 attempts / 15 min per IP and per email (per user for account changes). API: 300
   requests / min per session. Imports: 20 / hour per pool. Storage in Postgres (no Redis).
   Exceeding returns 429 with `Retry-After`.
@@ -204,7 +221,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **Where:** `packages/services/src/auth/signup-policy.ts` (the invite check is a port, wired to the
   invites table in NES-25; `x-invite-token` header).
 - **Verified by:** `tests/services/auth.integration.test.ts` (403 when `ALLOW_SIGNUP=false` without
-  a valid invite for that email).
+  a valid invite for that email), `tests/services/signup.integration.test.ts` (403 `signup_closed`)
+  and `tests/e2e/signup.spec.ts` (both modes).
 
 ## 13. Parameterized queries
 - **What:** Drizzle query builder or the `sql` tagged template only. No string-built SQL; no user

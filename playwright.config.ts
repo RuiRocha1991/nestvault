@@ -3,12 +3,22 @@ import { existsSync } from 'node:fs';
 import { chromium, defineConfig } from '@playwright/test';
 
 import { loadLocalEnv } from './tests/db/load-env';
-import { E2E_ORIGIN } from './tests/e2e/support/user';
+import { E2E_ORIGIN, E2E_OPEN_SIGNUP_ORIGIN } from './tests/e2e/support/user';
 
 // The server reads the `_test` databases (never the development ones) and is told the origin the
 // browser uses, because the Origin check on writes compares against APP_URL.
 loadLocalEnv();
 const ORIGIN = E2E_ORIGIN;
+const OPEN_SIGNUP_ORIGIN = E2E_OPEN_SIGNUP_ORIGIN;
+
+const serverEnv = (origin: string, allowSignup: string) => ({
+  ...(process.env as Record<string, string>),
+  APP_URL: origin,
+  ALLOW_SIGNUP: allowSignup,
+  ENABLE_API_DOCS: 'false',
+  DATABASE_URL_IDENTITY: process.env.TEST_DATABASE_URL_IDENTITY ?? '',
+  DATABASE_URL_APP: process.env.TEST_DATABASE_URL_APP ?? '',
+});
 
 // A machine with browsers installed system-wide (for example /opt/pw-browsers) uses them, but only
 // when they hold the Chromium revision this Playwright expects; otherwise (or when the variable is
@@ -31,19 +41,24 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL: ORIGIN, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
-  webServer: {
-    command:
-      'pnpm --filter @nestvault/web build && pnpm --filter @nestvault/web exec next start -p 4010',
-    url: `${ORIGIN}/login`,
-    env: {
-      ...(process.env as Record<string, string>),
-      APP_URL: ORIGIN,
-      ALLOW_SIGNUP: 'false',
-      ENABLE_API_DOCS: 'false',
-      DATABASE_URL_IDENTITY: process.env.TEST_DATABASE_URL_IDENTITY ?? '',
-      DATABASE_URL_APP: process.env.TEST_DATABASE_URL_APP ?? '',
+  // Two servers on the same build and the same `_test` databases. The second has sign-up open
+  // (`ALLOW_SIGNUP=true`); each one's APP_URL is its own origin because the Origin check on writes
+  // compares against it. Playwright starts them one after the other, so the build exists by then.
+  webServer: [
+    {
+      command:
+        'pnpm --filter @nestvault/web build && pnpm --filter @nestvault/web exec next start -p 4010',
+      url: `${ORIGIN}/login`,
+      env: serverEnv(ORIGIN, 'false'),
+      reuseExistingServer: !process.env.CI,
+      timeout: 240_000,
     },
-    reuseExistingServer: !process.env.CI,
-    timeout: 240_000,
-  },
+    {
+      command: 'pnpm --filter @nestvault/web exec next start -p 4011',
+      url: `${OPEN_SIGNUP_ORIGIN}/login`,
+      env: serverEnv(OPEN_SIGNUP_ORIGIN, 'true'),
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 });

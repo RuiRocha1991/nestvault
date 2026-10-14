@@ -4,6 +4,7 @@ export { createSmtpSender } from './smtp-sender';
 export type { SmtpConfig } from './smtp-sender';
 export {
   escapeHtml,
+  existingAccountTemplate,
   inviteTemplate,
   passwordChangedTemplate,
   resetPasswordTemplate,
