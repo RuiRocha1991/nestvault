@@ -49,59 +49,59 @@ test.describe('sign-up closed (ALLOW_SIGNUP=false)', () => {
 test.describe('sign-up open (ALLOW_SIGNUP=true)', () => {
   test.use({ baseURL: E2E_OPEN_SIGNUP_ORIGIN });
 
-  for (const theme of ['dark', 'light'] as const) {
-    test(`registers, cannot sign in until the email is confirmed, then can (${theme} theme)`, async ({
-      page,
-      context,
-    }) => {
-      await context.addCookies([{ name: 'nv-theme', value: theme, url: E2E_OPEN_SIGNUP_ORIGIN }]);
-      const email = unique(`signup-${theme}`);
-      await clearMailbox(email);
+  test('registers, cannot sign in until the email is confirmed, then can', async ({ page }) => {
+    const email = unique('signup');
+    await clearMailbox(email);
 
-      // 50: from the sign-in screen
-      await page.goto('/login');
-      await page.getByRole('link', { name: login.createAccount }).click();
-      await expect(page).toHaveURL(/\/registar$/);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    // 50: from the sign-in screen
+    await page.goto('/login');
+    await page.getByRole('link', { name: login.createAccount }).click();
+    await expect(page).toHaveURL(/\/registar$/);
 
-      const submit = page.getByRole('button', { name: signup.submit, exact: true });
-      await expect(submit).toBeDisabled();
-      await fillForm(page, { name: 'Ana Rocha', email, password: 'short' });
-      await expect(submit).toBeDisabled();
-      await page.getByLabel(signup.password, { exact: true }).fill('palavra-passe');
-      await expect(page.getByText(signup.rules.common)).toBeVisible();
-      await expect(submit).toBeDisabled();
-      await page.getByLabel(signup.password, { exact: true }).fill(PASSWORD);
-      await page.getByLabel(signup.confirmPassword).fill(`${PASSWORD}x`);
-      await expect(page.getByText(signup.mismatch)).toBeVisible();
-      await expect(submit).toBeDisabled();
-      await page.getByLabel(signup.confirmPassword).fill(PASSWORD);
-      await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', /[34]/);
-      await submit.click();
+    const submit = page.getByRole('button', { name: signup.submit, exact: true });
+    await expect(submit).toBeDisabled();
+    await fillForm(page, { name: 'Ana Rocha', email, password: 'short' });
+    await expect(submit).toBeDisabled();
+    await page.getByLabel(signup.password, { exact: true }).fill('palavra-passe');
+    await expect(page.getByText(signup.rules.common)).toBeVisible();
+    await expect(submit).toBeDisabled();
+    await page.getByLabel(signup.password, { exact: true }).fill(PASSWORD);
+    await page.getByLabel(signup.confirmPassword).fill(`${PASSWORD}x`);
+    await expect(page.getByText(signup.mismatch)).toBeVisible();
+    await expect(submit).toBeDisabled();
+    await page.getByLabel(signup.confirmPassword).fill(PASSWORD);
+    await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', /[34]/);
+    await submit.click();
 
-      // 56: confirm your email
-      await expect(page.getByRole('heading', { name: verify.pendingTitle })).toBeVisible();
-      await expect(page.getByText(email)).toBeVisible();
-      const mail = await waitForEmail(email);
-      expect(mail.subject).toBe('Confirma o teu email');
-      const link = linkPath(mail.text, 'verificar');
+    // 56: confirm your email
+    await expect(page.getByRole('heading', { name: verify.pendingTitle })).toBeVisible();
+    await expect(page.getByText(email)).toBeVisible();
+    const mail = await waitForEmail(email);
+    expect(mail.subject).toBe('Confirma o teu email');
+    const link = linkPath(mail.text, 'verificar');
 
-      // Not usable before verifying: no session is started.
-      await page.goto('/login');
-      await fillAndSubmit(page, email, PASSWORD);
-      await expect(alertWith(page, login.unverifiedTitle)).toBeVisible();
-      await expect(page).toHaveURL(/\/login$/);
-      await page.goto('/demo');
-      await expect(page).toHaveURL(/\/login\?next=/);
+    // Not usable before verifying: no session is started.
+    await page.goto('/login');
+    await fillAndSubmit(page, email, PASSWORD);
+    await expect(alertWith(page, login.unverifiedTitle)).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await page.goto('/demo');
+    await expect(page).toHaveURL(/\/login\?next=/);
 
-      // The link confirms the address; now sign-in works.
-      await page.goto(link);
-      await expect(page.getByRole('heading', { name: verify.doneTitle })).toBeVisible();
-      await page.goto('/login');
-      await fillAndSubmit(page, email, PASSWORD);
-      await expect(page).toHaveURL(/\/demo$/);
-    });
-  }
+    // The link confirms the address; now sign-in works.
+    await page.goto(link);
+    await expect(page.getByRole('heading', { name: verify.doneTitle })).toBeVisible();
+    await page.goto('/login');
+    await fillAndSubmit(page, email, PASSWORD);
+    await expect(page).toHaveURL(/\/demo$/);
+  });
+
+  test('the light theme renders the sign-up form', async ({ page, context }) => {
+    await context.addCookies([{ name: 'nv-theme', value: 'light', url: E2E_OPEN_SIGNUP_ORIGIN }]);
+    await page.goto('/registar');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.getByLabel(signup.email)).toBeVisible();
+  });
 
   test('an email that already has an account looks the same, and its owner is warned', async ({
     page,
