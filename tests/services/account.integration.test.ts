@@ -15,10 +15,8 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
-import { verifyAllUsers } from '../support/verify-users';
+import { APP_URL, cookieOf, PASSWORD, postAuth, registerUser } from '../support/auth-harness';
 
-const APP_URL = 'http://localhost:4000';
-const PASSWORD = 'a-long-unique-passphrase';
 const NEW_PASSWORD = 'another-long-unique-passphrase';
 const SAFARI_IPHONE =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -30,31 +28,19 @@ let auth: Auth;
 let account: AccountService;
 let mail: MemoryEmailSender;
 
-const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
-  auth.handler(
-    new Request(`${APP_URL}/api/v1/auth${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin: APP_URL, ...headers },
-      body: JSON.stringify(body),
-    }),
-  );
-
-const cookieOf = (response: Response) =>
-  (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 const withCookie = (cookie: string) => new Headers({ cookie });
 
 async function register(email: string) {
-  const res = await post('/sign-up/email', { name: 'Ana', email, password: PASSWORD });
-  expect(res.status).toBe(200);
-  // The address is confirmed (the emailed link would do it) so that the user can sign in.
-  await verifyAllUsers(identity);
+  await registerUser(auth, identity, email);
   return cookieOf(await signInRaw(email));
 }
 
-const signInRaw = (email: string) => post('/sign-in/email', { email, password: PASSWORD });
+const signInRaw = (email: string) =>
+  postAuth(auth, '/sign-in/email', { email, password: PASSWORD });
 
 async function signIn(email: string, userAgent: string, password = PASSWORD) {
-  const res = await post(
+  const res = await postAuth(
+    auth,
     '/sign-in/email',
     { email, password },
     { 'user-agent': userAgent, 'x-forwarded-for': '85.240.12.34' },
@@ -199,7 +185,8 @@ describe('change password', () => {
     const mac = await register('ana@example.com');
     const phone = await signIn('ana@example.com', SAFARI_IPHONE);
 
-    const res = await post(
+    const res = await postAuth(
+      auth,
       '/change-password',
       { currentPassword: PASSWORD, newPassword: NEW_PASSWORD, revokeOtherSessions: true },
       { cookie: mac },
@@ -219,7 +206,8 @@ describe('change password', () => {
   it('answers 400 for a wrong current password and limits the attempts', async () => {
     const cookie = await register('ana@example.com');
     const attempt = () =>
-      post(
+      postAuth(
+        auth,
         '/change-password',
         { currentPassword: 'not-the-right-passphrase', newPassword: NEW_PASSWORD },
         { cookie, 'x-forwarded-for': '85.240.12.34' },
@@ -234,7 +222,8 @@ describe('change password', () => {
     const ana = await register('ana@example.com');
     const rui = await register('rui@example.com');
     const wrong = (cookie: string, ip: string) =>
-      post(
+      postAuth(
+        auth,
         '/change-password',
         { currentPassword: 'not-the-right-passphrase', newPassword: NEW_PASSWORD },
         { cookie, 'x-forwarded-for': ip },
@@ -248,7 +237,12 @@ describe('change password', () => {
 describe('change email', () => {
   it('sends the link to the new address and changes the email only once it is used', async () => {
     const cookie = await register('ana@example.com');
-    const res = await post('/change-email', { newEmail: 'ana.new@example.com' }, { cookie });
+    const res = await postAuth(
+      auth,
+      '/change-email',
+      { newEmail: 'ana.new@example.com' },
+      { cookie },
+    );
     expect(res.status).toBe(200);
 
     await vi.waitFor(() => {
@@ -267,8 +261,18 @@ describe('change email', () => {
     const cookie = await register('ana@example.com');
     await register('rui@example.com');
     mail.clear();
-    const taken = await post('/change-email', { newEmail: 'rui@example.com' }, { cookie });
-    const free = await post('/change-email', { newEmail: 'free@example.com' }, { cookie });
+    const taken = await postAuth(
+      auth,
+      '/change-email',
+      { newEmail: 'rui@example.com' },
+      { cookie },
+    );
+    const free = await postAuth(
+      auth,
+      '/change-email',
+      { newEmail: 'free@example.com' },
+      { cookie },
+    );
     expect(taken.status).toBe(free.status);
     expect(await taken.json()).toEqual(await free.json());
     await new Promise((resolve) => setTimeout(resolve, 50));

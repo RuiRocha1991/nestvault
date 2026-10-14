@@ -42,6 +42,15 @@ In-memory objects, usable from unit tests with mocked repositories:
 Better Auth (NES-19), which owns the identity tables. The permission sets per role arrive with
 NES-25; until then pass the permission names explicitly.
 
+## Auth test helpers (`tests/support/auth-harness.ts`)
+
+Integration tests of Better Auth share one set of helpers instead of copying them: `postAuth(auth,
+path, body, headers?)` (JSON + same Origin), `cookieOf(response)`, `registerUser(auth, identity,
+email, { verified })` (sign-up that checks the answer and confirms the address, because sign-in needs
+a verified email), `verifyEmail(identity, email)` (one account, through `usersRepo`),
+`waitForMail(mail, count?)`, `tokenIn(text, page)` (token of the emailed link) and `rows(identity,
+query)`. `APP_URL`, `PASSWORD` and `SECRET` are exported too.
+
 ## Browser tests
 
 - `playwright.config.ts` builds the web app and starts it with `next start` on port **4010**
