@@ -127,7 +127,7 @@ const poolsPrimeiro = () => poolsShell(`
   <div class="card" style="flex-direction:row;align-items:center;gap:12px">${ico('down')}<span class="fg2" style="flex:1;font-size:13px">Já usavas o protótipo? Depois de criares o agregado podes importar a cópia JSON.</span></div></div>`);
 
 /* ---------- 64 members settings ---------- */
-const SET_TABS = ['Agregado e parâmetros', 'Plano e subscrição', 'Utilizadores e convites'];
+const SET_TABS = ['Agregado e parâmetros', 'Plano e subscrição', 'Utilizadores e convites', 'Auditoria'];
 const roleSel = (r, dis = false) => `<select class="sel" ${dis ? 'disabled' : ''}>${['Proprietário', 'Administrador', 'Membro', 'Leitor'].map((x) => `<option ${x === r ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
 const memberRow = (n, c, email, role, joined, last, { me = false, owner = false } = {}) => `<tr><td><div class="asset-cell">${avatar(n, c)}<div class="nm"><b>${n}${me ? ' ' + chip('Tu', 'accent') : ''}</b><span>${email}</span></div></div></td><td>${roleSel(role, owner)}</td><td>${joined}</td><td>${last}</td><td><div class="row-acts">${me ? `<button class="btn ghost sm">${ico('logout')}Sair</button>` : `<button class="btn ghost sm danger">${ico('trash')}Remover</button>`}</div></td></tr>`;
 const membros = () => page('definicoes', 'Definições', `${pagebar('Convida as pessoas do agregado e escolhe o que cada uma pode fazer.', btn('Convidar utilizador', { icon: 'plus', primary: true }))}${tabs(SET_TABS, 2)}<div class="grid">
@@ -190,4 +190,49 @@ const mChangeRole = () => modalShell({ title: 'Alterar função de Ana', body: `
   <div class="fields"><div class="f"><label class="pos">Mantém</label><div class="reqs"><div class="ok">${ico('check')}Ver todos os dados</div><div class="ok">${ico('check')}Criar e editar movimentos</div><div class="ok">${ico('check')}Importar extratos</div></div></div><div class="f"><label class="neg">Perde</label><div class="reqs"><div class="no" style="color:var(--neg)">${ico("x")}Gerir contas e portfolios</div><div class="no" style="color:var(--neg)">${ico("x")}Gerir categorias e objetivos</div><div class="no" style="color:var(--neg)">${ico("x")}Convidar e remover membros</div></div></div></div>
   ${alert('info', 'info', 'A sessão da Ana neste agregado termina e ela volta a entrar com as novas permissões. A alteração fica registada.')}`, footer: `${btn('Cancelar', { ghost: true })}${btn('Alterar função', { primary: true })}` });
 
-module.exports = { agregado, mDeletePool, mLeavePool, mLeaveBlocked, mRemoveMember, mChangeRole, login, registar, registarFechado, recuperar, recuperarEnviado, recuperarNova, recuperarInvalido, verificarPendente, verificarSucesso, convitePublico, conviteAceitar, conviteDiferente, conviteExpirado, pools, poolsPrimeiro, membros, conta, mInvite, mTransfer, mDelete };
+/* ---------- audit log (Definições → Auditoria, owner only) ---------- */
+const AUD = {
+  'auth.signin': ['Autenticação', '#3BA7F2', 'Início de sessão'], 'auth.signin_failed': ['Autenticação', '#F2A63D', 'Início de sessão falhado'], 'auth.password_changed': ['Autenticação', '#3BA7F2', 'Palavra-passe alterada'],
+  'session.revoked': ['Sessões', '#2BC6B4', 'Sessão terminada'], 'pool.created': ['Agregado', '#9D6BFF', 'Agregado criado'], 'pool.ownership_transferred': ['Agregado', '#9D6BFF', 'Propriedade transferida'],
+  'member.role_changed': ['Membros', '#F2913D', 'Função alterada'], 'member.removed': ['Membros', '#F2913D', 'Membro removido'], 'member.left': ['Membros', '#F2913D', 'Saiu do agregado'],
+  'invite.created': ['Convites', '#3CCB7F', 'Convite criado'], 'invite.cancelled': ['Convites', '#3CCB7F', 'Convite cancelado'], 'invite.accepted': ['Convites', '#3CCB7F', 'Convite aceite'],
+};
+const AUDIT_ROWS = [
+  ['14/10/2026', '09:41:07', 'Rui', '#F2913D', 'member.role_changed', 'Ana · Administrador → Membro', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['14/10/2026', '09:38:52', 'Rui', '#F2913D', 'invite.created', 'Convite 3f9a · Leitor', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['14/10/2026', '08:12:30', 'Liliana', '#3CCB7F', 'auth.signin', 'Safari em iPhone', 'Lisboa · 85.240.x.x', 'Safari em iPhone'],
+  ['13/10/2026', '22:04:19', 'Ana', '#9D6BFF', 'auth.signin_failed', 'Credenciais inválidas', 'Porto · 188.37.x.x', 'Firefox em Windows'],
+  ['13/10/2026', '22:04:51', 'Ana', '#9D6BFF', 'auth.signin', 'Firefox em Windows', 'Porto · 188.37.x.x', 'Firefox em Windows'],
+  ['13/10/2026', '18:20:03', 'Rui', '#F2913D', 'session.revoked', 'Sessão · Firefox em Windows', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['13/10/2026', '18:19:40', 'Rui', '#F2913D', 'auth.password_changed', 'A própria conta', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['12/10/2026', '19:55:11', 'Liliana', '#3CCB7F', 'invite.accepted', 'Convite 91c2 · Membro', 'Lisboa · 85.240.x.x', 'Safari em iPhone'],
+  ['12/10/2026', '19:30:02', 'Rui', '#F2913D', 'invite.created', 'Convite 91c2 · Membro', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['12/10/2026', '10:02:44', 'Rui', '#F2913D', 'member.removed', 'João · Leitor', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['11/10/2026', '23:15:30', 'Rui', '#F2913D', 'invite.cancelled', 'Convite 77be · Leitor', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+  ['11/10/2026', '22:48:09', 'Rui', '#F2913D', 'pool.created', 'Família Rocha', 'Lisboa · 85.240.x.x', 'Chrome em macOS'],
+];
+const audChip = (a) => { const [cat, col] = AUD[a]; return `<span class="chip" style="background:${col}24;color:${col}">${cat}</span>`; };
+const auditFilters = () => `<div class="toolbar"><select class="sel"><option>Todas as ações</option></select><select class="sel"><option>Todas as pessoas</option></select>
+  <div class="seg"><button aria-pressed="false">7 dias</button><button aria-pressed="true">30 dias</button><button aria-pressed="false">Tudo</button></div>
+  <label class="check" style="font-size:12px;gap:6px"><span class="muted">De</span><input class="input" style="height:28px;width:118px" value="14/09/2026"></label><label class="check" style="font-size:12px;gap:6px"><span class="muted">Até</span><input class="input" style="height:28px;width:118px" value="14/10/2026"></label>
+  <span class="grow"></span>${btn('Exportar CSV', { sm: true, icon: 'down' })}</div>`;
+const auditTable = (selected = -1, rows = AUDIT_ROWS, narrow = false) => `<div class="tbl-wrap"><table><thead><tr><th>Data e hora</th><th>Pessoa</th><th>Ação</th><th>Alvo</th>${narrow ? '' : '<th>Local (aprox.)</th>'}<th></th></tr></thead><tbody>${rows.map((r, i) => `<tr class="click ${i === selected ? 'cur' : ''}"><td class="num" style="white-space:nowrap">${r[0]} <span class="muted">${r[1]}</span></td><td><div class="asset-cell">${avatar(r[2], r[3])}<span>${r[2]}</span></div></td><td><div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">${audChip(r[4])}<span class="mono muted" style="font-size:11px">${r[4]}</span></div></td><td class="${r[4] === 'auth.signin_failed' ? 'warn' : ''}">${r[5]}</td>${narrow ? '' : `<td class="muted">${r[6]}</td>`}<td class="num">${ico('chevron')}</td></tr>`).join('')}</tbody></table></div>`;
+const auditFoot = (n, total) => `<div class="toolbar" style="justify-content:space-between"><span class="card-sub">${n ? `1–${n} de ${total}` : '0 resultados'}</span><div class="toolbar">${btn('Anterior', { sm: true }).replace('<button class="btn', '<button disabled class="btn')}${btn('Seguinte', { sm: true }).replace('<button class="btn', '<button disabled class="btn')}</div></div>`;
+const auditNote = `<div class="note" style="display:flex;gap:8px">${ico('shield')}<span>Registo <b>só de leitura</b>: as entradas não podem ser alteradas nem apagadas, nem por proprietários. Só o proprietário vê esta página. Nunca guardamos valores, IBANs, notas nem tokens, só quem fez o quê e quando.</span></div>`;
+
+const auditoria = ({ detail = false, empty = false } = {}) => {
+  const rows = empty ? [] : AUDIT_ROWS;
+  const body = empty
+    ? `<div class="empty"><span class="type-ico" style="background:var(--accent-soft);color:var(--accent-2);width:44px;height:44px">${ico('shield')}</span><b>Nenhuma entrada com estes filtros</b><span>Experimenta alargar o período ou escolher outra ação.</span>${btn('Limpar filtros', { icon: 'refresh' })}</div>`
+    : auditTable(detail ? 0 : -1, rows, detail);
+  const list = `<div class="card ${detail ? 'c8' : 'c12'}">${auditFilters()}${body}${auditFoot(rows.length, rows.length)}</div>`;
+  const r = AUDIT_ROWS[0];
+  const side = detail ? `<div class="card c4"><div class="card-h"><h3>Detalhe da entrada</h3><button class="btn ghost icon sm" aria-label="Fechar">${ico('x')}</button></div>
+    <div style="display:flex">${audChip(r[4])}</div><div><b style="font-size:var(--fs-lg)">${AUD[r[4]][2]}</b><div class="mono muted" style="font-size:12px">${r[4]}</div></div>
+    <dl class="kv"><dt>Quando</dt><dd>${r[0]} às ${r[1]}</dd><dt>Quem</dt><dd>${r[2]}</dd><dt>Alvo</dt><dd>${r[5]}</dd><dt>Local (aprox.)</dt><dd>${r[6]}</dd><dt>Dispositivo</dt><dd>${r[7]}</dd><dt>Identificador</dt><dd class="mono">0192f3a…c41e</dd></dl>
+    <span class="eyebrow">Dados da ação</span><div class="note mono" style="font-size:12px;line-height:1.7">função_anterior: admin<br>função_nova: member<br>sessões_terminadas: 1</div>
+    <span class="card-sub">Só mostramos chaves permitidas. Valores financeiros, notas e tokens nunca são guardados.</span></div>` : '';
+  return page('definicoes', 'Definições', `${pagebar('Registo de ações de segurança do agregado: quem entrou, quem mudou funções, convites e propriedade.')}${tabs(SET_TABS, 3)}<div class="grid">${list}${side}${detail ? '' : `<div class="c12">${auditNote}</div>`}</div>`, {});
+};
+
+module.exports = { auditoria, agregado, mDeletePool, mLeavePool, mLeaveBlocked, mRemoveMember, mChangeRole, login, registar, registarFechado, recuperar, recuperarEnviado, recuperarNova, recuperarInvalido, verificarPendente, verificarSucesso, convitePublico, conviteAceitar, conviteDiferente, conviteExpirado, pools, poolsPrimeiro, membros, conta, mInvite, mTransfer, mDelete };
