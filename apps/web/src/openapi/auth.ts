@@ -132,6 +132,8 @@ registry.registerPath({
   path: '/api/v1/auth/change-password',
   operationId: 'changePassword',
   summary: 'Change the password of the signed-in user',
+  description:
+    'A wrong current password answers 400. Limited to 5 / 15 min per user (wrong attempts count). Send `revokeOtherSessions: true` to end every other session; the response then sets a new cookie for this browser. A "password changed" notice is emailed.',
   tags: ['Auth'],
   request: { body: { required: true, ...json(ChangePasswordBody) } },
   responses: {

@@ -117,6 +117,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   console, forged verification token), `tests/services/email.test.ts` (escaping, TLS, no recipient in
   the log), `tests/e2e/password-reset.spec.ts` (full flow through Mailpit in both themes).
 
+- **Account page (NES-24):** `/conta` and `/api/v1/me*` belong to the signed-in user and are outside
+  every pool. Each service function starts with the session, and every session query filters by the
+  caller's `userId` (`sessionsRepo`), so the id of another user's session matches nothing and answers
+  404 (like an unknown or malformed id). The sessions list is built from an output schema with no
+  token, no token hash and a masked IP (`85.240.x.x`). Changing the password (`revokeOtherSessions`)
+  ends every other session and emails a notice; changing the email sends the link to the **new**
+  address and only changes it once the link is used (an address already in use answers the same).
+- **Verified by:** `tests/services/account.integration.test.ts` (sessions of the user only, 404 for
+  another user's id and an injection payload, ended cookie dies at once, no token or full IP in the
+  DTO, change-password limit and notice, change-email flow), `tests/web/me-route.test.ts` (401 on
+  every endpoint, `others=true` required, Origin check), `tests/e2e/account.spec.ts`.
+
 ## 7. Access control
 - **What:** `requirePoolAccess` (404 for non-members, so pool existence is not confirmed) then
   `can(ctx, 'resource.action')` (403). Roles are permission sets; feature code never checks role names.
@@ -158,14 +170,16 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   breached and too short/long passwords rejected); `tests/services/auth-passwords.test.ts`.
 
 ## 11. Rate limiting
-- **What:** login and password reset: 5 attempts / 15 min per IP and per email. API: 300
+- **What:** login, password reset, resending the verification email and changing the password or
+  the email of an account: 5 attempts / 15 min per IP and per email (per user for account changes). API: 300
   requests / min per session. Imports: 20 / hour per pool. Storage in Postgres (no Redis).
   Exceeding returns 429 with `Retry-After`.
 - **Where:** `packages/services/src/rate-limit/` (fixed-window limiter, one atomic
   `INSERT … ON CONFLICT DO UPDATE … RETURNING count` on `nestvault_identity.rate_limits`; keys are
   stored as HMACs, never an IP or an email); wired into Better Auth hooks in
   `packages/services/src/auth/create-auth.ts` (`sign-in` counts failed attempts only: the hit is
-  taken before and given back after a success; password reset counts every call); API routes call
+  taken before and given back after a success; password reset counts every call; `change-password` and `change-email` count every call, per
+  signed-in user and per IP); API routes call
   `limitApiRequests(session.id)` (`apps/web/src/server/api/rate-limit.ts`). Auth buckets fail closed
   when the database is down, the API/imports/invites buckets fail open and log. Expired windows are
   deleted lazily.

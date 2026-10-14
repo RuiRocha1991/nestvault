@@ -2,7 +2,7 @@ import { newId, type IdentityDatabase } from '@nestvault/db';
 import { account, session, user, verification } from '@nestvault/db/identity-schema';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx, isAPIError } from 'better-auth/api';
 
 import type { EmailSender } from '../email';
 import { passwordChangedTemplate, resetPasswordTemplate, verifyEmailTemplate } from '../email';
@@ -60,7 +60,10 @@ const RESET_PATHS: ReadonlySet<string> = new Set(['/request-password-reset', '/r
 /** Resending the verification email has its own limit, so it never uses up a password reset. */
 const VERIFY_PATH = '/send-verification-email';
 
-type LimitScope = 'signin' | 'reset' | 'verify';
+/** Account changes of a signed-in user: the current password is guessable here, so every call counts. */
+const ACCOUNT_PATHS: ReadonlySet<string> = new Set(['/change-password', '/change-email']);
+
+type LimitScope = 'signin' | 'reset' | 'verify' | 'account';
 const scopeOf = (path: string): LimitScope | null =>
   path === SIGN_IN_PATH
     ? 'signin'
@@ -68,7 +71,9 @@ const scopeOf = (path: string): LimitScope | null =>
       ? 'verify'
       : RESET_PATHS.has(path)
         ? 'reset'
-        : null;
+        : ACCOUNT_PATHS.has(path)
+          ? 'account'
+          : null;
 
 export const RESET_TOKEN_EXPIRES_IN_SECONDS = 60 * 60;
 export const VERIFY_EMAIL_EXPIRES_IN_SECONDS = 24 * 60 * 60;
@@ -90,6 +95,11 @@ function tooManyRequests(error: RateLimitError): APIError {
 /** The per-IP bucket, or the loose shared one while the address is unknown. */
 function ipBucket(scope: LimitScope, ip: string): RateLimitBucket {
   return ip === UNTRUSTED_CLIENT_KEY ? `auth.${scope}.untrusted` : `auth.${scope}.ip`;
+}
+
+/** The per-subject bucket: the account bucket is keyed by user id, the others by email. */
+function subjectBucket(scope: LimitScope): RateLimitBucket {
+  return scope === 'account' ? 'auth.account.user' : `auth.${scope}.email`;
 }
 
 function emailOf(body: unknown): string | null {
@@ -173,6 +183,9 @@ export function createAuth(config: AuthConfig) {
         return Promise.resolve();
       },
     },
+    // The new address gets a verification link (our template); the email only changes once it is
+    // used. An address that is already taken answers the same, so nothing is revealed.
+    user: { changeEmail: { enabled: true } },
     // Reset tokens are stored as a hash: a database leak does not give working links.
     verification: { storeIdentifier: 'hashed' },
     session: {
@@ -193,12 +206,16 @@ export function createAuth(config: AuthConfig) {
         const scope = scopeOf(ctx.path);
         if (scope) {
           const ip = clientIpOf(ctx.headers);
-          const email = emailOf(ctx.body);
+          // Account changes are limited per signed-in user; the others per email in the body.
+          const subject =
+            scope === 'account'
+              ? ((await getSessionFromCtx(ctx))?.user.id ?? null)
+              : emailOf(ctx.body);
           try {
             // The hit is counted now and handed back after a successful sign-in, so only failed
             // attempts stay counted and parallel requests cannot all pass a later check.
             await limiter.consume(ipBucket(scope, ip), ip);
-            if (email) await limiter.consume(`auth.${scope}.email`, email);
+            if (subject) await limiter.consume(subjectBucket(scope), subject);
           } catch (error) {
             if (error instanceof RateLimitError) throw tooManyRequests(error);
             throw error;
@@ -224,7 +241,19 @@ export function createAuth(config: AuthConfig) {
         }
       }),
       after: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== SIGN_IN_PATH || isAPIError(ctx.context.returned)) return;
+        if (isAPIError(ctx.context.returned)) return;
+        if (ctx.path === '/change-password') {
+          const target = (ctx.context.returned as { user?: { email?: string; name?: string } })
+            .user;
+          if (target?.email) {
+            sendInBackground({
+              to: target.email,
+              ...passwordChangedTemplate({ name: target.name ?? '' }),
+            });
+          }
+          return;
+        }
+        if (ctx.path !== SIGN_IN_PATH) return;
         const email = emailOf(ctx.body);
         const ip = clientIpOf(ctx.headers);
         await limiter.release(ipBucket('signin', ip), ip);

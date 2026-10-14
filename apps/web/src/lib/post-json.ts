@@ -7,3 +7,18 @@ export function postJson(path: string, body: unknown): Promise<Response> {
     body: JSON.stringify(body),
   });
 }
+
+/** Same as `postJson` for other methods (PATCH, DELETE); without a body for DELETE. */
+export function sendJson(
+  method: 'PATCH' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<Response> {
+  return fetch(path, {
+    method,
+    credentials: 'same-origin',
+    ...(body === undefined
+      ? {}
+      : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  });
+}

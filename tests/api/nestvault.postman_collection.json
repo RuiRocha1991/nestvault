@@ -1,500 +1,769 @@
 {
- "info": {
-  "name": "NestVault API",
-  "description": "Example requests for the NestVault REST API (/api/v1). Import tests/api/local.postman_environment.json too. The OpenAPI document (docs/api/openapi.json) is the complete reference; see tests/api/README.md.",
-  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
- },
- "variable": [
-  {
-   "key": "baseUrl",
-   "value": "http://localhost:4000"
+  "info": {
+    "name": "NestVault API",
+    "description": "Example requests for the NestVault REST API (/api/v1). Import tests/api/local.postman_environment.json too. The OpenAPI document (docs/api/openapi.json) is the complete reference; see tests/api/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  {
-   "key": "poolId",
-   "value": ""
-  },
-  {
-   "key": "userEmail",
-   "value": ""
-  },
-  {
-   "key": "userPassword",
-   "value": ""
-  },
-  {
-   "key": "newPassword",
-   "value": ""
-  },
-  {
-   "key": "resetToken",
-   "value": ""
-  },
-  {
-   "key": "verifyToken",
-   "value": ""
-  }
- ],
- "item": [
-  {
-   "name": "System",
-   "item": [
+  "variable": [
     {
-     "name": "Health",
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));",
-         "pm.test('body is { status: \"ok\" }', () => pm.expect(pm.response.json()).to.eql({ status: 'ok' }));",
-         "pm.test('has a request id', () => pm.expect(pm.response.headers.get('x-request-id')).to.be.a('string').and.not.empty);",
-         "pm.test('is not cached', () => pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store'));"
-        ]
-       }
-      }
-     ],
-     "request": {
-      "method": "GET",
-      "header": [],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/health",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "health"
-       ]
-      },
-      "description": "Liveness check. No authentication, no data."
-     },
-     "response": []
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "poolId",
+      "value": ""
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "userPassword",
+      "value": ""
+    },
+    {
+      "key": "newPassword",
+      "value": ""
+    },
+    {
+      "key": "resetToken",
+      "value": ""
+    },
+    {
+      "key": "verifyToken",
+      "value": ""
+    },
+    {
+      "key": "otherSessionId",
+      "value": ""
     }
-   ]
-  },
-  {
-   "name": "Auth",
-   "item": [
+  ],
+  "item": [
     {
-     "name": "Sign up",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/sign-up/email",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "sign-up",
-        "email"
-       ]
-      },
-      "description": "Closed unless ALLOW_SIGNUP=true or a valid x-invite-token header is sent.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('201/200 or 403 when closed', () => pm.expect([200,403]).to.include(pm.response.code));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Sign in",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "sign-in",
-        "email"
-       ]
-      },
-      "description": "Sets the nv.session_token cookie (HttpOnly, SameSite=Lax, 30 days). Postman keeps it in the cookie jar.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));",
-         "pm.test('session cookie is set', () => pm.expect(pm.cookies.has('nv.session_token')).to.be.true);"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Sign in - rate limited (6th failed attempt)",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "sign-in",
-        "email"
-       ]
-      },
-      "description": "Rate limit demo (control 11): send this request 6 times in a row with a wrong password. The first 5 answer 401, the 6th answers 429 with a Retry-After header (seconds) and keeps answering 429 until the 15 minute window ends. Use an email that is not the one you stay signed in with.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrong-password-123\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 401 (attempts 1-5) or 429 (attempt 6+)', () => pm.expect([401, 429]).to.include(pm.response.code));",
-         "if (pm.response.code === 429) { pm.test('Retry-After is a positive number of seconds', () => pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0)); }"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Get session",
-     "request": {
-      "method": "GET",
-      "header": [],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/get-session",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "get-session"
-       ]
-      },
-      "description": "The current session, or null."
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Change password",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/change-password",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "change-password"
-       ]
-      },
-      "description": "Requires a session. The new password must be 12-128 characters and not in a known breach.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\",\n  \"revokeOtherSessions\": true\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Sign out",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/sign-out",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "sign-out"
-       ]
-      },
-      "description": "Deletes the session and clears the cookie.",
-      "body": {
-       "mode": "raw",
-       "raw": "{}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Request password reset",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/request-password-reset",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "request-password-reset"
-       ]
-      },
-      "description": "Always 200 with the same body, whether or not the account exists. The email (in Mailpit, http://localhost:8025) links to /recuperar/<token>: single use, valid for 1 hour. Limited to 5 per 15 min per IP and per email (429 + Retry-After).",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));",
-         "pm.test('neutral body', () => pm.expect(pm.response.json().status).to.be.true);"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Reset password (token from the email)",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/reset-password",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "reset-password"
-       ]
-      },
-      "description": "Paste the token from the link of the email into the `resetToken` collection variable. Uses the token up (a second call answers 400), ends every session of the user and emails a notice.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"a-new-long-unique-passphrase\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200 (first use) or 400 (used or expired)', () => pm.expect([200, 400]).to.include(pm.response.code));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Send verification email",
-     "request": {
-      "method": "POST",
-      "header": [
-       {
-        "key": "Content-Type",
-        "value": "application/json"
-       }
-      ],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/send-verification-email",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "send-verification-email"
-       ]
-      },
-      "description": "Same neutral answer whether or not the address belongs to an unverified account. The link opens /verificar/<token> (valid 24 hours). Shares the reset rate limit.",
-      "body": {
-       "mode": "raw",
-       "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
-      }
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
-        "type": "text/javascript",
-        "exec": [
-         "pm.test('status is 200', () => pm.response.to.have.status(200));"
-        ]
-       }
-      }
-     ]
-    },
-    {
-     "name": "Verify email (token from the email)",
-     "request": {
-      "method": "GET",
-      "header": [],
-      "url": {
-       "raw": "{{baseUrl}}/api/v1/auth/verify-email?token={{verifyToken}}",
-       "host": [
-        "{{baseUrl}}"
-       ],
-       "path": [
-        "api",
-        "v1",
-        "auth",
-        "verify-email"
-       ],
-       "query": [
+      "name": "System",
+      "item": [
         {
-         "key": "token",
-         "value": "{{verifyToken}}"
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('body is { status: \"ok\" }', () => pm.expect(pm.response.json()).to.eql({ status: 'ok' }));",
+                  "pm.test('has a request id', () => pm.expect(pm.response.headers.get('x-request-id')).to.be.a('string').and.not.empty);",
+                  "pm.test('is not cached', () => pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Liveness check. No authentication, no data."
+          },
+          "response": []
         }
-       ]
-      },
-      "description": "Paste the token of the /verificar/<token> link into the `verifyToken` collection variable. 200 marks the email as verified; a bad or expired token answers 401."
-     },
-     "response": [],
-     "event": [
-      {
-       "listen": "test",
-       "script": {
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sign-up/email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sign-up",
+                "email"
+              ]
+            },
+            "description": "Closed unless ALLOW_SIGNUP=true or a valid x-invite-token header is sent.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201/200 or 403 when closed', () => pm.expect([200,403]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sign-in",
+                "email"
+              ]
+            },
+            "description": "Sets the nv.session_token cookie (HttpOnly, SameSite=Lax, 30 days). Postman keeps it in the cookie jar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('session cookie is set', () => pm.expect(pm.cookies.has('nv.session_token')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign in - rate limited (6th failed attempt)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sign-in/email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sign-in",
+                "email"
+              ]
+            },
+            "description": "Rate limit demo (control 11): send this request 6 times in a row with a wrong password. The first 5 answer 401, the 6th answers 429 with a Retry-After header (seconds) and keeps answering 429 until the 15 minute window ends. Use an email that is not the one you stay signed in with.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrong-password-123\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401 (attempts 1-5) or 429 (attempt 6+)', () => pm.expect([401, 429]).to.include(pm.response.code));",
+                  "if (pm.response.code === 429) { pm.test('Retry-After is a positive number of seconds', () => pm.expect(Number(pm.response.headers.get('Retry-After'))).to.be.above(0)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/get-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "get-session"
+              ]
+            },
+            "description": "The current session, or null."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Requires a session. The new password must be 12-128 characters and not in a known breach.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\",\n  \"revokeOtherSessions\": true\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sign-out",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sign-out"
+              ]
+            },
+            "description": "Deletes the session and clears the cookie.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Request password reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/request-password-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "request-password-reset"
+              ]
+            },
+            "description": "Always 200 with the same body, whether or not the account exists. The email (in Mailpit, http://localhost:8025) links to /recuperar/<token>: single use, valid for 1 hour. Limited to 5 per 15 min per IP and per email (429 + Retry-After).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('neutral body', () => pm.expect(pm.response.json().status).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset password (token from the email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Paste the token from the link of the email into the `resetToken` collection variable. Uses the token up (a second call answers 400), ends every session of the user and emails a notice.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"a-new-long-unique-passphrase\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 (first use) or 400 (used or expired)', () => pm.expect([200, 400]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send verification email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/send-verification-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "send-verification-email"
+              ]
+            },
+            "description": "Same neutral answer whether or not the address belongs to an unverified account. The link opens /verificar/<token> (valid 24 hours). Shares the reset rate limit.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify email (token from the email)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/verify-email?token={{verifyToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verifyToken}}"
+                }
+              ]
+            },
+            "description": "Paste the token of the /verificar/<token> link into the `verifyToken` collection variable. 200 marks the email as verified; a bad or expired token answers 401."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me"
+              ]
+            },
+            "description": "The signed-in user: id, name, email, emailVerified."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has no password or token', () => pm.expect(pm.response.text()).to.not.match(/token|password/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update my name",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me"
+              ]
+            },
+            "description": "Only `name` can change; any other field answers 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Silva\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List my sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "sessions"
+              ]
+            },
+            "description": "Active sessions, the current one marked. No token, hash or full IP."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('one session is current', () => pm.expect(pm.response.json().sessions.filter(s => s.current)).to.have.length(1));",
+                  "pm.collectionVariables.set('otherSessionId', (pm.response.json().sessions.find(s => !s.current) || {}).id || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End one of my sessions",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/sessions/{{otherSessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "sessions",
+                "{{otherSessionId}}"
+              ]
+            },
+            "description": "204 when it is yours; 404 for somebody else's, an unknown or a malformed id. The Origin header is added by the collection pre-request script."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 or 404 when it is already gone', () => pm.expect([204,404]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End all my other sessions",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/sessions?others=true?others=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "sessions"
+              ],
+              "query": [
+                {
+                  "key": "others",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Requires others=true (400 without it). The current session stays."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('reports how many ended', () => pm.expect(pm.response.json().revoked).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change my password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Wrong current password answers 400; limited to 5 / 15 min per user. With revokeOtherSessions every other session ends and a notice is emailed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{userPassword}}\",\n  \"newPassword\": \"{{newPassword}}\",\n  \"revokeOtherSessions\": true\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change my email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-email"
+              ]
+            },
+            "description": "The link goes to the new address; the email changes only once it is used. Same answer if the address is taken.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newEmail\": \"ana.new@example.com\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
         "type": "text/javascript",
         "exec": [
-         "pm.test('status is 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));"
+          "// Write requests (POST/PUT/PATCH/DELETE) are rejected with 403 unless Origin equals the app origin.",
+          "// Postman does not send one by default, so set it for every request in this collection.",
+          "pm.request.headers.upsert({ key: 'Origin', value: pm.variables.get('baseUrl') });"
         ]
-       }
       }
-     ]
     }
-   ]
-  }
- ],
- "event": [
-  {
-   "listen": "prerequest",
-   "script": {
-    "type": "text/javascript",
-    "exec": [
-     "// Write requests (POST/PUT/PATCH/DELETE) are rejected with 403 unless Origin equals the app origin.",
-     "// Postman does not send one by default, so set it for every request in this collection.",
-     "pm.request.headers.upsert({ key: 'Origin', value: pm.variables.get('baseUrl') });"
-    ]
-   }
-  }
- ]
+  ]
 }
