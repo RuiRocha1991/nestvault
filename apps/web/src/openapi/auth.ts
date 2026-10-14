@@ -134,7 +134,7 @@ registry.registerPath({
   operationId: 'changePassword',
   summary: 'Change the password of the signed-in user',
   description:
-    'A wrong current password answers 400. Limited to 5 / 15 min per user (wrong attempts count). Send `revokeOtherSessions: true` to end every other session; the response then sets a new cookie for this browser. A "password changed" notice is emailed.',
+    'A wrong current password answers 400. The new password follows the same rules as sign-up, all 400: `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_COMMON`, `PASSWORD_BASED_ON_EMAIL` (contains the email of the account) and `PASSWORD_BREACHED`. Limited to 5 / 15 min per user (wrong attempts count). Send `revokeOtherSessions: true` to end every other session; the response then sets a new cookie for this browser. A "password changed" notice is emailed.',
   tags: ['Auth'],
   request: { body: { required: true, ...json(ChangePasswordBody) } },
   responses: {
@@ -170,7 +170,7 @@ registry.registerPath({
   operationId: 'resetPassword',
   summary: 'Set a new password with the token of the emailed link',
   description:
-    'Uses the token up. On success every session of the user is revoked and a "password changed" notice is emailed. A used, expired or unknown token answers 400. A password found in a known breach answers 400 with code `PASSWORD_BREACHED`. Limited like the request.',
+    'Uses the token up. On success every session of the user is revoked and a "password changed" notice is emailed. A used, expired or unknown token answers 400. The new password follows the same rules as sign-up, all 400: `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_COMMON`, `PASSWORD_BASED_ON_EMAIL` (contains the email of the token owner) and `PASSWORD_BREACHED`; a rejected password does not use the token up. Limited like the request.',
   tags: ['Auth'],
   security: [],
   request: {

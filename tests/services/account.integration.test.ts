@@ -203,6 +203,25 @@ describe('change password', () => {
     expect(JSON.stringify(await res.json())).not.toContain(NEW_PASSWORD);
   });
 
+  it('rejects a new password that contains the account email, and a common one', async () => {
+    const cookie = await register('ana.silva@example.com');
+    const change = async (newPassword: string) => {
+      const res = await postAuth(
+        auth,
+        '/change-password',
+        { currentPassword: PASSWORD, newPassword },
+        { cookie },
+      );
+      return { status: res.status, code: ((await res.json()) as { code?: string }).code };
+    };
+    expect(await change('xx-ana.silva@example.com-xx')).toEqual({
+      status: 400,
+      code: 'PASSWORD_BASED_ON_EMAIL',
+    });
+    expect(await change('palavra-passe')).toEqual({ status: 400, code: 'PASSWORD_TOO_COMMON' });
+    expect((await change(NEW_PASSWORD)).status).toBe(200);
+  });
+
   it('answers 400 for a wrong current password and limits the attempts', async () => {
     const cookie = await register('ana@example.com');
     const attempt = () =>

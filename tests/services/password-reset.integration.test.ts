@@ -102,6 +102,23 @@ describe('password reset', () => {
     expect((await signIn(PASSWORD)).status).toBe(401);
   });
 
+  it('applies the password rules to the reset, including the email of the token owner', async () => {
+    await register('ana.silva@example.com');
+    await postAuth(auth, '/request-password-reset', { email: 'ana.silva@example.com' });
+    const token = tokenIn((await waitForMail(mail)).text, 'recuperar');
+    const reset = async (newPassword: string) => {
+      const res = await postAuth(auth, '/reset-password', { token, newPassword });
+      return { status: res.status, code: ((await res.json()) as { code?: string }).code };
+    };
+    expect(await reset('xx-ana.silva@example.com-xx')).toEqual({
+      status: 400,
+      code: 'PASSWORD_BASED_ON_EMAIL',
+    });
+    expect(await reset('palavra-passe')).toEqual({ status: 400, code: 'PASSWORD_TOO_COMMON' });
+    // The token was not used up by the rejected attempts.
+    expect((await reset(NEW_PASSWORD)).status).toBe(200);
+  });
+
   it('answers the same for an account that exists and one that does not', async () => {
     await register();
     const known = await postAuth(auth, '/request-password-reset', { email: 'ana@example.com' });

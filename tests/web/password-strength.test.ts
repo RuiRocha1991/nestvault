@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PASSWORD_MIN_LENGTH } from '@nestvault/services/password-policy';
+import { firstFailedPasswordRule, PASSWORD_MIN_LENGTH } from '@nestvault/services/password-policy';
 import { checkPassword } from '@webapp/lib/password-strength';
 
 describe('checkPassword', () => {
@@ -62,5 +62,22 @@ describe('checkPassword with an email', () => {
   it('does not flag short name parts or unrelated passwords', () => {
     expect(checkPassword('my-ana-secret-phrase', 'ana@example.com').notEmail).toBe(true);
     expect(checkPassword('correct-horse-battery', 'ana@example.com').notEmail).toBe(true);
+  });
+});
+
+describe('client and server agree', () => {
+  const email = 'ana.silva@example.com';
+
+  it.each([
+    '',
+    'short-pass',
+    'palavra-passe',
+    'aaaaaaaaaaaaaaaa',
+    `xx-${email}-xx`,
+    'correct-horse-battery',
+  ])('checkPassword meets all rules exactly when the server rules pass for %j', (password) => {
+    const check = checkPassword(password, email);
+    const clientOk = check.longEnough && check.notCommon && check.notEmail;
+    expect(clientOk).toBe(firstFailedPasswordRule(password, { email }) === null);
   });
 });

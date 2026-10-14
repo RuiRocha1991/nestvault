@@ -29,7 +29,7 @@ import {
 
 import { isPasswordBreached } from './breached-passwords';
 import { withHashedSessionTokens } from './hashed-session-adapter';
-import { isCommonPassword, isPasswordBasedOnEmail } from './password-policy';
+import { firstFailedPasswordRule } from './password-policy';
 import {
   hashPassword,
   PASSWORD_MAX_LENGTH,
@@ -123,6 +123,29 @@ const PASSWORD_FIELDS: Readonly<Record<string, string>> = {
   '/change-password': 'newPassword',
   '/reset-password': 'newPassword',
 };
+
+const RESET_TOKEN_SHAPE = /^[A-Za-z0-9_-]{16,128}$/;
+
+/**
+ * The address of the account whose password is being set, for the rules that depend on it:
+ * the body on sign-up, the signed-in user on change-password, the token's user on reset. Undefined
+ * when it cannot be told (a bad token), so that rule is skipped; Better Auth rejects the call.
+ */
+async function accountEmailOf(ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0]) {
+  if (ctx.path === SIGN_UP_PATH) return emailOf(ctx.body) ?? undefined;
+  if (ctx.path === '/change-password') return (await getSessionFromCtx(ctx))?.user.email;
+  const token = (ctx.body as { token?: unknown } | undefined)?.token;
+  if (
+    ctx.path !== '/reset-password' ||
+    typeof token !== 'string' ||
+    !RESET_TOKEN_SHAPE.test(token)
+  ) {
+    return undefined;
+  }
+  const found = await ctx.context.internalAdapter.findVerificationValue(`reset-password:${token}`);
+  if (!found || found.expiresAt <= new Date()) return undefined;
+  return (await ctx.context.internalAdapter.findUserById(found.value))?.email;
+}
 
 /** The Better Auth instance: email + password, argon2id, database sessions, closed sign-up. */
 export function createAuth(config: AuthConfig) {
@@ -282,21 +305,9 @@ export function createAuth(config: AuthConfig) {
         const field = PASSWORD_FIELDS[ctx.path];
         const password = field ? (ctx.body as Record<string, unknown> | undefined)?.[field] : null;
         if (typeof password === 'string') {
-          if (isCommonPassword(password)) {
-            throw new APIError('BAD_REQUEST', {
-              code: 'PASSWORD_TOO_COMMON',
-              message: 'This password is too common. Choose another one.',
-            });
-          }
-          if (
-            ctx.path === SIGN_UP_PATH &&
-            isPasswordBasedOnEmail(password, emailOf(ctx.body) ?? '')
-          ) {
-            throw new APIError('BAD_REQUEST', {
-              code: 'PASSWORD_BASED_ON_EMAIL',
-              message: 'The password must not contain the email address.',
-            });
-          }
+          const failed = firstFailedPasswordRule(password, { email: await accountEmailOf(ctx) });
+          if (failed)
+            throw new APIError('BAD_REQUEST', { code: failed.code, message: failed.message });
           if (await checkBreached(password)) {
             throw new APIError('BAD_REQUEST', {
               code: 'PASSWORD_BREACHED',
