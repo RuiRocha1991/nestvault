@@ -1,7 +1,6 @@
 import { hash, verify } from '@node-rs/argon2';
 
-export const PASSWORD_MIN_LENGTH = 12;
-export const PASSWORD_MAX_LENGTH = 128;
+export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './password-policy';
 
 // OWASP argon2id profile (19 MiB, 2 passes, 1 lane). Algorithm 2 is argon2id (the const enum
 // `Algorithm` cannot be imported under verbatimModuleSyntax); the stored prefix is `$argon2id$`, which also carries the parameters, so they can be raised later without a migration.

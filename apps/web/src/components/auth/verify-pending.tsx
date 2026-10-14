@@ -13,11 +13,22 @@ import { formatCountdown, parseRetryAfter } from '@webapp/lib/sign-in';
 import { RESEND_COOLDOWN_SECONDS, useCountdown } from '@webapp/lib/use-countdown';
 
 /** Screen 56. `email` is the signed-in user's own address, read on the server from the session. */
-export function VerifyPending({ email }: { email: string }) {
+export function VerifyPending({
+  email,
+  variant = 'account',
+}: {
+  email: string;
+  /** `signup`: shown right after registering, with no session yet, so "change" goes back to the form. */
+  variant?: 'account' | 'signup';
+}) {
   const t = useTranslations('auth.verify');
   const [pending, setPending] = useState(false);
   const [state, setState] = useState<'idle' | 'sent' | 'error'>('idle');
   const [cooldown, startCooldown] = useCountdown();
+  const change =
+    variant === 'signup'
+      ? ({ href: '/registar', label: 'changeSignup' } as const)
+      : ({ href: '/conta', label: 'change' } as const);
 
   async function resend() {
     if (pending || cooldown > 0) return;
@@ -68,8 +79,11 @@ export function VerifyPending({ email }: { email: string }) {
           {t('resent')}
         </p>
       )}
-      <Link href="/conta" className="py-2 text-center text-md font-semibold text-fg-2 no-underline">
-        {t('change')}
+      <Link
+        href={change.href}
+        className="py-2 text-center text-md font-semibold text-fg-2 no-underline"
+      >
+        {t(change.label)}
       </Link>
       <p className="rounded-md bg-bg px-3 py-2.5 text-sm text-fg-3">{t('pendingHint')}</p>
     </LinkStatus>

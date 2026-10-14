@@ -15,6 +15,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
+import { verifyAllUsers } from '../support/verify-users';
 
 const APP_URL = 'http://localhost:4000';
 const PASSWORD = 'a-long-unique-passphrase';
@@ -56,13 +57,18 @@ function post(
   );
 }
 
-const signUp = (
+/** Signs up and confirms the address, as the emailed link would (sign-in needs a verified email). */
+async function signUp(
   auth: Auth,
   email = 'ana@example.com',
   password = PASSWORD,
   h = {},
   appUrl?: string,
-) => post(auth, '/sign-up/email', { name: 'Ana', email, password }, h, appUrl);
+) {
+  const response = await post(auth, '/sign-up/email', { name: 'Ana', email, password }, h, appUrl);
+  await verifyAllUsers(identity);
+  return response;
+}
 
 const hashed = (cookie: string) =>
   hashSessionToken(decodeURIComponent(cookie.split('=')[1] ?? '').split('.')[0] ?? '');

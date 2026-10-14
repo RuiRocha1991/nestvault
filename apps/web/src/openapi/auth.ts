@@ -70,14 +70,13 @@ registry.registerPath({
   operationId: 'signUpEmail',
   summary: 'Create an account',
   description:
-    'Closed by default: returns 403 unless `ALLOW_SIGNUP=true` or the request carries a valid invite token for the same email in the `x-invite-token` header. A password found in a known breach returns 400 with code `PASSWORD_BREACHED`.',
+    'Closed by default: returns 403 with code `signup_closed` unless `ALLOW_SIGNUP=true` or the request carries a valid invite token for the same email in the `x-invite-token` header. The account starts unverified and no session is created (`token` is null): a verification link is emailed and sign-in answers 403 `EMAIL_NOT_VERIFIED` until it is used. An email that already has an account answers exactly like a new one (and the owner is told by email), so nothing reveals which accounts exist. Passwords: at least 12 characters (`PASSWORD_TOO_SHORT`), not a common one (`PASSWORD_TOO_COMMON`), not based on the email (`PASSWORD_BASED_ON_EMAIL`) and not in a known breach (`PASSWORD_BREACHED`), all 400. Limited to 5 / 15 min per IP and per email (429 with `Retry-After`).',
   tags: ['Auth'],
   security: [],
   request: { body: { required: true, ...json(SignUpBody) } },
   responses: {
     200: {
-      description: 'Account created and signed in',
-      headers: setCookie,
+      description: 'Account created (or the same answer for an existing email); no session yet',
       ...json(AuthUserResponse),
     },
     ...errorResponses(400, 403, 429, 500),
@@ -89,6 +88,8 @@ registry.registerPath({
   path: '/api/v1/auth/sign-in/email',
   operationId: 'signInEmail',
   summary: 'Sign in with email and password',
+  description:
+    'An account whose email is not confirmed answers 403 with code `EMAIL_NOT_VERIFIED` (after the right password) and a new verification link is sent.',
   tags: ['Auth'],
   security: [],
   request: { body: { required: true, ...json(SignInBody) } },

@@ -15,6 +15,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
+import { verifyAllUsers } from '../support/verify-users';
 
 const APP_URL = 'http://localhost:4000';
 const PASSWORD = 'a-long-unique-passphrase';
@@ -45,8 +46,12 @@ const withCookie = (cookie: string) => new Headers({ cookie });
 async function register(email: string) {
   const res = await post('/sign-up/email', { name: 'Ana', email, password: PASSWORD });
   expect(res.status).toBe(200);
-  return cookieOf(res);
+  // The address is confirmed (the emailed link would do it) so that the user can sign in.
+  await verifyAllUsers(identity);
+  return cookieOf(await signInRaw(email));
 }
+
+const signInRaw = (email: string) => post('/sign-in/email', { email, password: PASSWORD });
 
 async function signIn(email: string, userAgent: string, password = PASSWORD) {
   const res = await post(
@@ -169,7 +174,7 @@ describe('profile', () => {
     expect(await account.getMe(withCookie(cookie))).toMatchObject({
       name: 'Ana',
       email: 'ana@example.com',
-      emailVerified: false,
+      emailVerified: true,
     });
     const updated = await account.updateProfile(withCookie(cookie), { name: '  Ana Silva ' });
     expect(updated.name).toBe('Ana Silva');
@@ -261,6 +266,7 @@ describe('change email', () => {
   it('answers the same for an address that is already taken', async () => {
     const cookie = await register('ana@example.com');
     await register('rui@example.com');
+    mail.clear();
     const taken = await post('/change-email', { newEmail: 'rui@example.com' }, { cookie });
     const free = await post('/change-email', { newEmail: 'free@example.com' }, { cookie });
     expect(taken.status).toBe(free.status);

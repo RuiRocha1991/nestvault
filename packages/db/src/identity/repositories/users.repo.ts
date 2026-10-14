@@ -19,6 +19,11 @@ export const usersRepo = {
     return row?.id;
   },
 
+  /** Marks the address as verified (the person proved they read it, e.g. through a reset link). */
+  async markEmailVerified(db: IdentityDatabase['db'], userId: string): Promise<void> {
+    await db.update(user).set({ emailVerified: true }).where(eq(user.id, userId));
+  },
+
   /** Creates a verified user with an email + password login, atomically. Returns the user id. */
   async insertCredentialUser(db: IdentityDatabase['db'], data: NewCredentialUser): Promise<string> {
     const id = newId();

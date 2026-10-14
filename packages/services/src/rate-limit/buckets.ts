@@ -26,6 +26,10 @@ export const RATE_LIMIT_BUCKETS = {
   'auth.reset.untrusted': { limit: 50, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.reset.ip': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.reset.email': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  // Creating accounts (only reachable when sign-up is open or with an invite).
+  'auth.signup.ip': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  'auth.signup.email': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
+  'auth.signup.untrusted': { limit: 50, windowSeconds: 15 * MINUTE, onError: 'closed' },
   // Changing the password or the email of a signed-in account (wrong current password counts).
   'auth.account.ip': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },
   'auth.account.user': { limit: 5, windowSeconds: 15 * MINUTE, onError: 'closed' },

@@ -13,6 +13,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
+import { verifyAllUsers } from '../support/verify-users';
 
 const APP_URL = 'http://localhost:4000';
 const PASSWORD = 'a-long-unique-passphrase';
@@ -171,6 +172,7 @@ describe('rate limits on the auth routes', () => {
     expect(
       (await post(auth, '/sign-up/email', { name: 'Ana', email, password: PASSWORD })).status,
     ).toBe(200);
+    await verifyAllUsers(identity);
   }
 
   it('answers the 6th failed sign-in for one email with 429 and Retry-After (any IP)', async () => {

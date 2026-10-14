@@ -1,12 +1,13 @@
 'use client';
 
-import { Button, cn } from '@nestvault/ui';
-import { Check, Info } from 'lucide-react';
+import { Button } from '@nestvault/ui';
+import { Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type SyntheticEvent } from 'react';
 
 import { Alert, Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
+import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { checkPassword } from '@webapp/lib/password-strength';
 import { postJson } from '@webapp/lib/post-json';
@@ -15,16 +16,7 @@ import { useCountdown } from '@webapp/lib/use-countdown';
 
 const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
 
-type Problem = 'breached' | 'error' | null;
-
-function Rule({ ok, children }: { ok: boolean; children: string }) {
-  return (
-    <li className={cn('flex items-center gap-1.5 text-sm', ok ? 'text-pos' : 'text-fg-3')}>
-      <Check aria-hidden className={cn('size-3.5', !ok && 'opacity-40')} />
-      {children}
-    </li>
-  );
-}
+type Problem = 'breached' | 'tooCommon' | 'error' | null;
 
 /** Screen 54. The token only travels in the request body; a used or expired one reloads into screen 55. */
 export function ResetForm({ token }: { token: string }) {
@@ -61,6 +53,7 @@ export function ResetForm({ token }: { token: string }) {
       } else if (response.status === 400) {
         const body = (await response.json().catch(() => null)) as { code?: unknown } | null;
         if (body?.code === 'PASSWORD_BREACHED') setProblem('breached');
+        else if (body?.code === 'PASSWORD_TOO_COMMON') setProblem('tooCommon');
         else if (body?.code === 'INVALID_TOKEN')
           router.refresh(); // used up or expired: screen 55
         else setProblem('error');
@@ -102,41 +95,24 @@ export function ResetForm({ token }: { token: string }) {
             value={password}
             showLabel={t('showPassword')}
             hideLabel={t('hidePassword')}
-            invalid={problem === 'breached'}
+            invalid={problem === 'breached' || problem === 'tooCommon'}
             onChange={(event) => {
               setPassword(event.target.value);
               setProblem(null);
             }}
           />
-          <div
-            role="meter"
-            aria-label={t('strength.label')}
-            aria-valuemin={0}
-            aria-valuemax={4}
-            aria-valuenow={check.score}
-            aria-valuetext={t(`strength.${STRENGTH_KEYS[check.score]}`)}
-            className="mt-1 grid grid-cols-4 gap-1.5"
-          >
-            {[1, 2, 3, 4].map((step) => (
-              <span
-                key={step}
-                className={cn(
-                  'h-1 rounded-full',
-                  step <= check.score ? (check.score >= 3 ? 'bg-pos' : 'bg-warn') : 'bg-line-2',
-                )}
-              />
-            ))}
-          </div>
-          {password && (
-            <p className={cn('text-sm', check.score >= 3 ? 'text-pos' : 'text-fg-3')}>
-              {t(`strength.${STRENGTH_KEYS[check.score]}`)}
-            </p>
-          )}
-          <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-            <Rule ok={check.longEnough}>{t('rules.length')}</Rule>
-            <Rule ok={check.notCommon}>{t('rules.common')}</Rule>
-          </ul>
+          <PasswordGuide
+            score={check.score}
+            active={password.length > 0}
+            meterLabel={t('strength.label')}
+            levels={STRENGTH_KEYS.map((key) => t(`strength.${key}`))}
+            rules={[
+              { ok: check.longEnough, label: t('rules.length') },
+              { ok: check.notCommon, label: t('rules.common') },
+            ]}
+          />
           {problem === 'breached' && <p className="text-sm text-neg">{t('breached')}</p>}
+          {problem === 'tooCommon' && <p className="text-sm text-neg">{t('tooCommon')}</p>}
         </div>
 
         <div className="flex flex-col gap-1.5">

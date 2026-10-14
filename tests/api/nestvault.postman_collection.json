@@ -104,7 +104,7 @@
                 "email"
               ]
             },
-            "description": "Closed unless ALLOW_SIGNUP=true or a valid x-invite-token header is sent.",
+            "description": "Closed unless ALLOW_SIGNUP=true or a valid x-invite-token header is sent (403 signup_closed). Creates an unverified account and NO session (token is null): a verification link is emailed (Mailpit, http://localhost:8025) and sign-in answers 403 EMAIL_NOT_VERIFIED until it is used. An email that already has an account answers the same as a new one. Passwords: 12+ chars, not common (PASSWORD_TOO_COMMON), not based on the email (PASSWORD_BASED_ON_EMAIL). 5 / 15 min per IP and per email.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
@@ -117,7 +117,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('201/200 or 403 when closed', () => pm.expect([200,403]).to.include(pm.response.code));"
+                  "pm.test('200 or 403 when closed', () => pm.expect([200,403]).to.include(pm.response.code));",
+                  "pm.test('no session cookie is set', () => pm.expect(pm.cookies.has('nv.session_token')).to.be.false);"
                 ]
               }
             }
@@ -146,7 +147,7 @@
                 "email"
               ]
             },
-            "description": "Sets the nv.session_token cookie (HttpOnly, SameSite=Lax, 30 days). Postman keeps it in the cookie jar.",
+            "description": "Sets the nv.session_token cookie (HttpOnly, SameSite=Lax, 30 days). Postman keeps it in the cookie jar. An account whose email is not confirmed answers 403 EMAIL_NOT_VERIFIED.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"

@@ -14,6 +14,7 @@ import {
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
+import { verifyAllUsers } from '../support/verify-users';
 
 const APP_URL = 'http://localhost:4000';
 const PASSWORD = 'a-long-unique-passphrase';
@@ -58,9 +59,15 @@ const post = (path: string, body: unknown, headers: Record<string, string> = {})
     }),
   );
 
-async function register(email = 'ana@example.com') {
+async function register(email = 'ana@example.com', { verified = true } = {}) {
   const res = await post('/sign-up/email', { name: 'Ana <b>', email, password: PASSWORD });
   expect(res.status).toBe(200);
+  // Sign-up sends its own verification email; the tests below look at what comes after it.
+  await vi.waitFor(() => {
+    expect(mail.sent).toHaveLength(1);
+  });
+  mail.clear();
+  if (verified) await verifyAllUsers(identity);
 }
 
 async function waitForMail(count = 1) {
@@ -208,7 +215,7 @@ describe('password reset', () => {
 
 describe('email verification', () => {
   it('marks the email as verified with the link of the email, and rejects a forged token', async () => {
-    await register();
+    await register('ana@example.com', { verified: false });
     expect(await rows(sql`select email_verified from "user"`)).toEqual([{ email_verified: false }]);
 
     expect((await post('/send-verification-email', { email: 'ana@example.com' })).status).toBe(200);
@@ -226,7 +233,7 @@ describe('email verification', () => {
   });
 
   it('answers the same for an unknown email when resending', async () => {
-    await register();
+    await register('ana@example.com', { verified: false });
     const known = await post('/send-verification-email', { email: 'ana@example.com' });
     const unknown = await post('/send-verification-email', { email: 'nobody@example.com' });
     expect(unknown.status).toBe(known.status);
