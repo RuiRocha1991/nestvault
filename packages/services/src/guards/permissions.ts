@@ -22,6 +22,7 @@ export const PERMISSIONS = [
   'notes.write',
   'imports.run',
   'settings.write',
+  'audit.read',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

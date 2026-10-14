@@ -10,6 +10,7 @@ import {
   isAPIError,
 } from 'better-auth/api';
 
+import { recordAccountAudit } from '../audit/audit';
 import type { EmailSender } from '../email';
 import {
   existingAccountTemplate,
@@ -21,7 +22,7 @@ import { RateLimitError } from '../errors';
 import type { Logger } from '../logger';
 import {
   createRateLimiter,
-  getClientIp,
+  clientIpResolver,
   UNTRUSTED_CLIENT_KEY,
   type RateLimitBucket,
   type RateLimiter,
@@ -190,9 +191,7 @@ export function createAuth(config: AuthConfig) {
   };
   const link = (path: string, token: string) =>
     `${config.appUrl}${path}/${encodeURIComponent(token)}`;
-  const proxyHops = config.trustedProxyHops ?? 0;
-  const clientIpOf = (headers: Headers | undefined) =>
-    getClientIp(headers ?? new Headers(), proxyHops);
+  const clientIpOf = clientIpResolver(config.trustedProxyHops ?? 0);
   const secureCookies = new URL(config.appUrl).protocol === 'https:';
 
   return betterAuth({
@@ -336,10 +335,28 @@ export function createAuth(config: AuthConfig) {
         }
       }),
       after: createAuthMiddleware(async (ctx) => {
-        if (isAPIError(ctx.context.returned)) return;
+        const returned = ctx.context.returned;
+        if (isAPIError(returned)) {
+          // A refused sign-in (wrong password, unverified address) is recorded without a user:
+          // looking the address up here would make the answer time depend on whether it exists.
+          if (
+            ctx.path === SIGN_IN_PATH &&
+            (returned.statusCode === 401 || returned.statusCode === 403)
+          ) {
+            await recordAccountAudit(config.identity, 'auth.signin_failed', {
+              userId: null,
+              ip: clientIpOf(ctx.headers),
+            });
+          }
+          return;
+        }
         if (ctx.path === '/change-password') {
-          const target = (ctx.context.returned as { user?: { email?: string; name?: string } })
+          const target = (returned as { user?: { id?: string; email?: string; name?: string } })
             .user;
+          await recordAccountAudit(config.identity, 'auth.password_changed', {
+            userId: target?.id ?? ctx.context.session?.user.id ?? null,
+            ip: clientIpOf(ctx.headers),
+          });
           if (target?.email) {
             sendInBackground({
               to: target.email,
@@ -351,8 +368,14 @@ export function createAuth(config: AuthConfig) {
         if (ctx.path !== SIGN_IN_PATH) return;
         const email = emailOf(ctx.body);
         const ip = clientIpOf(ctx.headers);
-        await limiter.release(ipBucket('signin', ip), ip);
-        if (email) await limiter.release('auth.signin.email', email);
+        await Promise.all([
+          limiter.release(ipBucket('signin', ip), ip),
+          email ? limiter.release('auth.signin.email', email) : undefined,
+          recordAccountAudit(config.identity, 'auth.signin', {
+            userId: (returned as { user?: { id?: string } }).user?.id ?? null,
+            ip,
+          }),
+        ]);
       }),
     },
   });
