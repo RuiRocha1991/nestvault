@@ -141,17 +141,37 @@ describe('rate limiter', () => {
 });
 
 describe('rate limits on the auth routes', () => {
-  function build(trustedProxyHops = 0): Auth {
+  function build(trustedProxyHops = 0, allowSignup = true): Auth {
     return createAuth({
       identity,
       appUrl: APP_URL,
       secret: SECRET,
-      allowSignup: true,
+      allowSignup,
       limiter: limiter(),
       trustedProxyHops,
       checkBreached: () => Promise.resolve(false),
     });
   }
+
+  const signUp = (auth: Auth, email: string, headers: Record<string, string> = {}) =>
+    postAuth(auth, '/sign-up/email', { name: 'Ana', email, password: PASSWORD }, headers);
+
+  it('refuses a closed sign-up from the config alone, without writing to the limiter', async () => {
+    const auth = build(0, false);
+    for (let i = 0; i < 8; i += 1) {
+      const res = await signUp(auth, `visitor${String(i)}@example.com`);
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as { code: string }).code).toBe('signup_closed');
+    }
+    expect(await rows(sql`select 1 from rate_limits`)).toHaveLength(0);
+  });
+
+  it('still counts a closed sign-up that carries an invite token (the invite is looked up)', async () => {
+    const auth = build(0, false);
+    const attempt = () => signUp(auth, 'visitor@example.com', { 'x-invite-token': 'guess' });
+    for (let i = 0; i < 5; i += 1) expect((await attempt()).status).toBe(403);
+    expect((await attempt()).status).toBe(429);
+  });
 
   const signIn = (auth: Auth, email: string, password: string, headers = {}) =>
     postAuth(auth, '/sign-in/email', { email, password }, headers);
