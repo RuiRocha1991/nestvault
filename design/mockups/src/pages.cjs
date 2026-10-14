@@ -254,7 +254,7 @@ function dialogLimit() {
 }
 
 /* settings tabs */
-const SET_TABS = ['Agregado e parâmetros', 'Plano e subscrição', 'Utilizadores e convites'];
+const SET_TABS = ['Agregado e parâmetros', 'Plano e subscrição', 'Utilizadores e convites', 'Auditoria'];
 function definicoesPlano() {
   const meter = (l, v, max, pro) => `<div class="meter-row"><span class="l">${l}</span><span class="v num">${v}${max ? ` / ${max}` : ''}</span><span class="m">${pro ? 'só Pro' : max ? 'Free' : ''}</span><div class="bar thick ${max && v >= max ? 'warm' : ''}"><i style="width:${max ? Math.min((v / max) * 100, 100) : 0}%"></i></div></div>`;
   const row = (f, a, b) => `<div>${f}</div><div class="v">${a}</div><div class="v pro">${b}</div>`;

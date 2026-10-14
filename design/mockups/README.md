@@ -60,9 +60,15 @@ card; the panel is hidden on mobile). Sign-up is closed by default, so the login
 | `65-conta` | `/conta` | Profile, password, active sessions, 2FA placeholder (phase 4), export, delete |
 | `69-definicoes-agregado` | `/[poolId]/definicoes` | Pool settings: name, base currency, parameters, backup/export, danger zone (transfer, leave, delete) |
 | `70-seletor-de-agregado` | sidebar | Pool switcher open (shown only when the user belongs to more than one pool) |
+| `76-definicoes-auditoria` | `/[poolId]/definicoes/auditoria` | Audit log (owner only): filters by action, person and period, read-only table, CSV export |
+| `77-definicoes-auditoria-detalhe` | | Entry selected: detail panel with allow-listed action data |
+| `78-definicoes-auditoria-sem-resultados` | | Empty state with active filters |
+| `mobile-12-auditoria` | | Audit log on mobile |
 | `modal-66…68` | | Invite user, transfer ownership, delete account blocked |
 | `modal-71…75` | | Delete pool, leave pool, leave blocked (last owner), remove member, change role |
 | `mobile-09…11` | | Login, sign-up, invite on mobile |
+
+Definições now has four tabs: Agregado e parâmetros · Plano e subscrição · Utilizadores e convites · Auditoria (owner only).
 
 New shared pieces: auth layout, icon inputs with show/hide, password strength meter and requirement list,
 inline alerts (`err`/`warn`/`ok`/`info`), big status icon, divider, `.pool-card`.
