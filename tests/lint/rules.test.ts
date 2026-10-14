@@ -163,3 +163,35 @@ describe('services in client components', () => {
     );
   });
 });
+
+describe('role comparisons (architecture rule 5)', () => {
+  const memberRole = "export const isOwner = (m: { role: string }) => m.role === 'owner';\n";
+  const bareRole = "export const isAdmin = (role: string) => role !== 'admin';\n";
+  const switched =
+    "export function f(m: { role: string }) {\n  switch (m.role) {\n    case 'owner':\n      return 1;\n    default:\n      return 0;\n  }\n}\n";
+
+  it('fails in services, the web app and tests: ask can(ctx, permission) instead', async () => {
+    for (const code of [memberRole, bareRole, switched]) {
+      for (const path of [
+        'packages/services/src/x.ts',
+        'apps/web/src/server/x.ts',
+        'tests/services/x.test.ts',
+      ]) {
+        expect(await ruleIds(code, path), path).toContain('no-restricted-syntax');
+      }
+    }
+  });
+
+  it('is allowed in the context factory, which validates the role it is given', async () => {
+    expect(await ruleIds(memberRole, 'packages/db/src/pool-context.factory.ts')).not.toContain(
+      'no-restricted-syntax',
+    );
+  });
+
+  it('does not flag other comparisons', async () => {
+    const other = "export const same = (a: { name: string }) => a.name === 'owner';\n";
+    expect(await ruleIds(other, 'packages/services/src/x.ts')).not.toContain(
+      'no-restricted-syntax',
+    );
+  });
+});

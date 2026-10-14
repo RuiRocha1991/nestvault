@@ -154,8 +154,16 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 ## 7. Access control
 - **What:** `requirePoolAccess` (404 for non-members, so pool existence is not confirmed) then
   `can(ctx, 'resource.action')` (403). Roles are permission sets; feature code never checks role names.
+- **Where:** `packages/services/src/guards` (`permissions.ts` holds the catalogue and the
+  role → permission sets from PRD 01; `pool-access.ts` has `requirePoolAccess`, `can` and
+  `systemContext`). Membership is read from `pool_members` in the identity database with bound
+  parameters. A malformed id, a missing pool and a pool the caller is not in all throw the same
+  `NotFoundError`; the session's `active_pool_id` is updated on a successful access only.
 - **Verified by:** for every route, tests for: non-member → 404, member without permission → 403,
-  viewer cannot write; pool-isolation tests.
+  viewer cannot write; pool-isolation tests. `tests/services/permissions.test.ts` compares the
+  matrix with the PRD table; `pool-access.integration.test.ts` covers identical 404s (also for
+  injection payloads and timing) and the active pool; the ESLint rule `noRoleComparison` rejects
+  `role ===` / `switch (x.role)` outside the context factory (`tests/lint/rules.test.ts`).
 
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
