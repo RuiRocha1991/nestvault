@@ -11,13 +11,18 @@ import { Field } from '@webapp/components/auth/field';
 import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { checkPassword } from '@webapp/lib/password-strength';
-import { postJson } from '@webapp/lib/post-json';
+import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
 import { useCountdown } from '@webapp/lib/use-countdown';
 
 const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
 
 type Problem = 'breached' | 'tooCommon' | 'error' | null;
+
+const PROBLEM_BY_CODE: Record<string, Problem> = {
+  PASSWORD_BREACHED: 'breached',
+  PASSWORD_TOO_COMMON: 'tooCommon',
+};
 
 /** Screen 54. The token only travels in the request body; a used or expired one reloads into screen 55. */
 export function ResetForm({ token }: { token: string }) {
@@ -40,26 +45,20 @@ export function ResetForm({ token }: { token: string }) {
     setPending(true);
     setProblem(null);
     try {
-      const response = await postJson('/api/v1/auth/reset-password', {
-        token,
-        newPassword: password,
-      });
-      if (response.ok) {
+      const outcome = await readOutcome(
+        await postJson('/api/v1/auth/reset-password', { token, newPassword: password }),
+      );
+      if (outcome.ok) {
         router.replace('/login?reason=password-changed');
         router.refresh();
         return;
       }
-      if (response.status === 429) {
-        startLock(parseRetryAfter(response.headers.get('Retry-After')));
-      } else if (response.status === 400) {
-        const body = (await response.json().catch(() => null)) as { code?: unknown } | null;
-        if (body?.code === 'PASSWORD_BREACHED') setProblem('breached');
-        else if (body?.code === 'PASSWORD_TOO_COMMON') setProblem('tooCommon');
-        else if (body?.code === 'INVALID_TOKEN')
-          router.refresh(); // used up or expired: screen 55
-        else setProblem('error');
+      if (outcome.status === 429) {
+        startLock(parseRetryAfter(outcome.retryAfter));
+      } else if (outcome.status === 400 && outcome.code === 'INVALID_TOKEN') {
+        router.refresh(); // used up or expired: screen 55
       } else {
-        setProblem('error');
+        setProblem((outcome.status === 400 && PROBLEM_BY_CODE[String(outcome.code)]) || 'error');
       }
     } catch {
       setProblem('error');

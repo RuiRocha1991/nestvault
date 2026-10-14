@@ -9,11 +9,17 @@ import { useId, useState, type SyntheticEvent } from 'react';
 import { Alert, Countdown } from '@webapp/components/auth/alert';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { checkPassword } from '@webapp/lib/password-strength';
-import { postJson } from '@webapp/lib/post-json';
+import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
 import { useCountdown } from '@webapp/lib/use-countdown';
 
 type Status = 'idle' | 'saved' | 'wrongCurrent' | 'breached' | 'tooCommon' | 'error';
+
+const STATUS_BY_CODE: Record<string, Status> = {
+  PASSWORD_BREACHED: 'breached',
+  PASSWORD_TOO_COMMON: 'tooCommon',
+  INVALID_PASSWORD: 'wrongCurrent',
+};
 
 /** The other sessions end with the change, so the form says so before it is used. */
 export function PasswordForm() {
@@ -37,32 +43,23 @@ export function PasswordForm() {
     setPending(true);
     setStatus('idle');
     try {
-      const response = await postJson('/api/v1/auth/change-password', {
-        currentPassword: current,
-        newPassword: next,
-        revokeOtherSessions: true,
-      });
-      if (response.ok) {
+      const outcome = await readOutcome(
+        await postJson('/api/v1/auth/change-password', {
+          currentPassword: current,
+          newPassword: next,
+          revokeOtherSessions: true,
+        }),
+      );
+      if (outcome.ok) {
         setCurrent('');
         setNext('');
         setConfirm('');
         setStatus('saved');
         router.refresh(); // the sessions list lost every other device
-      } else if (response.status === 429) {
-        startLock(parseRetryAfter(response.headers.get('Retry-After')));
-      } else if (response.status === 400) {
-        const body = (await response.json().catch(() => null)) as { code?: unknown } | null;
-        setStatus(
-          body?.code === 'PASSWORD_BREACHED'
-            ? 'breached'
-            : body?.code === 'PASSWORD_TOO_COMMON'
-              ? 'tooCommon'
-              : body?.code === 'INVALID_PASSWORD'
-                ? 'wrongCurrent'
-                : 'error',
-        );
+      } else if (outcome.status === 429) {
+        startLock(parseRetryAfter(outcome.retryAfter));
       } else {
-        setStatus('error');
+        setStatus((outcome.status === 400 && STATUS_BY_CODE[String(outcome.code)]) || 'error');
       }
     } catch {
       setStatus('error');

@@ -26,24 +26,44 @@ describe('signInSchema', () => {
 });
 
 describe('interpretSignInResponse', () => {
+  const outcome = (
+    status: number,
+    retryAfter: string | null = null,
+    code: string | null = null,
+  ) => ({
+    status,
+    retryAfter,
+    code,
+  });
+
   it('signs in on 200', () => {
-    expect(interpretSignInResponse(200, null)).toEqual({ status: 'ok' });
+    expect(interpretSignInResponse(outcome(200))).toEqual({ status: 'ok' });
   });
 
   it.each([400, 401, 403])('shows the same generic message for %i', (status) => {
-    expect(interpretSignInResponse(status, null)).toEqual({ status: 'invalid' });
+    expect(interpretSignInResponse(outcome(status))).toEqual({ status: 'invalid' });
+  });
+
+  it('tells an unverified account apart only for 403 EMAIL_NOT_VERIFIED', () => {
+    expect(interpretSignInResponse(outcome(403, null, 'EMAIL_NOT_VERIFIED'))).toEqual({
+      status: 'unverified',
+    });
+    expect(interpretSignInResponse(outcome(401, null, 'EMAIL_NOT_VERIFIED'))).toEqual({
+      status: 'invalid',
+    });
+    expect(interpretSignInResponse(outcome(403, null, 'OTHER'))).toEqual({ status: 'invalid' });
   });
 
   it('reads Retry-After on 429', () => {
-    expect(interpretSignInResponse(429, '872')).toEqual({
+    expect(interpretSignInResponse(outcome(429, '872'))).toEqual({
       status: 'rate_limited',
       retryAfterSeconds: 872,
     });
   });
 
   it('treats other failures as a technical error', () => {
-    expect(interpretSignInResponse(500, null)).toEqual({ status: 'error' });
-    expect(interpretSignInResponse(502, null)).toEqual({ status: 'error' });
+    expect(interpretSignInResponse(outcome(500))).toEqual({ status: 'error' });
+    expect(interpretSignInResponse(outcome(502))).toEqual({ status: 'error' });
   });
 });
 

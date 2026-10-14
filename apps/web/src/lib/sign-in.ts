@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import './zod-csp';
+import type { ApiOutcome } from '@webapp/lib/post-json';
 
 /** Sign-in form. The password length rule is the server's; the form never explains it. */
 export const signInSchema = z
@@ -27,12 +28,12 @@ export function parseRetryAfter(value: string | null): number {
   return Math.min(seconds, MAX_RETRY_AFTER_SECONDS);
 }
 
-/** Maps the sign-in response to what the screen shows. Wrong email and wrong password look the same. */
-export function interpretSignInResponse(
-  status: number,
-  retryAfter: string | null,
-  code?: unknown,
-): SignInResult {
+/** Maps the sign-in answer to what the screen shows. Wrong email and wrong password look the same. */
+export function interpretSignInResponse({
+  status,
+  retryAfter,
+  code,
+}: Pick<ApiOutcome, 'status' | 'retryAfter' | 'code'>): SignInResult {
   if (status >= 200 && status < 300) return { status: 'ok' };
   if (status === 429) {
     return { status: 'rate_limited', retryAfterSeconds: parseRetryAfter(retryAfter) };

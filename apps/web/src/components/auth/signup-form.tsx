@@ -12,7 +12,7 @@ import { PasswordGuide } from '@webapp/components/auth/password-guide';
 import { PasswordInput } from '@webapp/components/auth/password-input';
 import { VerifyPending } from '@webapp/components/auth/verify-pending';
 import { checkPassword } from '@webapp/lib/password-strength';
-import { postJson } from '@webapp/lib/post-json';
+import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
 import { signUpSchema } from '@webapp/lib/sign-up';
 import { useCountdown } from '@webapp/lib/use-countdown';
@@ -74,20 +74,17 @@ export function SignupForm() {
     setPending(true);
     setProblem(null);
     try {
-      const response = await postJson('/api/v1/auth/sign-up/email', parsed.data);
-      if (response.ok) {
+      const outcome = await readOutcome(await postJson('/api/v1/auth/sign-up/email', parsed.data));
+      if (outcome.ok) {
         setSentTo(parsed.data.email);
         return;
       }
-      const body = (await response.json().catch(() => null)) as { code?: unknown } | null;
-      if (response.status === 429) {
-        startLock(parseRetryAfter(response.headers.get('Retry-After')));
-      } else if (response.status === 403 && body?.code === 'signup_closed') {
+      if (outcome.status === 429) {
+        startLock(parseRetryAfter(outcome.retryAfter));
+      } else if (outcome.status === 403 && outcome.code === 'signup_closed') {
         router.refresh(); // the page now shows the closed screen
-      } else if (response.status === 400 && typeof body?.code === 'string') {
-        setProblem(PROBLEM_BY_CODE[body.code] ?? 'error');
       } else {
-        setProblem('error');
+        setProblem(PROBLEM_BY_CODE[String(outcome.code)] ?? 'error');
       }
     } catch {
       setProblem('error');
@@ -97,11 +94,7 @@ export function SignupForm() {
 
   if (sentTo) return <VerifyPending email={sentTo} variant="signup" />;
 
-  const problemText: Record<Exclude<Problem, 'error' | null>, string> = {
-    breached: t('breached'),
-    tooCommon: t('tooCommon'),
-    basedOnEmail: t('basedOnEmail'),
-  };
+  const fieldProblem = problem !== null && problem !== 'error' ? problem : null;
 
   return (
     <>
@@ -168,7 +161,7 @@ export function SignupForm() {
             value={password}
             showLabel={t('showPassword')}
             hideLabel={t('hidePassword')}
-            invalid={problem !== null && problem !== 'error'}
+            invalid={fieldProblem !== null}
             onChange={(event) => {
               setPassword(event.target.value);
               setProblem(null);
@@ -186,9 +179,9 @@ export function SignupForm() {
               { ok: check.notEmail, label: t('rules.email') },
             ]}
           />
-          {problem !== null && problem !== 'error' && (
+          {fieldProblem !== null && (
             <p role="alert" className="text-sm text-neg">
-              {problemText[problem]}
+              {t(fieldProblem)}
             </p>
           )}
         </Field>
