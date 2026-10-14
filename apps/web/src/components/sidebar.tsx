@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@nestvault/ui';
+import { CircleUser } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -113,6 +114,14 @@ export function Sidebar({ poolId, portfolios, theme, userName }: SidebarProps) {
           <p className="truncate text-xs text-fg-3">
             {t('shell.signedInAs')} <b className="font-semibold text-fg-2">{userName}</b>
           </p>
+          <Link
+            href="/conta"
+            aria-current={pathname === '/conta' ? 'page' : undefined}
+            className={cn(linkStyles, 'py-1.5 text-sm')}
+          >
+            <CircleUser aria-hidden className="size-4 shrink-0" />
+            {t('shell.myAccount')}
+          </Link>
           <SignOutButton />
         </div>
       </div>

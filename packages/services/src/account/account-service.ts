@@ -1,0 +1,93 @@
+import { isUuid, sessionsRepo, type IdentityDatabase } from '@nestvault/db';
+
+import type { Auth } from '../auth/create-auth';
+import { NotFoundError, UnauthorizedError } from '../errors';
+
+import { maskIp } from './mask-ip';
+import {
+  MeDto,
+  RevokedSessionsDto,
+  SessionListDto,
+  UpdateProfileInput,
+  type SessionDto,
+} from './schemas';
+import { parseUserAgent } from './user-agent';
+
+export interface AccountService {
+  getMe(headers: Headers): Promise<MeDto>;
+  updateProfile(headers: Headers, input: unknown): Promise<MeDto>;
+  listSessions(headers: Headers): Promise<SessionListDto>;
+  revokeSession(headers: Headers, sessionId: string): Promise<void>;
+  revokeOtherSessions(headers: Headers): Promise<RevokedSessionsDto>;
+}
+
+/**
+ * The signed-in user's own account: profile and sessions. Every function starts with the session
+ * (guard 1) and only ever touches rows of that user; there is no pool here, the account is outside
+ * every pool. Responses are built from the output schemas (no token, no hash).
+ */
+export function createAccountService(deps: {
+  auth: Auth;
+  identity: IdentityDatabase;
+}): AccountService {
+  const { auth, identity } = deps;
+
+  async function current(headers: Headers) {
+    const result = await auth.api.getSession({ headers });
+    if (!result) throw new UnauthorizedError();
+    return result;
+  }
+
+  const toMe = (user: { id: string; name: string; email: string; emailVerified: boolean }) =>
+    MeDto.parse({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
+    });
+
+  return {
+    async getMe(headers) {
+      return toMe((await current(headers)).user);
+    },
+
+    async updateProfile(headers, input) {
+      const { name } = UpdateProfileInput.parse(input);
+      await current(headers);
+      await auth.api.updateUser({ headers, body: { name } });
+      return toMe((await current(headers)).user);
+    },
+
+    async listSessions(headers) {
+      const { user, session } = await current(headers);
+      const rows = await sessionsRepo.listActive(identity.db, user.id);
+      const sessions: SessionDto[] = rows.map((row) => ({
+        id: row.id,
+        current: row.id === session.id,
+        ...pick(parseUserAgent(row.userAgent)),
+        ipMasked: maskIp(row.ipAddress),
+        createdAt: row.createdAt.toISOString(),
+        lastActiveAt: row.updatedAt.toISOString(),
+        expiresAt: row.expiresAt.toISOString(),
+      }));
+      return SessionListDto.parse({ sessions });
+    },
+
+    async revokeSession(headers, sessionId) {
+      const { user } = await current(headers);
+      // Someone else's id, an unknown id and a malformed one all answer the same: 404.
+      if (!isUuid(sessionId)) throw new NotFoundError();
+      if (!(await sessionsRepo.deleteOwned(identity.db, user.id, sessionId))) {
+        throw new NotFoundError();
+      }
+    },
+
+    async revokeOtherSessions(headers) {
+      const { user, session } = await current(headers);
+      const revoked = await sessionsRepo.deleteOthers(identity.db, user.id, session.id);
+      return RevokedSessionsDto.parse({ revoked });
+    },
+  };
+}
+
+const pick = ({ browser, os, kind }: ReturnType<typeof parseUserAgent>) => ({ browser, os, kind });

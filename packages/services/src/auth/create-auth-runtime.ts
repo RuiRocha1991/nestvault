@@ -1,5 +1,6 @@
 import { createIdentityDatabase } from '@nestvault/db';
 
+import { createAccountService, type AccountService } from '../account';
 import type { EmailSender } from '../email';
 import type { Logger } from '../logger';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
@@ -20,6 +21,8 @@ export interface AuthRuntime {
   auth: Auth;
   /** Same identity connection as `auth`: sessions, users and rate-limit counters share one pool. */
   limiter: RateLimiter;
+  /** Profile and sessions of the signed-in user. */
+  account: AccountService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -40,5 +43,5 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     ...(config.trustedProxyHops !== undefined ? { trustedProxyHops: config.trustedProxyHops } : {}),
     ...(config.log ? { log: config.log } : {}),
   });
-  return { auth, limiter };
+  return { auth, limiter, account: createAccountService({ auth, identity }) };
 }

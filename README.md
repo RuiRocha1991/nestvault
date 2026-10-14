@@ -105,6 +105,11 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   (new password) and `/verificar/<token>` (confirm the email). In development every email lands in
   Mailpit (http://localhost:8025); open the link from there. `/verificar` shows "confirm your email"
   to a signed-in user whose address is not verified.
+- **My account:** `/conta` (link "A minha conta" in the sidebar footer): change the name, change the
+  email (the link goes to the new address and the email only changes once it is used), change the
+  password (the other sessions end and a notice is emailed) and see or end the active sessions. The
+  same data is available as `GET/PATCH /api/v1/me` and `/api/v1/me/sessions` (see Swagger UI and the
+  Postman "Account" folder). The location of each session (city) arrives with NES-108.
 - **Theme:** dark by default; the choice is stored in the `nv-theme` cookie and rendered on the
   server, so a refresh does not flash.
 - **Texts:** every visible string lives in `apps/web/messages/pt-PT.json` (English keys). ESLint

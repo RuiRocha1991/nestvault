@@ -31,7 +31,8 @@
     "allHolders": "Todos",
     "saveStatus": "Guardado neste navegador",
     "signOut": "Terminar sessão",
-    "signedInAs": "Sessão iniciada como"
+    "signedInAs": "Sessão iniciada como",
+    "myAccount": "A minha conta"
   },
   "theme": {
     "dark": "Tema escuro",
@@ -147,6 +148,71 @@
       "invalidTitle": "Esta ligação já não é válida",
       "invalidText": "A ligação de confirmação expirou ou não é válida. Pede uma nova a partir da tua conta.",
       "cooldown": " · {time}"
+    }
+  },
+  "account": {
+    "title": "A minha conta",
+    "lead": "Os teus dados pessoais e a segurança da tua conta. Aplicam-se a todos os agregados a que pertences.",
+    "profile": {
+      "title": "Perfil",
+      "name": "Nome",
+      "email": "Email",
+      "verified": "Verificado",
+      "unverified": "Por verificar",
+      "emailHint": "Alterar o email exige confirmação no novo endereço.",
+      "save": "Guardar perfil",
+      "saved": "Perfil guardado.",
+      "emailSent": "Enviámos uma ligação para <email></email>. O email só muda depois de a abrires.",
+      "emailInvalid": "Indica um email válido.",
+      "errorText": "Não foi possível guardar. Tenta novamente dentro de instantes.",
+      "lockedText": "Demasiados pedidos. Tenta novamente dentro de <time></time>.",
+      "confirmEmail": "Confirmar o email"
+    },
+    "password": {
+      "title": "Palavra-passe",
+      "current": "Palavra-passe atual",
+      "new": "Nova palavra-passe",
+      "confirm": "Confirmar",
+      "placeholder": "Mínimo de 12 caracteres",
+      "showPassword": "Mostrar palavra-passe",
+      "hidePassword": "Ocultar palavra-passe",
+      "note": "Ao alterar, terminamos a sessão em todos os outros dispositivos.",
+      "submit": "Alterar palavra-passe",
+      "saved": "Palavra-passe alterada.",
+      "wrongCurrent": "A palavra-passe atual está incorreta.",
+      "breached": "Esta palavra-passe apareceu numa fuga de dados. Escolhe outra.",
+      "mismatch": "As palavras-passe não coincidem.",
+      "errorText": "Não foi possível alterar. Tenta novamente dentro de instantes.",
+      "lockedText": "Demasiadas tentativas. Tenta novamente dentro de <time></time>."
+    },
+    "sessions": {
+      "title": "Sessões ativas",
+      "lead": "Dispositivos com a tua conta aberta. A sessão dura 30 dias de atividade.",
+      "device": "Dispositivo",
+      "lastActivity": "Última atividade",
+      "current": "Esta sessão",
+      "end": "Terminar",
+      "endOthers": "Terminar todas as outras",
+      "unknownDevice": "Dispositivo desconhecido",
+      "deviceOn": "{browser} em {os}",
+      "endLabel": "Terminar a sessão em {device}",
+      "endedOthers": "{count, plural, one {# sessão terminada.} other {# sessões terminadas.}}",
+      "errorText": "Não foi possível terminar. Tenta novamente dentro de instantes.",
+      "now": "agora"
+    },
+    "twoFactor": {
+      "title": "Autenticação em dois passos",
+      "soon": "Em breve",
+      "text": "Vais poder proteger a conta com uma aplicação de autenticação e códigos de recuperação.",
+      "activate": "Ativar"
+    },
+    "data": {
+      "title": "Os meus dados",
+      "text": "Descarrega uma cópia dos teus dados em JSON.",
+      "export": "Exportar os meus dados",
+      "deleteTitle": "Eliminar conta",
+      "deleteText": "Apaga a tua conta e remove-te dos agregados. Não apaga agregados com outros membros.",
+      "delete": "Eliminar a minha conta"
     }
   }
 }

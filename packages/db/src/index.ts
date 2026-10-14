@@ -17,5 +17,7 @@ export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase } from './identity/client';
 export { rateLimitsRepo } from './identity/repositories/rate-limits.repo';
 export type { WindowKey } from './identity/repositories/rate-limits.repo';
+export { sessionsRepo } from './identity/repositories/sessions.repo';
+export type { SessionRow } from './identity/repositories/sessions.repo';
 export { usersRepo } from './identity/repositories/users.repo';
 export type { NewCredentialUser } from './identity/repositories/users.repo';

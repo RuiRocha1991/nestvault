@@ -2,6 +2,7 @@ import {
   createAuthRuntime,
   createSmtpSender,
   logger,
+  type AccountService,
   type Auth,
   type AuthRuntime,
   type RateLimiter,
@@ -50,4 +51,8 @@ export async function getAuth(): Promise<Auth> {
 
 export async function getRateLimiter(): Promise<RateLimiter> {
   return (await getRuntime()).limiter;
+}
+
+export async function getAccountService(): Promise<AccountService> {
+  return (await getRuntime()).account;
 }
