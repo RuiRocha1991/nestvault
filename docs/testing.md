@@ -57,7 +57,9 @@ query)`. `APP_URL`, `PASSWORD` and `SECRET` are exported too.
   (4000 stays free for `pnpm dev`). Chromium comes from `pnpm exec playwright install chromium`,
   or from `/opt/pw-browsers` when that folder exists. A second server on port **4011** (same build,
   same `_test` databases) runs with `ALLOW_SIGNUP=true` for the sign-up tests; the first keeps
-  sign-up closed. Each has its own `APP_URL`, because the Origin check compares against it.
+  sign-up closed. The servers are one list in `playwright.config.ts`. The second one is only started
+  when the run can need it: a full run, or one that names `signup` (`pnpm test:e2e login` starts just
+  the first); `E2E_SIGNUP_SERVER=1|0` forces it on or off. Each has its own `APP_URL`, because the Origin check compares against it.
 - `smoke.spec.ts`: the shell loads, navigation works, the theme survives a reload.
   `csp.spec.ts`: no Content-Security-Policy violation on the shell pages.
 - Failures keep a trace and an HTML report (CI uploads them as the `playwright-report` artifact).
