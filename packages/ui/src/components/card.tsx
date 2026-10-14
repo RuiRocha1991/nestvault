@@ -27,7 +27,7 @@ export function CardHeader({ title, subtitle, actions, headingLevel = 2 }: CardH
     <header className="flex flex-wrap items-center gap-2">
       <div className="mr-auto flex min-w-0 flex-col">
         <Heading className="text-lg font-semibold">{title}</Heading>
-        {subtitle ? <p className="text-sm text-fg-3">{subtitle}</p> : null}
+        {!!subtitle && <p className="text-sm text-fg-3">{subtitle}</p>}
       </div>
       {actions}
     </header>

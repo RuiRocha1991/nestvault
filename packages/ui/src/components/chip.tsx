@@ -29,9 +29,9 @@ export interface ChipProps
 export function Chip({ className, tone, dotColor, children, ...props }: ChipProps) {
   return (
     <span className={cn(chipStyles({ tone }), className)} {...props}>
-      {dotColor ? (
+      {!!dotColor && (
         <i aria-hidden className="size-[7px] rounded-full" style={{ background: dotColor }} />
-      ) : null}
+      )}
       {children}
     </span>
   );

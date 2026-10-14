@@ -58,11 +58,11 @@ export function Modal({
             <Dialog.Description className="sr-only">{title}</Dialog.Description>
           )}
           <div className="flex flex-col gap-4 p-5">{children}</div>
-          {footer ? (
+          {!!footer && (
             <footer className="flex justify-end gap-2 border-t border-line px-5 pb-4 pt-3">
               {footer}
             </footer>
-          ) : null}
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

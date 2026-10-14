@@ -78,26 +78,25 @@ export function Sidebar({ poolId, portfolios, theme, userName }: SidebarProps) {
                   <item.icon aria-hidden className="size-[18px] shrink-0" />
                   {t(`nav.items.${item.key}`)}
                 </Link>
-                {item.key === 'portfolios'
-                  ? portfolios.map((portfolio) => {
-                      const href = `${base}/portfolios/${portfolio.id}`;
-                      return (
-                        <Link
-                          key={portfolio.id}
-                          href={href}
-                          aria-current={pathname === href ? 'page' : undefined}
-                          className={cn(linkStyles, 'py-1.5 pl-[42px] text-sm')}
-                        >
-                          <i
-                            aria-hidden
-                            className="-ml-5 size-2 shrink-0 rounded-full"
-                            style={{ background: portfolio.color }}
-                          />
-                          {portfolio.name}
-                        </Link>
-                      );
-                    })
-                  : null}
+                {item.key === 'portfolios' &&
+                  portfolios.map((portfolio) => {
+                    const href = `${base}/portfolios/${portfolio.id}`;
+                    return (
+                      <Link
+                        key={portfolio.id}
+                        href={href}
+                        aria-current={pathname === href ? 'page' : undefined}
+                        className={cn(linkStyles, 'py-1.5 pl-[42px] text-sm')}
+                      >
+                        <i
+                          aria-hidden
+                          className="-ml-5 size-2 shrink-0 rounded-full"
+                          style={{ background: portfolio.color }}
+                        />
+                        {portfolio.name}
+                      </Link>
+                    );
+                  })}
               </div>
             ))}
           </div>

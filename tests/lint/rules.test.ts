@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const eslint = new ESLint({
   cwd: process.cwd(),
   // Fixture paths do not exist on disk, so type-aware linting is switched off for these checks.
-  overrideConfig: [{ ...tseslint.configs.disableTypeChecked, files: ['**/*.ts'] }],
+  overrideConfig: [{ ...tseslint.configs.disableTypeChecked, files: ['**/*.ts', '**/*.tsx'] }],
 });
 
 async function ruleIds(code: string, filePath: string): Promise<string[]> {
@@ -119,6 +119,25 @@ describe('Node-only config entry', () => {
     );
     expect(await ruleIds(nodeImport, 'apps/worker/src/index.ts')).not.toContain(
       'no-restricted-imports',
+    );
+  });
+});
+
+describe('conditional JSX', () => {
+  const ternary = 'export const a = (x: boolean) => <div>{x ? <b /> : null}</div>;\n';
+  const and = 'export const a = (x: boolean) => <div>{x && <b />}</div>;\n';
+  const other = 'export const a = (x: boolean) => <div>{x ? <b /> : <i />}</div>;\n';
+  const file = 'apps/web/src/components/x.tsx';
+
+  it('rejects `cond ? <X /> : null` and accepts `&&` and a ternary with two elements', async () => {
+    expect(await ruleIds(ternary, file)).toContain('no-restricted-syntax');
+    expect(await ruleIds(and, file)).not.toContain('no-restricted-syntax');
+    expect(await ruleIds(other, file)).not.toContain('no-restricted-syntax');
+  });
+
+  it('applies to packages/ui as well', async () => {
+    expect(await ruleIds(ternary, 'packages/ui/src/components/x.tsx')).toContain(
+      'no-restricted-syntax',
     );
   });
 });

@@ -61,6 +61,14 @@ const noJsxTextAttribute = {
   message: 'Hard-coded text in a JSX attribute. Use a next-intl message.',
 };
 
+// Conditional JSX is `cond && <X />`, not `cond ? <X /> : null`. A ReactNode condition that can be
+// 0 is written `!!value && …` so the 0 is never rendered.
+const noJsxTernaryNull = {
+  selector:
+    "JSXExpressionContainer > ConditionalExpression[alternate.type='Literal'][alternate.raw='null']",
+  message: 'Use `condition && <X />` instead of `condition ? <X /> : null` in JSX.',
+};
+
 export default defineConfig(
   {
     ignores: [
@@ -146,7 +154,13 @@ export default defineConfig(
     // User-facing components: UI text is translated, never typed into the JSX.
     files: ['apps/web/src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
     rules: {
-      'no-restricted-syntax': ['error', ...baseRestrictions, noJsxText, noJsxTextAttribute],
+      'no-restricted-syntax': [
+        'error',
+        ...baseRestrictions,
+        noJsxText,
+        noJsxTextAttribute,
+        noJsxTernaryNull,
+      ],
     },
   },
 );
