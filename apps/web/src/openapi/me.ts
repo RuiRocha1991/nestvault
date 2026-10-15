@@ -1,7 +1,13 @@
-import { MeDto, RevokedSessionsDto, SessionListDto, UpdateProfileInput } from '@nestvault/services';
+import {
+  MeDto,
+  MeWithPoolsDto,
+  RevokedSessionsDto,
+  SessionListDto,
+  UpdateProfileInput,
+} from '@nestvault/services';
 import { z } from 'zod';
 
-import { errorResponses, registry } from './registry';
+import { errorResponses, json, registry } from './registry';
 
 // The signed-in user's own account: outside every pool, so there is no `poolId`. A user can only
 // see and end their own sessions. No response carries a session token, a token hash or a full IP.
@@ -9,18 +15,22 @@ import { errorResponses, registry } from './registry';
 // The schemas come from the services and are created before the registry extends zod, so they are
 // used inline (like the health check) instead of being registered as named components.
 const Me = MeDto;
+const MeWithPools = MeWithPoolsDto;
 const UpdateProfileBody = UpdateProfileInput;
 const SessionList = SessionListDto;
 const RevokedSessions = RevokedSessionsDto;
-const json = <T extends z.ZodType>(schema: T) => ({ content: { 'application/json': { schema } } });
 
 registry.registerPath({
   method: 'get',
   path: '/api/v1/me',
   operationId: 'getMe',
-  summary: 'The signed-in user',
+  summary: 'The signed-in user and their pools',
+  description: 'Pools are listed most recently active first, each with the caller’s role.',
   tags: ['Account'],
-  responses: { 200: { description: 'Profile', ...json(Me) }, ...errorResponses(401, 429, 500) },
+  responses: {
+    200: { description: 'Profile and pools', ...json(MeWithPools) },
+    ...errorResponses(401, 429, 500),
+  },
 });
 
 registry.registerPath({

@@ -1,8 +1,10 @@
 import { sql } from 'drizzle-orm';
 
 import { testEnv } from '@nestvault/config/node';
-import { createIdentityDatabase } from '@nestvault/db';
+import { createIdentityDatabase, poolMembersRepo } from '@nestvault/db';
 import { seedOwner } from '@nestvault/services';
+
+import { E2E_POOL_ID } from './user';
 
 /** Mailpit's web API (docker-compose publishes it on 127.0.0.1:8025). */
 const MAILPIT = 'http://127.0.0.1:8025/api/v1';
@@ -42,15 +44,27 @@ export function linkPath(text: string, page: string): string {
   return match[1];
 }
 
-/** A user of their own, so that a reset or a verification never touches the shared E2E owner. */
-export async function createUser(input: { email: string; password: string; verified?: boolean }) {
+/**
+ * A user of their own, so that a reset or a verification never touches the shared E2E owner. By
+ * default a member of the E2E pool; `joinPool: false` gives a user without any pool.
+ */
+export async function createUser(input: {
+  email: string;
+  password: string;
+  verified?: boolean;
+  joinPool?: boolean;
+}) {
   const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 1);
   try {
-    await seedOwner(identity, {
+    const { userId } = await seedOwner(identity, {
       name: 'E2E Reset',
       email: input.email,
       password: input.password,
     });
+    // A member of the E2E pool, so signing in lands there like it does for a one-pool user.
+    if (input.joinPool !== false) {
+      await poolMembersRepo.insert(identity.db, { poolId: E2E_POOL_ID, userId, role: 'member' });
+    }
     if (input.verified === false) {
       await identity.db.execute(
         sql`update "user" set email_verified = false where email = ${input.email}`,

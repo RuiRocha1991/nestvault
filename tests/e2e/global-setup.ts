@@ -1,12 +1,12 @@
 import { request } from '@playwright/test';
 
 import { testEnv } from '@nestvault/config/node';
-import { createIdentityDatabase } from '@nestvault/db';
+import { createIdentityDatabase, poolMembersRepo, poolsRepo } from '@nestvault/db';
 import { seedOwner } from '@nestvault/services';
 
 import { prepareTestDatabases } from '../db/harness';
 
-import { E2E_ORIGIN, E2E_USER, STORAGE_STATE } from './support/user';
+import { E2E_ORIGIN, E2E_POOL_ID, E2E_USER, STORAGE_STATE } from './support/user';
 
 /**
  * Resets the `_test` databases, creates the E2E owner and saves a signed-in session for the specs
@@ -17,7 +17,9 @@ export default async function globalSetup(): Promise<void> {
   await prepareTestDatabases();
   const identity = createIdentityDatabase(testEnv().TEST_DATABASE_URL_IDENTITY, 1);
   try {
-    await seedOwner(identity, E2E_USER);
+    const { userId } = await seedOwner(identity, E2E_USER);
+    await poolsRepo.insert(identity.db, { id: E2E_POOL_ID, name: 'Família E2E' });
+    await poolMembersRepo.insert(identity.db, { poolId: E2E_POOL_ID, userId, role: 'owner' });
   } finally {
     await identity.close();
   }

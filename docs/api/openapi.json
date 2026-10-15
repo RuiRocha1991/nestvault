@@ -26,6 +26,10 @@
       "description": "Profile and sessions of the signed-in user"
     },
     {
+      "name": "Pools",
+      "description": "Households of the signed-in user"
+    },
+    {
       "name": "Auth",
       "description": "Sign-up, sign-in, sessions and passwords (Better Auth)"
     }
@@ -962,13 +966,14 @@
     "/api/v1/me": {
       "get": {
         "operationId": "getMe",
-        "summary": "The signed-in user",
+        "summary": "The signed-in user and their pools",
+        "description": "Pools are listed most recently active first, each with the caller’s role.",
         "tags": [
           "Account"
         ],
         "responses": {
           "200": {
-            "description": "Profile",
+            "description": "Profile and pools",
             "content": {
               "application/json": {
                 "schema": {
@@ -987,13 +992,58 @@
                     },
                     "emailVerified": {
                       "type": "boolean"
+                    },
+                    "pools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "admin",
+                              "member",
+                              "viewer"
+                            ]
+                          },
+                          "memberCount": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "lastActivityAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "role",
+                          "memberCount",
+                          "lastActivityAt",
+                          "createdAt"
+                        ]
+                      }
                     }
                   },
                   "required": [
                     "id",
                     "name",
                     "email",
-                    "emailVerified"
+                    "emailVerified",
+                    "pools"
                   ]
                 }
               }
@@ -1503,6 +1553,148 @@
           },
           "403": {
             "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools": {
+      "post": {
+        "operationId": "createPool",
+        "summary": "Create a pool",
+        "description": "The name is trimmed and must have 1-60 characters without control characters. The caller becomes the `owner` and the only member. At most 10 pools per owner (409 beyond that). The pool, the membership and the `pool.created` audit entry are written in one transaction. Unknown fields (`role`, `id`, `ownerId`…) answer 400.",
+        "tags": [
+          "Pools"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new pool",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "owner",
+                        "admin",
+                        "member",
+                        "viewer"
+                      ]
+                    },
+                    "memberCount": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "lastActivityAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "role",
+                    "memberCount",
+                    "lastActivityAt",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
             "content": {
               "application/json": {
                 "schema": {

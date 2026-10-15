@@ -4,7 +4,7 @@ import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
 import { clearMailbox, createUser, linkPath, waitForEmail } from './support/mailpit';
 import { fillAndSubmit } from './support/sign-in';
-import { E2E_ORIGIN } from './support/user';
+import { E2E_ORIGIN, poolUrl } from './support/user';
 
 const forgot = messages.auth.forgot;
 const reset = messages.auth.reset;
@@ -66,7 +66,7 @@ for (const theme of ['dark', 'light'] as const) {
       page.getByRole('alert').filter({ hasText: messages.auth.login.invalidTitle }),
     ).toBeVisible();
     await fillAndSubmit(page, email, NEW_PASSWORD);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
 
     // 55: the same link cannot be used again
     await page.context().clearCookies();

@@ -4,7 +4,7 @@ import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
 import { clearMailbox, createUser, linkPath, waitForEmail } from './support/mailpit';
 import { alertWith, fillAndSubmit } from './support/sign-in';
-import { E2E_OPEN_SIGNUP_ORIGIN, E2E_ORIGIN } from './support/user';
+import { E2E_OPEN_SIGNUP_ORIGIN, E2E_ORIGIN, poolPath, poolUrl } from './support/user';
 
 const signup = messages.auth.signup;
 const login = messages.auth.login;
@@ -85,7 +85,7 @@ test.describe('sign-up open (ALLOW_SIGNUP=true)', () => {
     await fillAndSubmit(page, email, PASSWORD);
     await expect(alertWith(page, login.unverifiedTitle)).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
-    await page.goto('/demo');
+    await page.goto(poolPath());
     await expect(page).toHaveURL(/\/login\?next=/);
 
     // The link confirms the address; now sign-in works.
@@ -93,7 +93,7 @@ test.describe('sign-up open (ALLOW_SIGNUP=true)', () => {
     await expect(page.getByRole('heading', { name: verify.doneTitle })).toBeVisible();
     await page.goto('/login');
     await fillAndSubmit(page, email, PASSWORD);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(/\/pools$/);
   });
 
   test('the light theme renders the sign-up form', async ({ page, context }) => {
@@ -122,7 +122,7 @@ test.describe('sign-up open (ALLOW_SIGNUP=true)', () => {
     // The old password still works: nothing was changed.
     await page.goto('/login');
     await fillAndSubmit(page, email, PASSWORD);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
   });
 
   test('the server rejects a common password even when the form is bypassed', async ({

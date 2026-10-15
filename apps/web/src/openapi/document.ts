@@ -3,6 +3,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 import './auth';
 import './health';
 import './me';
+import './pools';
 import { registry } from './registry';
 
 /** The OpenAPI 3.1 document of every `/api/v1` endpoint. Import new endpoint modules above. */
@@ -19,6 +20,7 @@ export function buildOpenApiDocument() {
     tags: [
       { name: 'System', description: 'Process-level endpoints' },
       { name: 'Account', description: 'Profile and sessions of the signed-in user' },
+      { name: 'Pools', description: 'Households of the signed-in user' },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },
     ],
   });

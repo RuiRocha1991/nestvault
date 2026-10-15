@@ -1,5 +1,5 @@
 import { extendZodWithOpenApi, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
-import { z } from 'zod';
+import { type ZodType, z } from 'zod';
 
 // Must run before any schema calls `.openapi()`; every OpenAPI module imports the registry first.
 extendZodWithOpenApi(z);
@@ -42,6 +42,11 @@ const ERROR_DESCRIPTIONS = {
 } as const;
 
 type ErrorStatus = keyof typeof ERROR_DESCRIPTIONS;
+
+/** Wraps a zod schema in a JSON content object for OpenAPI request/response bodies. */
+export const json = <T extends ZodType>(schema: T) => ({
+  content: { 'application/json': { schema } },
+});
 
 /** The `responses` entries for the given error statuses, all using the shared body. */
 export function errorResponses(...statuses: ErrorStatus[]) {

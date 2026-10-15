@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
 import { alertWith, fillAndSubmit, signInAsOwner } from './support/sign-in';
-import { E2E_ORIGIN, E2E_USER } from './support/user';
+import { E2E_ORIGIN, E2E_USER, loginNextUrl, poolPath, poolUrl } from './support/user';
 
 const login = messages.auth.login;
 const NAV = messages.nav.label;
@@ -17,20 +17,20 @@ test('sign in → see the app → sign out → back at the login screen', async 
   await expect(page.getByRole('heading', { level: 1, name: login.title })).toBeVisible();
 
   await fillAndSubmit(page, E2E_USER.email, E2E_USER.password);
-  await expect(page).toHaveURL(/\/demo$/); // /pools hands over to the development pool for now
+  await expect(page).toHaveURL(poolUrl()); // /pools hands over to the development pool for now
   await expect(page.getByRole('navigation', { name: NAV })).toBeVisible();
 
   await page.getByRole('button', { name: messages.shell.signOut }).click();
   await expect(page).toHaveURL(/\/login$/);
 
   // The cookie is gone and the old session is dead: the app asks for the login again.
-  await page.goto('/demo');
-  await expect(page).toHaveURL(/\/login\?next=%2Fdemo$/);
+  await page.goto(poolPath());
+  await expect(page).toHaveURL(loginNextUrl());
 });
 
 test('the revoked session cookie no longer works', async ({ page, context, request }) => {
   await signInAsOwner(page);
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(poolUrl());
   const cookies = await context.cookies();
   const cookie = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
@@ -47,10 +47,10 @@ test('the revoked session cookie no longer works', async ({ page, context, reque
 test('an unauthenticated page request goes to /login with the page as next, and sign-in returns to it', async ({
   page,
 }) => {
-  await page.goto('/demo/despesas');
-  await expect(page).toHaveURL(/\/login\?next=%2Fdemo%2Fdespesas$/);
+  await page.goto(poolPath('/despesas'));
+  await expect(page).toHaveURL(loginNextUrl('/despesas'));
   await fillAndSubmit(page, E2E_USER.email, E2E_USER.password);
-  await expect(page).toHaveURL(/\/demo\/despesas$/);
+  await expect(page).toHaveURL(poolUrl('/despesas'));
 });
 
 test('wrong password and unknown email show the same message', async ({ page }) => {
@@ -83,18 +83,18 @@ for (const next of [
 ]) {
   test(`next=${next} is ignored after sign-in`, async ({ page }) => {
     await signInAsOwner(page, `/login?next=${encodeURIComponent(next)}`);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
     expect(new URL(page.url()).hostname).toBe('127.0.0.1');
   });
 }
 
 test('someone who is already signed in is sent into the app from /login', async ({ page }) => {
   await signInAsOwner(page);
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(poolUrl());
   await page.goto('/login');
-  await expect(page).toHaveURL(/\/demo$/);
-  await page.goto('/login?next=%2Fdemo%2Fcontas');
-  await expect(page).toHaveURL(/\/demo\/contas$/);
+  await expect(page).toHaveURL(poolUrl());
+  await page.goto(`/login?next=${encodeURIComponent(poolPath('/contas'))}`);
+  await expect(page).toHaveURL(poolUrl('/contas'));
 });
 
 test('the password can be shown and hidden', async ({ page }) => {

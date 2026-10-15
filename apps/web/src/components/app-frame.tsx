@@ -5,22 +5,36 @@ import type { ReactNode } from 'react';
 
 import { AppShell } from '@webapp/components/shell';
 import { Sidebar } from '@webapp/components/sidebar';
+import type { PoolSummary } from '@webapp/lib/pool';
 import { parseTheme, THEME_COOKIE } from '@webapp/lib/theme';
+import { getMyPools } from '@webapp/server/pool';
 import { getCurrentSession } from '@webapp/server/session';
 
 /** The sidebar and the content column shared by the pool pages and the account page. */
-export async function AppFrame({ poolId, children }: { poolId: string; children: ReactNode }) {
+export async function AppFrame({
+  pool,
+  pools: poolsProp,
+  children,
+}: {
+  pool: PoolSummary;
+  /** Pass from the layout to avoid a second `getMyPools` call; falls back to fetching otherwise. */
+  pools?: readonly PoolSummary[];
+  children: ReactNode;
+}) {
   const t = await getTranslations('shell');
   // The (app) layout already redirected anonymous users; the session is cached for this request.
   const session = await getCurrentSession();
   if (!session) notFound();
+  const pools = poolsProp ?? (await getMyPools()).pools;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
   return (
     <AppShell
       scrimLabel={t('closeMenu')}
       skipLabel={t('skipToContent')}
-      sidebar={<Sidebar poolId={poolId} portfolios={[]} theme={theme} userName={session.name} />}
+      sidebar={
+        <Sidebar pool={pool} pools={pools} portfolios={[]} theme={theme} userName={session.name} />
+      }
     >
       <main id="content" tabIndex={-1} className="outline-none">
         {children}

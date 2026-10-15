@@ -11,6 +11,15 @@ export interface IdentityDatabase {
   close(): Promise<void>;
 }
 
+/**
+ * What a repository needs to run a statement: the connection or a transaction opened on it. Writes
+ * that must commit together (a pool, its owner and the audit entry) take the transaction.
+ */
+export type IdentityExecutor = Pick<
+  IdentityDatabase['db'],
+  'select' | 'insert' | 'update' | 'delete' | 'execute'
+>;
+
 /** Connection to `nestvault_identity` as `identity_rw` (it cannot reach the app database). */
 export function createIdentityDatabase(
   connectionString: string,

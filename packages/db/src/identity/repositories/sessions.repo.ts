@@ -56,6 +56,20 @@ export const sessionsRepo = {
       );
   },
 
+  /** The pool the session last worked in, or `null`. Only reads the user's own session. */
+  async activePool(
+    db: IdentityDatabase['db'],
+    userId: string,
+    sessionId: string,
+  ): Promise<string | null> {
+    const [row] = await db
+      .select({ activePoolId: session.activePoolId })
+      .from(session)
+      .where(and(eq(session.id, sessionId), eq(session.userId, userId)))
+      .limit(1);
+    return row?.activePoolId ?? null;
+  },
+
   /** Deletes one session of the user. `false` when it does not exist or belongs to someone else. */
   async deleteOwned(db: IdentityDatabase['db'], userId: string, sessionId: string) {
     const deleted = await db

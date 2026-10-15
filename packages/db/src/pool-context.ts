@@ -3,6 +3,10 @@ declare const poolContextBrand: unique symbol;
 export const ROLES = ['owner', 'admin', 'member', 'viewer'] as const;
 export type Role = (typeof ROLES)[number];
 
+/** The role a stored string stands for, or `null` for anything else. */
+export const parseRole = (value: unknown): Role | null =>
+  ROLES.find((candidate) => candidate === value) ?? null;
+
 /** Who is acting inside a pool: a signed-in member, or a worker job acting as the system. */
 export type PoolActor =
   { readonly kind: 'user'; readonly userId: string } | { readonly kind: 'system' };
