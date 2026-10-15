@@ -48,6 +48,20 @@ const TRUNCATE_EVERYTHING = `
 `;
 
 /**
+ * `audit_log` rejects TRUNCATE for every role, so resetting the identity database goes through the
+ * documented maintenance path: disable the triggers, truncate, re-enable, all in one transaction.
+ */
+const TRUNCATE_IDENTITY = `
+  BEGIN;
+  ALTER TABLE public.audit_log DISABLE TRIGGER audit_log_reject_row_rewrite;
+  ALTER TABLE public.audit_log DISABLE TRIGGER audit_log_reject_truncate;
+  ${TRUNCATE_EVERYTHING}
+  ALTER TABLE public.audit_log ENABLE TRIGGER audit_log_reject_row_rewrite;
+  ALTER TABLE public.audit_log ENABLE TRIGGER audit_log_reject_truncate;
+  COMMIT;
+`;
+
+/**
  * Once per test run: reset the `_test` databases, apply the real migrations, then add the probe
  * table. The migration user owns the databases but cannot create new ones, and dropping the
  * schema would lose the default privileges for app_rw, so tables are dropped one by one.
@@ -80,6 +94,8 @@ export interface TestDatabase {
   withPool: PoolRunner;
   /** Run SQL as the migration user (owner) against the app test database. */
   asMigrator<T>(run: (pool: Pool) => Promise<T>): Promise<T>;
+  /** Run SQL as the migration user (owner) against the identity test database. */
+  asIdentityMigrator<T>(run: (pool: Pool) => Promise<T>): Promise<T>;
   /** Empty every table in both databases between tests. */
   truncateAll(): Promise<void>;
   close(): Promise<void>;
@@ -94,10 +110,11 @@ export function openTestDatabase(maxConnections = 4): TestDatabase {
     app,
     withPool: createWithPool(() => app),
     asMigrator: (run) => withMigrator(env.TEST_MIGRATOR_URL_APP, run),
+    asIdentityMigrator: (run) => withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, run),
     async truncateAll() {
       await Promise.all([
         withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(TRUNCATE_EVERYTHING)),
-        withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(TRUNCATE_EVERYTHING)),
+        withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(TRUNCATE_IDENTITY)),
       ]);
     },
     close: () => app.close(),

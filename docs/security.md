@@ -168,8 +168,12 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   identity database (`packages/services/src/audit`: `recordAudit` for pool actions, with pool and
   actor taken from the `PoolContext`; `recordAccountAudit` for sign-in, failed sign-in, password
   change and session revocation, wired into the Better Auth hooks and the account service). The
-  migration revokes UPDATE, DELETE and TRUNCATE from `identity_rw`; the table has no foreign keys,
-  so no cascade can erase history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`) with
+  migration revokes UPDATE, DELETE and TRUNCATE from `identity_rw` (layer 1: privileges), and
+  `0005_audit_log_insert_only_trigger` adds a `BEFORE UPDATE OR DELETE` row trigger and a
+  `BEFORE TRUNCATE` trigger that raise `audit_log is insert-only` for every role, the owner
+  included (layer 2: a later `GRANT ALL`, `ALTER DEFAULT PRIVILEGES` or inheriting role cannot
+  restore the ability to rewrite history); the table has no foreign keys, so no cascade can erase
+  history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`) with
   short codes, numbers or booleans, so amounts, IBANs, notes, emails and tokens cannot get in; the
   target must be an id, the placeholder for an unknown address is not stored. A failed account
   entry is logged and never blocks the user; a pool entry throws, so the action does not look done.
@@ -177,7 +181,20 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (`audit.read`) can list a pool's entries (`listAuditLog`, addresses masked). Verified by
   `tests/services/audit.integration.test.ts` (UPDATE/DELETE/TRUNCATE refused, one entry per
   action, forbidden meta dropped, injection payloads, 403 for non-owners, pool isolation) and
-  `tests/services/audit-meta.test.ts`.
+  `tests/services/audit-meta.test.ts`; layer 2 by `tests/db/audit-log-trigger.integration.test.ts`
+  (UPDATE/DELETE/TRUNCATE fail with the trigger error, not `permission denied`, even for the table
+  owner, who holds those privileges; both triggers exist and are enabled; INSERT and reads work).
+  **Retention:** nothing deletes audit entries automatically. If entries older than the retention
+  period (default 730 days) must go, the migration user (never the application) runs, in one
+  transaction: `BEGIN; ALTER TABLE audit_log DISABLE TRIGGER audit_log_reject_row_rewrite;
+  DELETE FROM audit_log WHERE at < now() - interval '730 days'; ALTER TABLE audit_log ENABLE
+  TRIGGER audit_log_reject_row_rewrite; COMMIT;`. The DISABLE is transactional and takes an
+  exclusive lock, so no other session sees the table unprotected, and an aborted run leaves the
+  trigger enabled. The test suite resets the identity database the same way (TRUNCATE with both
+  triggers disabled, in a transaction). The procedure is tested in
+  `tests/db/audit-log-trigger.integration.test.ts`; a direct DELETE fails, the same DELETE inside
+  the procedure removes only the old row. A partitioned table was rejected as too heavy for
+  household scale.
 - **Creating a pool (NES-26):** `POST /api/v1/pools` has no membership to check yet, so its guards
   are the session (401), the strict one-field body (400 for `role`, `id`, `ownerId`…), the `Origin`
   check, the `api` rate limit and a cap of 10 owned pools per user (409). The owner is always the

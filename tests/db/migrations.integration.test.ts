@@ -23,14 +23,14 @@ describe('migrations', () => {
     query<{ n: string }>(url, 'select count(*)::text as n from drizzle.__drizzle_migrations');
 
   it('are applied by the global setup to both databases', async () => {
-    expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('5');
+    expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('6');
     expect((await migrationRows(targets.appUrl))[0]?.n).toBe('1');
   });
 
   it('are idempotent: running them again changes nothing and does not fail', async () => {
     await runMigrations(targets);
     await runMigrations(targets);
-    expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('5');
+    expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('6');
     expect((await migrationRows(targets.appUrl))[0]?.n).toBe('1');
   });
 
