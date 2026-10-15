@@ -3,6 +3,7 @@ import { poolsRepo, sessionsRepo, type IdentityDatabase, type Role } from '@nest
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { NotFoundError, ValidationError } from '../errors';
+import { permissionsFor, type Permission } from '../guards/permissions';
 import { requirePoolAccess } from '../guards/pool-access';
 import { clientIpResolver } from '../rate-limit/client-ip';
 
@@ -19,6 +20,8 @@ export interface PoolsService {
   create(headers: Headers, input: unknown): Promise<PoolSummaryDto>;
   /** One pool of the caller (guards 1 and 3: 401 without a session, 404 for a non-member). */
   open(headers: Headers, poolId: string): Promise<PoolSummaryDto>;
+  /** What the caller may do in the pool, so pages can hide actions (cosmetic; services enforce). */
+  permissions(headers: Headers, poolId: string): Promise<readonly Permission[]>;
 }
 
 /**
@@ -77,6 +80,12 @@ export function createPoolsService(deps: {
         lastActivityAt: now,
         createdAt: now,
       });
+    },
+
+    async permissions(headers, poolId) {
+      const session = await requireSession(auth, headers);
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      return [...permissionsFor(ctx)];
     },
 
     async open(headers, poolId) {

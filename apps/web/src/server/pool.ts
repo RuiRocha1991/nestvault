@@ -5,6 +5,16 @@ import { cache } from 'react';
 
 import { getPoolsService } from './auth';
 
+/** What the caller may do in the pool (for hiding what they cannot do; services still enforce it). */
+export const getPoolPermissions = cache(async (poolId: string) => {
+  try {
+    return await (await getPoolsService()).permissions(await headers(), poolId);
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+});
+
 /** The pools of the current user and the one the session worked in last (once per request). */
 export const getMyPools = cache(async () => (await getPoolsService()).listMine(await headers()));
 
