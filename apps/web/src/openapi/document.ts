@@ -2,6 +2,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
 import './auth';
 import './health';
+import './invites';
 import './me';
 import './pools';
 import { registry } from './registry';
@@ -21,6 +22,7 @@ export function buildOpenApiDocument() {
       { name: 'System', description: 'Process-level endpoints' },
       { name: 'Account', description: 'Profile and sessions of the signed-in user' },
       { name: 'Pools', description: 'Households of the signed-in user' },
+      { name: 'Invites', description: 'Invite people to a pool by email and accept invites' },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },
     ],
   });

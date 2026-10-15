@@ -49,6 +49,9 @@ export const RATE_LIMIT_BUCKETS = {
   api: { limit: 300, windowSeconds: MINUTE, onError: 'open' },
   imports: { limit: 20, windowSeconds: HOUR, onError: 'open' },
   invites: { limit: 20, windowSeconds: DAY, onError: 'open' },
+  // The public invite page and the invite check of sign-up: keyed by client IP (loose, tokens are
+  // 256 random bits, so this only keeps strangers from hammering the lookup).
+  'invites.lookup': { limit: 60, windowSeconds: MINUTE, onError: 'open' },
 } satisfies Record<string, BucketDefinition>;
 
 export type RateLimitBucket = keyof typeof RATE_LIMIT_BUCKETS;

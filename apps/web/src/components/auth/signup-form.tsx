@@ -15,7 +15,7 @@ import { passwordProblemOf, type PasswordProblem } from '@webapp/lib/password-pr
 import { checkPassword } from '@webapp/lib/password-strength';
 import { postJson, readOutcome } from '@webapp/lib/post-json';
 import { parseRetryAfter } from '@webapp/lib/sign-in';
-import { signUpSchema } from '@webapp/lib/sign-up';
+import { INVITE_TOKEN_HEADER, signUpSchema } from '@webapp/lib/sign-up';
 import { useCountdown } from '@webapp/lib/use-countdown';
 
 const STRENGTH_KEYS = ['veryWeak', 'weak', 'fair', 'good', 'strong'] as const;
@@ -27,12 +27,17 @@ type Problem = PasswordProblem | 'error' | null;
  * the next screen ("confirm your email") is shown either way; the rules shown here are guidance and
  * the server enforces them again.
  */
-export function SignupForm() {
+export function SignupForm({
+  invite,
+}: {
+  invite?: { token: string; email: string; poolName: string };
+}) {
   const t = useTranslations('auth.signup');
+  const tInvite = useTranslations('invite.signup');
   const router = useRouter();
   const ids = { name: useId(), email: useId(), password: useId(), confirm: useId() };
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(invite?.email ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [pending, setPending] = useState(false);
@@ -69,7 +74,13 @@ export function SignupForm() {
     setPending(true);
     setProblem(null);
     try {
-      const outcome = await readOutcome(await postJson('/api/v1/auth/sign-up/email', parsed.data));
+      const outcome = await readOutcome(
+        await postJson(
+          '/api/v1/auth/sign-up/email',
+          parsed.data,
+          invite ? { [INVITE_TOKEN_HEADER]: invite.token } : {},
+        ),
+      );
       if (outcome.ok) {
         setSentTo(parsed.data.email);
         return;
@@ -88,15 +99,32 @@ export function SignupForm() {
     setPending(false);
   }
 
-  if (sentTo) return <VerifyPending email={sentTo} variant="signup" />;
+  if (sentTo) {
+    return invite ? (
+      <VerifyPending
+        email={sentTo}
+        variant="signup"
+        back={{ href: `/convite/${encodeURIComponent(invite.token)}`, label: tInvite('back') }}
+        extraHint={tInvite('afterConfirm')}
+      />
+    ) : (
+      <VerifyPending email={sentTo} variant="signup" />
+    );
+  }
 
   const fieldProblem = problem !== null && problem !== 'error' ? problem : null;
 
   return (
     <>
       <div className="flex flex-col gap-2.5">
-        <h1 className="text-2xl font-bold tracking-[-0.01em]">{t('title')}</h1>
-        <p className="text-md text-fg-2">{t('lead')}</p>
+        <h1 className="text-2xl font-bold tracking-[-0.01em]">
+          {invite ? tInvite('title') : t('title')}
+        </h1>
+        <p className="text-md text-fg-2">
+          {invite
+            ? tInvite.rich('lead', { pool: invite.poolName, b: (chunks) => <b>{chunks}</b> })
+            : t('lead')}
+        </p>
       </div>
 
       {problem === 'error' && <ProblemAlert title={t('errorTitle')} text={t('errorText')} />}
@@ -138,6 +166,7 @@ export function SignupForm() {
             autoComplete="email"
             maxLength={254}
             required
+            readOnly={!!invite}
             placeholder={t('emailPlaceholder')}
             value={email}
             invalid={fieldError === 'email'}
@@ -145,6 +174,7 @@ export function SignupForm() {
               setEmail(event.target.value);
             }}
           />
+          {!!invite && <p className="text-sm text-fg-3">{tInvite('emailFixed')}</p>}
         </Field>
 
         <Field id={ids.password} label={t('password')}>

@@ -4,6 +4,7 @@ import { ROLES } from '@nestvault/db';
 import type { Role } from '@nestvault/db';
 import {
   can,
+  canAssignRole,
   ForbiddenError,
   PERMISSIONS,
   permissionsFor,
@@ -122,5 +123,29 @@ describe('systemContext', () => {
 
   it('refuses a malformed pool id', () => {
     expect(() => systemContext('not-a-uuid', ['pool.read'])).toThrow(TypeError);
+  });
+});
+
+describe('canAssignRole', () => {
+  const pool = createPool();
+  const grants: Record<Role, readonly Role[]> = {
+    owner: ['owner', 'admin', 'member', 'viewer'],
+    admin: ['admin', 'member', 'viewer'],
+    member: [],
+    viewer: [],
+  };
+
+  it.each(ROLE_ORDER)('lets %s hand out roles up to its own and never above', (role) => {
+    const ctx = asMember(pool, role, { permissions: [...permissionsOfRole(role)] });
+    for (const target of ROLE_ORDER) {
+      expect(canAssignRole(ctx, target), `${role} -> ${target}`).toBe(
+        grants[role].includes(target),
+      );
+    }
+  });
+
+  it('never lets background work hand out a role', () => {
+    const ctx = systemContext(pool.poolId, [...PERMISSIONS]);
+    for (const target of ROLE_ORDER) expect(canAssignRole(ctx, target)).toBe(false);
   });
 });

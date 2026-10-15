@@ -4,6 +4,7 @@ import {
   logger,
   type AccountService,
   type Auth,
+  type InvitesService,
   type PoolsService,
   type AuthRuntime,
   type RateLimiter,
@@ -60,4 +61,8 @@ export async function getAccountService(): Promise<AccountService> {
 
 export async function getPoolsService(): Promise<PoolsService> {
   return (await getRuntime()).pools;
+}
+
+export async function getInvitesService(): Promise<InvitesService> {
+  return (await getRuntime()).invites;
 }

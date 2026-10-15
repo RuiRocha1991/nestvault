@@ -2,6 +2,7 @@ import { createIdentityDatabase } from '@nestvault/db';
 
 import { createAccountService, type AccountService } from '../account';
 import type { EmailSender } from '../email';
+import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
 import type { Logger } from '../logger';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
@@ -26,6 +27,8 @@ export interface AuthRuntime {
   account: AccountService;
   /** Create, list and open the pools of the signed-in user. */
   pools: PoolsService;
+  /** Invite members by email and accept invites. */
+  invites: InvitesService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -45,6 +48,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     allowSignup: config.allowSignup,
     limiter,
     email: config.email,
+    invites: createInviteVerifier(identity),
     ...hops,
     ...(config.log ? { log: config.log } : {}),
   });
@@ -54,5 +58,13 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     limiter,
     account: createAccountService({ auth, identity, pools, ...hops }),
     pools,
+    invites: createInvitesService({
+      auth,
+      identity,
+      limiter,
+      email: config.email,
+      appUrl: config.appUrl,
+      ...hops,
+    }),
   };
 }

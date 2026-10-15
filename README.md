@@ -111,6 +111,13 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   people join by invite). Registering sends a confirmation link (Mailpit in development) and starts
   no session: you can only sign in after opening it. Registering an email that already has an
   account looks the same and warns the owner by email.
+- **Invites:** an owner or admin invites somebody by email with a role (`POST /api/v1/pools/<id>/invites`;
+  the invite dialog arrives with the members tab, NES-28). The email (Mailpit in development) links to
+  `/convite/<token>`: single use, valid 7 days, bound to that address. Signed out you can sign in or
+  create the account with the invited address (`/convite/<token>/registar`, which works even with
+  `ALLOW_SIGNUP=false`; confirm the email, sign in and open the link again); signed in with the invited
+  address you accept it; with another address you are asked to switch. Expired, used and unknown links
+  show the same generic screen. Pending invites can be listed, resent (new link) and cancelled.
 - **My account:** `/conta` (link "A minha conta" in the sidebar footer): change the name, change the
   email (the link goes to the new address and the email only changes once it is used), change the
   password (the other sessions end and a notice is emailed) and see or end the active sessions. The

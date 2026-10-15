@@ -319,5 +319,78 @@
       "create": "Criar agregado",
       "all": "Todos os agregados"
     }
+  },
+  "invite": {
+    "title": "Foste convidado",
+    "lead": "{inviter} convidou-te para o agregado <b>{pool}</b>.",
+    "leadNoInviter": "Foste convidado para o agregado <b>{pool}</b>.",
+    "invitedBy": "Convidado por {inviter}",
+    "invitedByUnknown": "Convite pessoal",
+    "email": "Email do convite",
+    "role": "Função",
+    "validUntil": "Válido até",
+    "roleText": {
+      "owner": "Proprietário: controla tudo, incluindo pessoas e agregado",
+      "admin": "Administrador: gere contas, portfolios, categorias e convites",
+      "member": "Membro: vê e edita movimentos e importa extratos",
+      "viewer": "Leitor: só consulta os dados"
+    },
+    "signIn": "Entrar para aceitar",
+    "or": "ou",
+    "createAccount": "Criar conta com este email",
+    "createNote": "Só podes criar conta com o email para o qual o convite foi enviado.",
+    "accept": {
+      "title": "Aceitar convite",
+      "lead": "Entraste como <b>{email}</b>, o email do convite.",
+      "submit": "Aceitar convite",
+      "decline": "Recusar",
+      "errorTitle": "Não foi possível aceitar o convite.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "unavailableTitle": "Este convite já não é válido.",
+      "unavailableText": "Pede a quem te convidou um novo convite.",
+      "lockedTitle": "Demasiadas tentativas.",
+      "lockedText": "Tenta novamente dentro de <time></time>."
+    },
+    "mismatch": {
+      "title": "Este convite é para outro email",
+      "warning": "O convite foi enviado para <invited></invited>, mas entraste como <current></current>.",
+      "switch": "Terminar sessão e entrar com outro email",
+      "note": "Por segurança, um convite só pode ser aceite pelo email a que foi enviado."
+    },
+    "unavailable": {
+      "title": "Este convite já não é válido",
+      "text": "Os convites são de uso único e valem 7 dias. Pede a quem te convidou um novo convite.",
+      "back": "Voltar a entrar"
+    },
+    "signup": {
+      "title": "Cria a tua conta",
+      "lead": "Vais juntar-te ao agregado <b>{pool}</b> com este email.",
+      "emailFixed": "O convite só vale para este email.",
+      "afterConfirm": "Depois de confirmares o email, volta a abrir a ligação do convite para o aceitares.",
+      "back": "Voltar ao convite"
+    },
+    "dialog": {
+      "title": "Convidar utilizador",
+      "close": "Fechar",
+      "email": "Email",
+      "emailHint": "Só esta pessoa poderá aceitar o convite.",
+      "emailPlaceholder": "joao@exemplo.pt",
+      "role": "Função",
+      "roleHint": {
+        "admin": "gere contas, portfolios, categorias e convites",
+        "member": "cria e edita movimentos e importa extratos",
+        "viewer": "só consulta os dados"
+      },
+      "note": "Enviamos um email com uma ligação de uso único, válida durante <b>7 dias</b>.",
+      "cancel": "Cancelar",
+      "submit": "Enviar convite",
+      "invalidEmail": "Indica um email válido.",
+      "alreadyMember": "Esta pessoa já pertence ao agregado.",
+      "errorTitle": "Não foi possível enviar o convite.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "lockedTitle": "Demasiados convites.",
+      "lockedText": "Tenta novamente dentro de <time></time>.",
+      "sent": "Convite enviado."
+    }
   }
 }

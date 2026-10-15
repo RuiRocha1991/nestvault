@@ -22,6 +22,8 @@ export type {
   AuditRow,
   NewAuditEntry,
 } from './identity/repositories/audit-log.repo';
+export { invitesRepo } from './identity/repositories/invites.repo';
+export type { InvitePreviewRow, InviteRow, NewInvite } from './identity/repositories/invites.repo';
 export { poolMembersRepo } from './identity/repositories/pool-members.repo';
 export { poolsRepo } from './identity/repositories/pools.repo';
 export type { PoolSummaryRow } from './identity/repositories/pools.repo';

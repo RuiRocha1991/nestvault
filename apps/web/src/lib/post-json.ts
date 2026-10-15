@@ -1,8 +1,12 @@
 /** POST a JSON body to a same-origin endpoint with the session cookie (the browser adds `Origin`). */
-export function postJson(path: string, body: unknown): Promise<Response> {
+export function postJson(
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Promise<Response> {
   return fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     credentials: 'same-origin',
     body: JSON.stringify(body),
   });

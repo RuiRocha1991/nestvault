@@ -3,6 +3,9 @@ import { z } from 'zod';
 
 import './zod-csp';
 
+/** Header that carries the invite token when somebody registers through an invite (`x-invite-token`). */
+export const INVITE_TOKEN_HEADER = 'x-invite-token';
+
 /** Sign-up body. The password rules are the server's; the form only guides (see `checkPassword`). */
 export const signUpSchema = z
   .object({

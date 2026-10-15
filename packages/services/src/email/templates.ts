@@ -113,7 +113,7 @@ export function inviteTemplate(input: {
     heading: 'Foste convidado para um agregado',
     paragraphs: [
       `${input.inviter} convidou-te para o agregado "${input.poolName}" no Cofre Familiar.`,
-      'O convite é pessoal e expira em breve.',
+      'O convite é pessoal, de uso único e válido durante 7 dias.',
     ],
     action: { label: 'Ver convite', url: input.url },
     footer: IGNORE_FOOTER,
