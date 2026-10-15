@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { newId } from '../../ids';
 import type { IdentityDatabase } from '../client';
@@ -17,6 +17,18 @@ export const usersRepo = {
   async findIdByEmail(db: IdentityDatabase['db'], email: string): Promise<string | undefined> {
     const [row] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
     return row?.id;
+  },
+
+  /** Display names for a set of user ids; ids with no user are simply absent. Ids are bound. */
+  async namesByIds(
+    db: IdentityDatabase['db'],
+    ids: readonly string[],
+  ): Promise<{ id: string; name: string }[]> {
+    if (ids.length === 0) return [];
+    return db
+      .select({ id: user.id, name: user.name })
+      .from(user)
+      .where(inArray(user.id, [...ids]));
   },
 
   /** Marks the address as verified (the person proved they read it, e.g. through a reset link). */

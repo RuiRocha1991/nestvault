@@ -3,6 +3,7 @@ import {
   createSmtpSender,
   logger,
   type AccountService,
+  type AuditService,
   type Auth,
   type InvitesService,
   type PoolsService,
@@ -65,4 +66,8 @@ export async function getPoolsService(): Promise<PoolsService> {
 
 export async function getInvitesService(): Promise<InvitesService> {
   return (await getRuntime()).invites;
+}
+
+export async function getAuditService(): Promise<AuditService> {
+  return (await getRuntime()).audit;
 }

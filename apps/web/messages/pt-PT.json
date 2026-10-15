@@ -392,5 +392,124 @@
       "lockedText": "Tenta novamente dentro de <time></time>.",
       "sent": "Convite enviado."
     }
+  },
+  "settings": {
+    "title": "Definições",
+    "tabsLabel": "Secções das definições",
+    "tabs": {
+      "params": "Agregado e parâmetros",
+      "plan": "Plano e subscrição",
+      "members": "Utilizadores e convites",
+      "audit": "Auditoria"
+    }
+  },
+  "audit": {
+    "lead": "Registo de ações de segurança do agregado: quem entrou, quem mudou funções, convites e propriedade.",
+    "filters": {
+      "label": "Filtros do registo",
+      "action": "Ação",
+      "allActions": "Todas as ações",
+      "wholeCategory": "{category} (todas)",
+      "person": "Pessoa",
+      "allPeople": "Todas as pessoas",
+      "range": "Período",
+      "range7": "7 dias",
+      "range30": "30 dias",
+      "rangeAll": "Tudo",
+      "from": "De",
+      "to": "Até",
+      "datePlaceholder": "dd/mm/aaaa",
+      "dateInvalid": "Usa o formato dd/mm/aaaa.",
+      "clear": "Limpar filtros"
+    },
+    "categories": {
+      "auth": "Autenticação",
+      "session": "Sessões",
+      "pool": "Agregado",
+      "member": "Membros",
+      "invite": "Convites"
+    },
+    "actions": {
+      "auth": {
+        "signin": "Sessão iniciada",
+        "signinFailed": "Início de sessão falhado",
+        "passwordChanged": "Palavra-passe alterada"
+      },
+      "session": {
+        "revoked": "Sessão terminada"
+      },
+      "pool": {
+        "created": "Agregado criado",
+        "ownershipTransferred": "Propriedade transferida"
+      },
+      "member": {
+        "roleChanged": "Função alterada",
+        "removed": "Membro removido",
+        "left": "Membro saiu"
+      },
+      "invite": {
+        "created": "Convite criado",
+        "cancelled": "Convite cancelado",
+        "accepted": "Convite aceite"
+      }
+    },
+    "table": {
+      "caption": "Entradas do registo de auditoria",
+      "when": "Data e hora",
+      "person": "Pessoa",
+      "action": "Ação",
+      "target": "Alvo",
+      "address": "Endereço (aprox.)",
+      "open": "Ver detalhe da entrada de {when}"
+    },
+    "person": {
+      "unknown": "Desconhecido"
+    },
+    "target": {
+      "none": "—",
+      "signinFailed": "Credenciais inválidas",
+      "invite": "Convite {code}",
+      "inviteRole": "Convite {code} · {role}",
+      "person": "{name}",
+      "personRole": "{name} · {role}",
+      "roleChanged": "{name} · {from} → {to}"
+    },
+    "pagination": {
+      "label": "Paginação do registo",
+      "range": "{from}-{to} de {total}",
+      "previous": "Anterior",
+      "next": "Seguinte"
+    },
+    "detail": {
+      "title": "Detalhe da entrada",
+      "close": "Fechar detalhe",
+      "when": "Quando",
+      "whenValue": "{date} às {time}",
+      "who": "Quem",
+      "target": "Alvo",
+      "address": "Endereço (aprox.)",
+      "id": "Identificador",
+      "data": "Dados da ação",
+      "noData": "Sem dados adicionais.",
+      "note": "Só mostramos chaves permitidas. Valores financeiros, notas e tokens nunca são guardados."
+    },
+    "meta": {
+      "role": "função",
+      "previousRole": "função anterior",
+      "targetUserId": "pessoa",
+      "inviteId": "convite",
+      "sessionId": "sessão",
+      "count": "quantidade",
+      "reason": "motivo"
+    },
+    "states": {
+      "loading": "A carregar o registo…",
+      "emptyTitle": "Nenhuma entrada com estes filtros",
+      "emptyText": "Experimenta outro período ou outra ação.",
+      "errorTitle": "Não foi possível carregar o registo",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "retry": "Tentar novamente"
+    },
+    "readOnly": "Registo <b>só de leitura</b>: as entradas não podem ser alteradas nem apagadas, nem por proprietários. Só o proprietário vê esta página. Nunca guardamos valores, IBANs, notas nem tokens, só quem fez o quê e quando."
   }
 }

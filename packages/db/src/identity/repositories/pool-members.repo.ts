@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { parseRole, type Role } from '../../pool-context';
 import type { IdentityDatabase, IdentityExecutor } from '../client';
@@ -17,6 +17,19 @@ export const poolMembersRepo = {
       .where(and(eq(poolMembers.poolId, poolId), eq(poolMembers.userId, userId)))
       .limit(1);
     return parseRole(row?.role);
+  },
+
+  /** The members of one pool with their display name, by name. No email leaves this query. */
+  async listWithNames(
+    db: IdentityDatabase['db'],
+    poolId: string,
+  ): Promise<{ userId: string; name: string }[]> {
+    return db
+      .select({ userId: poolMembers.userId, name: user.name })
+      .from(poolMembers)
+      .innerJoin(user, eq(user.id, poolMembers.userId))
+      .where(eq(poolMembers.poolId, poolId))
+      .orderBy(asc(user.name), asc(poolMembers.userId));
   },
 
   async insert(

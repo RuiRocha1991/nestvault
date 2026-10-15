@@ -195,6 +195,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/audit-log-trigger.integration.test.ts`; a direct DELETE fails, the same DELETE inside
   the procedure removes only the old row. A partitioned table was rejected as too heavy for
   household scale.
+- **Audit screen (NES-120):** `/[poolId]/definicoes/auditoria` reads through `AuditService.screen`
+  (session → strict query → `requirePoolAccess` 404 → `audit.read` 403; the page turns both
+  into the 404 page, and `definicoes/auditoria/layout.tsx` gives the real 404 status before the
+  skeleton streams). The URL filters (`action`, `person`, `range`, `from`, `to`, `page`) are parsed
+  with fallbacks and re-validated by the service (`category` and `action` are enums, `person` a
+  uuid, `page` ≤ 10 000); queries use bound parameters only. Names are looked up only for ids on
+  the returned page plus the pool's current members, never emails; everything is rendered as
+  React text. The screen has no write path and no export. Verified by
+  `tests/services/audit-screen.integration.test.ts` (filters, paging, 401/400/404/403 order, no
+  names of other pools, injection payloads on the new repository functions),
+  `tests/web/audit-screen.test.tsx` (escaping, read-only, tabs by permission) and
+  `tests/e2e/audit.spec.ts` (owner flows, 404 for admin, member and outsiders, hostile name).
 - **Creating a pool (NES-26):** `POST /api/v1/pools` has no membership to check yet, so its guards
   are the session (401), the strict one-field body (400 for `role`, `id`, `ownerId`…), the `Origin`
   check, the `api` rate limit and a cap of 10 owned pools per user (409). The owner is always the

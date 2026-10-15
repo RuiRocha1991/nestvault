@@ -17,6 +17,7 @@ export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase, IdentityExecutor } from './identity/client';
 export { auditLogRepo } from './identity/repositories/audit-log.repo';
 export type {
+  AuditCriteria,
   AuditFilter,
   AuditMeta,
   AuditRow,
