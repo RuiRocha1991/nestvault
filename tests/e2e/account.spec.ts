@@ -4,7 +4,7 @@ import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
 import { clearMailbox, createUser, linkPath, waitForEmail } from './support/mailpit';
 import { fillAndSubmit } from './support/sign-in';
-import { E2E_ORIGIN } from './support/user';
+import { E2E_ORIGIN, poolUrl } from './support/user';
 
 const account = messages.account;
 const PASSWORD = 'account-passphrase-for-e2e-only';
@@ -17,7 +17,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 async function signIn(page: Page, email: string) {
   await page.goto('/login');
   await fillAndSubmit(page, email, PASSWORD);
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(poolUrl());
 }
 
 const unique = (prefix: string) => `${prefix}-${String(Date.now())}@e2e.example.test`;
@@ -89,7 +89,7 @@ test('a wrong current password is refused; the right one ends the other sessions
   const otherPage = await other.newPage();
   await otherPage.goto('/login');
   await fillAndSubmit(otherPage, email, PASSWORD);
-  await expect(otherPage).toHaveURL(/\/demo$/);
+  await expect(otherPage).toHaveURL(poolUrl());
 
   await page.goto('/conta');
   const current = page.getByLabel(account.password.current);
@@ -124,7 +124,7 @@ test('ends one session, then all the others', async ({ page, browser }) => {
     const other = await context.newPage();
     await other.goto('/login');
     await fillAndSubmit(other, email, PASSWORD);
-    await expect(other).toHaveURL(/\/demo$/);
+    await expect(other).toHaveURL(poolUrl());
     return { context, other };
   };
   const first = await makeSession();

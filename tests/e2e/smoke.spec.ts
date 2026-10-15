@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
-import { STORAGE_STATE } from './support/user';
+import { STORAGE_STATE, poolPath, poolUrl } from './support/user';
 
 // Texts come from the message catalogue, so a copy edit does not break these tests.
 // The document title is a literal in apps/web/src/app/layout.tsx, not a message.
@@ -16,7 +16,7 @@ test.use({ storageState: STORAGE_STATE });
 test('the shell loads: redirect, title, main navigation and page heading', async ({ page }) => {
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(poolUrl());
   await expect(page).toHaveTitle(TITLE);
   await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
   await expect(page.getByRole('navigation', { name: NAV })).toBeVisible();
@@ -27,9 +27,9 @@ test('the shell loads: redirect, title, main navigation and page heading', async
 
 test('a sidebar link opens another section', async ({ page }) => {
   const accounts = messages.nav.items.accounts;
-  await page.goto('/demo');
+  await page.goto(poolPath());
   await page.getByRole('navigation', { name: NAV }).getByRole('link', { name: accounts }).click();
-  await expect(page).toHaveURL(/\/demo\/contas$/);
+  await expect(page).toHaveURL(poolUrl('/contas'));
   await expect(page.getByRole('heading', { level: 1, name: accounts })).toBeVisible();
 });
 
@@ -39,7 +39,7 @@ test('the chosen theme is stored in the nv-theme cookie and rendered by the serv
 }) => {
   // Start from a known state: no cookie means the default theme (dark).
   await context.clearCookies({ name: 'nv-theme' }); // keep the session cookie
-  await page.goto('/demo');
+  await page.goto(poolPath());
   const html = page.locator('html');
   await expect(html).toHaveAttribute('data-theme', 'dark');
 
@@ -49,7 +49,7 @@ test('the chosen theme is stored in the nv-theme cookie and rendered by the serv
   expect(cookies.find((c) => c.name === 'nv-theme')?.value).toBe('light');
 
   // The server renders the theme from the cookie: check the raw HTML, before any script runs.
-  const raw = await page.request.get('/demo');
+  const raw = await page.request.get(poolPath());
   expect(await raw.text()).toMatch(/<html[^>]*data-theme="light"/);
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'light');

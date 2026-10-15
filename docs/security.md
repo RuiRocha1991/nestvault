@@ -178,6 +178,17 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/services/audit.integration.test.ts` (UPDATE/DELETE/TRUNCATE refused, one entry per
   action, forbidden meta dropped, injection payloads, 403 for non-owners, pool isolation) and
   `tests/services/audit-meta.test.ts`.
+- **Creating a pool (NES-26):** `POST /api/v1/pools` has no membership to check yet, so its guards
+  are the session (401), the strict one-field body (400 for `role`, `id`, `ownerId`…), the `Origin`
+  check, the `api` rate limit and a cap of 10 owned pools per user (409). The owner is always the
+  session user. `createPool` writes the pool, the owner membership and the `pool.created` audit
+  entry in **one transaction**: `recordAudit` takes the transaction, so a pool never exists without
+  its owner or its entry (a failing audit insert rolls everything back). Every `/[poolId]` page
+  calls `requirePoolAccess` through `PoolsService.open`, so a pool of somebody else, an unknown id
+  and a malformed one all render the same 404. Pool names are 1-60 characters without control
+  characters, stored as data and escaped by React. Verified by `tests/services/pools.integration.test.ts`
+  (owner, rollback, 401, validation, cap, other users' pools, injection payloads), `tests/web/pools-route.test.ts`
+  and `tests/e2e/pools.spec.ts`.
 
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.

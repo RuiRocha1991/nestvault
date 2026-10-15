@@ -3,14 +3,14 @@ import { expect, test, type Page } from '@playwright/test';
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
 import { signInAsOwner } from './support/sign-in';
-import { E2E_ORIGIN, STORAGE_STATE } from './support/user';
+import { E2E_ORIGIN, STORAGE_STATE, loginNextUrl, poolPath, poolUrl } from './support/user';
 
-const EXPENSES = '/demo/despesas';
+const EXPENSES = poolPath('/despesas');
 
 /** The sign-in screen with the expiry toast; `reason` is then removed, so a reload is quiet. */
 async function expectExpiredLogin(page: Page) {
   await expect(page.getByText(messages.auth.sessionExpired).first()).toBeVisible();
-  await expect(page).toHaveURL(/\/login\?next=%2Fdemo%2Fdespesas$/);
+  await expect(page).toHaveURL(loginNextUrl('/despesas'));
   await page.reload();
   await expect(
     page.getByRole('heading', { level: 1, name: messages.auth.login.title }),
@@ -40,7 +40,7 @@ test.describe('with a valid session', () => {
   });
 
   test('a new tab of the same browser is signed in', async ({ context, page }) => {
-    await page.goto('/demo');
+    await page.goto(poolPath());
     const tab = await context.newPage();
     await tab.goto(EXPENSES);
     await expect(tab).toHaveURL(new RegExp(`${EXPENSES}$`));
@@ -80,7 +80,7 @@ test.describe('when the session ended', () => {
     page,
   }) => {
     await signInAsOwner(page);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
     // The same cookies in another browser; signing out here revokes that session for both.
     const other = await browser.newContext({ storageState: await page.context().storageState() });
     const otherPage = await other.newPage();
@@ -100,7 +100,7 @@ test.describe('when the session ended', () => {
     page,
   }) => {
     await signInAsOwner(page);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
     const otherTab = await context.newPage();
     await otherTab.goto(EXPENSES);
     await expect(expensesHeading(otherTab)).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('when the session ended', () => {
     page,
   }) => {
     await signInAsOwner(page);
-    await expect(page).toHaveURL(/\/demo$/);
+    await expect(page).toHaveURL(poolUrl());
     await page.goto(EXPENSES);
     await expect(expensesHeading(page)).toBeVisible();
 
@@ -148,7 +148,7 @@ test.describe('when the session ended', () => {
 
   test('the check asks for disableRefresh and ignores a rate-limited answer', async ({ page }) => {
     await signInAsOwner(page);
-    await expect(page).toHaveURL(/\/demo$/); // signed in before leaving the page
+    await expect(page).toHaveURL(poolUrl()); // signed in before leaving the page
     await page.goto(EXPENSES);
     await expect(expensesHeading(page)).toBeVisible();
 
@@ -170,7 +170,9 @@ test.describe('when the session ended', () => {
     // The real session is still valid, so the login page bounces back into the app; what matters is
     // that a 401 made the tab go there.
     const left = page.waitForRequest((request) =>
-      request.url().includes(`/login?next=%2Fdemo%2Fdespesas&reason=expired`),
+      request
+        .url()
+        .includes(`/login?next=${encodeURIComponent(poolPath('/despesas'))}&reason=expired`),
     );
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await left;
@@ -178,7 +180,7 @@ test.describe('when the session ended', () => {
 
   test('a visitor who never signed in sees no expiry message', async ({ page }) => {
     await page.goto(EXPENSES);
-    await expect(page).toHaveURL(/\/login\?next=%2Fdemo%2Fdespesas$/);
+    await expect(page).toHaveURL(loginNextUrl('/despesas'));
     await expect(page.getByText(messages.auth.sessionExpired)).toHaveCount(0);
   });
 });

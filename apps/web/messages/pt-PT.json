@@ -272,5 +272,52 @@
       "deleteText": "Apaga a tua conta e remove-te dos agregados. Não apaga agregados com outros membros.",
       "delete": "Eliminar a minha conta"
     }
+  },
+  "pools": {
+    "roles": {
+      "owner": "Proprietário",
+      "admin": "Administrador",
+      "member": "Membro",
+      "viewer": "Leitor"
+    },
+    "members": "{count, plural, one {# pessoa} other {# pessoas}}",
+    "lastActivity": "Última atividade: {when}",
+    "open": "Abrir",
+    "openLabel": "Abrir o agregado {name}",
+    "chooser": {
+      "title": "Escolhe um agregado",
+      "lead": "{count, plural, one {Tens acesso a # agregado.} other {Tens acesso a # agregados.}} Os dados de cada um são totalmente separados.",
+      "create": "Criar agregado",
+      "createText": "Começa um novo agregado como proprietário.",
+      "note": "A app abre diretamente no último agregado usado."
+    },
+    "create": {
+      "title": "Vamos criar o teu agregado",
+      "leadFirst": "Um agregado é a tua família ou casa: reúne as contas, investimentos e despesas partilhados.",
+      "leadNext": "Cada agregado tem os seus próprios dados, separados dos restantes.",
+      "name": "Nome do agregado",
+      "placeholder": "Família Rocha",
+      "hint": "Podes mudar mais tarde.",
+      "nameRequired": "Indica um nome com 1 a 60 caracteres.",
+      "owner": "Serás o <b>proprietário</b>. Depois podes convidar outras pessoas por email e escolher a função de cada uma.",
+      "submit": "Criar agregado",
+      "or": "ou",
+      "invited": "Foste convidado para um agregado? Abre a ligação que recebeste por email.",
+      "prototype": "Já usavas o protótipo? Depois de criares o agregado podes importar a cópia JSON.",
+      "back": "Voltar aos agregados",
+      "errorTitle": "Não foi possível criar o agregado",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "limitTitle": "Chegaste ao limite",
+      "limitText": "Já és proprietário do número máximo de agregados.",
+      "lockedTitle": "Demasiados pedidos",
+      "lockedText": "Tenta novamente dentro de <time></time>."
+    },
+    "switcher": {
+      "label": "Agregado",
+      "yours": "Os teus agregados",
+      "current": "Agregado atual",
+      "create": "Criar agregado",
+      "all": "Todos os agregados"
+    }
   }
 }

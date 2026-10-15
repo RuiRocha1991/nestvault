@@ -3,6 +3,7 @@ export type { AccountService } from './account-service';
 export { maskIp } from './mask-ip';
 export {
   MeDto,
+  MeWithPoolsDto,
   NAME_MAX_LENGTH,
   RevokedSessionsDto,
   SessionDto,

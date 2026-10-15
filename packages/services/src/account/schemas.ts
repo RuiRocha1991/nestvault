@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { PoolSummaryDto } from '../pools/schemas';
+
 export const NAME_MAX_LENGTH = 120;
 
 export const MeDto = z.object({
@@ -9,6 +11,10 @@ export const MeDto = z.object({
   emailVerified: z.boolean(),
 });
 export type MeDto = z.infer<typeof MeDto>;
+
+/** `GET /api/v1/me`: the profile and the pools of the user (most recently active first). */
+export const MeWithPoolsDto = MeDto.extend({ pools: z.array(PoolSummaryDto) });
+export type MeWithPoolsDto = z.infer<typeof MeWithPoolsDto>;
 
 export const UpdateProfileInput = z
   .object({ name: z.string().trim().min(1).max(NAME_MAX_LENGTH) })

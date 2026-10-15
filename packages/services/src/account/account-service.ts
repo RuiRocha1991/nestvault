@@ -3,11 +3,13 @@ import { isUuid, sessionsRepo, type IdentityDatabase } from '@nestvault/db';
 import { recordAccountAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { NotFoundError, UnauthorizedError } from '../errors';
+import type { PoolLookup } from '../pools/pools-service';
 import { clientIpResolver } from '../rate-limit/client-ip';
 
 import { maskIp } from './mask-ip';
 import {
   MeDto,
+  MeWithPoolsDto,
   RevokedSessionsDto,
   SessionListDto,
   UpdateProfileInput,
@@ -16,7 +18,7 @@ import {
 import { parseUserAgent } from './user-agent';
 
 export interface AccountService {
-  getMe(headers: Headers): Promise<MeDto>;
+  getMe(headers: Headers): Promise<MeWithPoolsDto>;
   updateProfile(headers: Headers, input: unknown): Promise<MeDto>;
   listSessions(headers: Headers): Promise<SessionListDto>;
   revokeSession(headers: Headers, sessionId: string): Promise<void>;
@@ -31,10 +33,11 @@ export interface AccountService {
 export function createAccountService(deps: {
   auth: Auth;
   identity: IdentityDatabase;
+  pools: PoolLookup;
   /** Hops of the proxies we run; 0 (the default) records no address. */
   trustedProxyHops?: number;
 }): AccountService {
-  const { auth, identity } = deps;
+  const { auth, identity, pools: poolsService } = deps;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
 
   async function current(headers: Headers) {
@@ -53,7 +56,9 @@ export function createAccountService(deps: {
 
   return {
     async getMe(headers) {
-      return toMe((await current(headers)).user);
+      const { user } = await current(headers);
+      const userPools = await poolsService.listByUserId(user.id);
+      return MeWithPoolsDto.parse({ ...toMe(user), pools: userPools });
     },
 
     async updateProfile(headers, input) {

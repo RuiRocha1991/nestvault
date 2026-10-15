@@ -8,6 +8,7 @@ import {
   createAccountService,
   createAuth,
   createMemoryEmailSender,
+  createPoolsService,
   ForbiddenError,
   listAuditLog,
   permissionsOfRole,
@@ -267,7 +268,7 @@ describe('wired into sign-in, passwords and sessions', () => {
       trustedProxyHops: 1,
       checkBreached: () => Promise.resolve(false),
     });
-    account = createAccountService({ auth, identity, trustedProxyHops: 1 });
+    account = createAccountService({ auth, identity, pools: createPoolsService({ auth, identity, trustedProxyHops: 1 }), trustedProxyHops: 1 });
   });
 
   const ip = { 'x-forwarded-for': '85.240.12.34' };

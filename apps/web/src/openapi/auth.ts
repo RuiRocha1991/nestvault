@@ -1,7 +1,7 @@
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@nestvault/services';
 import { z } from 'zod';
 
-import { errorResponses, registry } from './registry';
+import { errorResponses, json, registry } from './registry';
 
 // Documentation of the Better Auth endpoints mounted at /api/v1/auth/[...all]. Better Auth owns the
 // validation; these schemas describe the contract. Passwords are 12-128 characters, screened
@@ -62,7 +62,6 @@ const setCookie = {
     schema: { type: 'string' as const },
   },
 };
-const json = <T extends z.ZodType>(schema: T) => ({ content: { 'application/json': { schema } } });
 
 registry.registerPath({
   method: 'post',

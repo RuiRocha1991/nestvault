@@ -95,10 +95,12 @@ pnpm dev        # http://localhost:4000 (redirects to /login until you sign in)
 ```
 
 Sign in at `/login` with the owner created by `pnpm db:seed`; every other page needs a session
-(signed-out visitors go to `/login?next=…`, and the sidebar has "Terminar sessão"). There is no pool
-chooser yet (NES-26): `/pools` sends you to `/demo`, which stands in for `/[poolId]`. Pages:
-`/demo` (overview frame) and the other sidebar links (placeholders). Switch the theme with the
-toggle in the sidebar footer. On a phone-width window (≤ 860 px) the sidebar becomes a drawer.
+(signed-out visitors go to `/login?next=…`, and the sidebar has "Terminar sessão"). The seeded owner
+has no pool yet: `/pools` asks for a name ("Vamos criar o teu agregado") and opens the new pool at
+`/<poolId>`. With one pool `/pools` opens it directly; with several it opens the last one used, and
+`/pools?escolher=1` (or "Todos os agregados" in the sidebar switcher) shows the chooser. Opening a
+pool you do not belong to is a 404. Pages: `/<poolId>` (overview frame) and the other sidebar links
+(placeholders). Switch the theme with the toggle in the sidebar footer. On a phone-width window (≤ 860 px) the sidebar becomes a drawer.
 The design reference (tokens, components, mockups) lives in Confluence and `design/`, not in a route.
 
 - **Forgotten password and email verification:** `/recuperar` (ask for the link), `/recuperar/<token>`

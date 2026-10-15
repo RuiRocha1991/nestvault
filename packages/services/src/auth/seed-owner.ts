@@ -17,7 +17,7 @@ export type SeedOwnerInput = z.input<typeof SeedOwnerInput>;
 
 /**
  * Creates the first user from the seed script. Idempotent: an existing email is left untouched
- * (its password is never overwritten). Pools and the owner membership arrive with NES-25.
+ * (its password is never overwritten). The owner creates the first pool from `/pools` (NES-26).
  */
 export async function seedOwner(
   identity: IdentityDatabase,

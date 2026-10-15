@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
+import type { PoolSummary } from '@webapp/lib/pool';
 import type { Theme } from '@webapp/lib/theme';
 
 import { Brand } from './brand';
 import { NAV_GROUPS } from './nav';
+import { PoolSwitcher } from './pool-switcher';
 import { SIDEBAR_ID, useShell } from './shell';
 import { SignOutButton } from './sign-out-button';
 import { ThemeToggle } from './theme-toggle';
@@ -22,7 +24,9 @@ export interface SidebarPortfolio {
 }
 
 export interface SidebarProps {
-  poolId: string;
+  pool: PoolSummary;
+  /** Every pool of the user; the switcher shows when there is more than one. */
+  pools: readonly PoolSummary[];
   portfolios: readonly SidebarPortfolio[];
   theme: Theme;
   /** Display name of the signed-in user. */
@@ -34,11 +38,11 @@ const linkStyles =
   'hover:bg-panel-2 hover:text-fg aria-[current=page]:bg-accent aria-[current=page]:text-on-accent ' +
   'aria-[current=page]:shadow-[0_6px_18px_-6px_var(--accent)]';
 
-export function Sidebar({ poolId, portfolios, theme, userName }: SidebarProps) {
+export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const { drawerOpen } = useShell();
-  const base = `/${poolId}`;
+  const base = `/${pool.id}`;
 
   const isActive = (path: string) => {
     const href = `${base}${path}`;
@@ -61,6 +65,8 @@ export function Sidebar({ poolId, portfolios, theme, userName }: SidebarProps) {
       <div className="px-3">
         <Brand variant="sidebar" />
       </div>
+
+      <PoolSwitcher pool={pool} pools={pools} />
 
       <nav aria-label={t('nav.label')} className="flex flex-col gap-0.5">
         {NAV_GROUPS.map((group) => (

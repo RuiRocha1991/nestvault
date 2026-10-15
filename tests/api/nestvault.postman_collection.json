@@ -507,7 +507,7 @@
                 "me"
               ]
             },
-            "description": "The signed-in user: id, name, email, emailVerified."
+            "description": "The signed-in user (id, name, email, emailVerified) and their pools (id, name, role, memberCount, lastActivityAt), most recently active first."
           },
           "response": [],
           "event": [
@@ -517,7 +517,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
-                  "pm.test('has no password or token', () => pm.expect(pm.response.text()).to.not.match(/token|password/i));"
+                  "pm.test('has no password or token', () => pm.expect(pm.response.text()).to.not.match(/token|password/i));",
+                  "pm.test('lists pools', () => pm.expect(pm.response.json().pools).to.be.an('array'));"
                 ]
               }
             }
@@ -746,6 +747,93 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pools",
+      "item": [
+        {
+          "name": "Create a pool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools"
+              ]
+            },
+            "description": "Creates a pool; the caller becomes its owner. The name is trimmed, 1-60 characters. Extra fields (role, id, ownerId) answer 400; 409 beyond 10 owned pools.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Família Rocha\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('the caller is the owner', () => pm.expect(pm.response.json().role).to.eql('owner'));",
+                  "pm.collectionVariables.set('poolId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a pool with extra fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools"
+              ]
+            },
+            "description": "Mass assignment is refused: role and ownerId are never read from the body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Casa\",\n  \"role\": \"owner\",\n  \"ownerId\": \"00000000-0000-7000-8000-000000000000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
                 ]
               }
             }

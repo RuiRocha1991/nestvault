@@ -4,6 +4,7 @@ import {
   logger,
   type AccountService,
   type Auth,
+  type PoolsService,
   type AuthRuntime,
   type RateLimiter,
 } from '@nestvault/services';
@@ -55,4 +56,8 @@ export async function getRateLimiter(): Promise<RateLimiter> {
 
 export async function getAccountService(): Promise<AccountService> {
   return (await getRuntime()).account;
+}
+
+export async function getPoolsService(): Promise<PoolsService> {
+  return (await getRuntime()).pools;
 }

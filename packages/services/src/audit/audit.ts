@@ -1,5 +1,5 @@
 import { auditLogRepo, isUuid } from '@nestvault/db';
-import type { IdentityDatabase, PoolContext } from '@nestvault/db';
+import type { IdentityDatabase, IdentityExecutor, PoolContext } from '@nestvault/db';
 
 import { logger } from '../logger';
 import { UNTRUSTED_CLIENT_KEY } from '../rate-limit';
@@ -26,14 +26,18 @@ const clean = (details: AuditDetails) => ({
  * Writes one entry for an action inside a pool. Pool and actor come from the `PoolContext`, never
  * from the caller. Throws when the write fails: a pool action that cannot be recorded must not
  * look done, so the service calls it before answering.
+ *
+ * Pass the transaction (`IdentityExecutor`) the action itself runs in, so both commit or neither
+ * does: a pool action never exists without its entry. A plain connection is only for an action
+ * that has nothing to roll back.
  */
 export async function recordAudit(
-  identity: IdentityDatabase,
+  identity: IdentityDatabase | IdentityExecutor,
   ctx: PoolContext,
   action: PoolAuditAction,
   details: AuditDetails = {},
 ): Promise<void> {
-  await auditLogRepo.insert(identity.db, {
+  await auditLogRepo.insert('db' in identity ? identity.db : identity, {
     poolId: ctx.poolId,
     userId: ctx.actor.kind === 'user' ? ctx.actor.userId : null,
     action,

@@ -9,3 +9,4 @@ export * from './email';
 export * from './account';
 export * from './guards';
 export * from './audit';
+export * from './pools';

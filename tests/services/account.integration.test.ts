@@ -6,6 +6,7 @@ import {
   createAccountService,
   createAuth,
   createMemoryEmailSender,
+  createPoolsService,
   NotFoundError,
   UnauthorizedError,
   verifyEmailWithToken,
@@ -61,7 +62,7 @@ beforeEach(async () => {
     trustedProxyHops: 1,
     checkBreached: () => Promise.resolve(false),
   });
-  account = createAccountService({ auth, identity });
+  account = createAccountService({ auth, identity, pools: createPoolsService({ auth, identity, trustedProxyHops: 1 }) });
 });
 afterAll(async () => {
   await identity.close();

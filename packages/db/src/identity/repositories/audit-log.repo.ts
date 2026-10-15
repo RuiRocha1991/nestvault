@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 
 import { newId } from '../../ids';
-import type { IdentityDatabase } from '../client';
+import type { IdentityDatabase, IdentityExecutor } from '../client';
 import { auditLog, type AuditMeta } from '../schema';
 
 export type { AuditMeta };
@@ -40,7 +40,7 @@ const MS_AT = sql`date_trunc('milliseconds', ${auditLog.at})`;
 
 /** Insert-only table: this repository has no update or delete on purpose (the grants forbid it). */
 export const auditLogRepo = {
-  async insert(db: IdentityDatabase['db'], entry: NewAuditEntry): Promise<void> {
+  async insert(db: IdentityExecutor, entry: NewAuditEntry): Promise<void> {
     await db.insert(auditLog).values({
       id: newId(),
       poolId: entry.poolId,
