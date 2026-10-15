@@ -207,6 +207,33 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (owner, rollback, 401, validation, cap, other users' pools, injection payloads), `tests/web/pools-route.test.ts`
   and `tests/e2e/pools.spec.ts`.
 
+- **Invites (NES-27):** `POST /api/v1/pools/{poolId}/invites` (and list, resend, cancel) go through
+  the full chain: session (401), strict `{ email, role }` body (400 for `poolId`, `id`, `invitedBy`…),
+  `requirePoolAccess` (404), `members.invite` (403), `canAssignRole` (no role above the inviter's: an
+  admin cannot invite an owner, 403; resending or cancelling an owner invite is the same), the
+  `invites` rate limit (20 a day per pool, 429), then one transaction that writes the invite and the
+  `invite.created` entry. The token is 32 random bytes (base64url, 256 bits), shown only in the email
+  link; the table stores its SHA-256 hash, so a database leak gives no working links, and neither the
+  audit log nor the access log ever holds it (`route()` logs `/api/v1/invites/:token/accept`). One
+  pending invite per pool and address (partial unique index; a new one replaces the old, whose link
+  stops working); the address is `citext`, so case does not matter. `accept` (`POST
+  /api/v1/invites/{token}/accept`) needs a session whose **verified** email equals the invite's; an
+  unknown, expired, used or someone else's token and an unverified address all answer the same 404.
+  Single use: `markAccepted` (`where accepted_at is null and expires_at > now`) and the membership are
+  written in one transaction, so of two parallel accepts one wins. The public page `/convite/{token}`
+  (screens 58-61) shows pool, inviter, address and role only to whoever holds the link, answers
+  screen 61 with no names for any invalid link, sends `Referrer-Policy: no-referrer` and looks the
+  token up under a per-IP limit (`invites.lookup`, 60 a minute). Registering through an invite
+  (`/convite/{token}/registar`) sends the token in the `x-invite-token` header, which the sign-up
+  hook checks against the same table (control 12); the account still has to confirm its email.
+- **Verified by:** `tests/services/invites.integration.test.ts` (roles, 401/403/404, validation and
+  mass assignment, replace, 409 for a member, 20 a day, hash only, audit entries, cancel and resend
+  with another pool's id, expired/used/different-address/unverified/parallel accepts, sign-up through
+  invites, isolation and injection payloads for every repository function),
+  `tests/services/invite-tokens.test.ts`, `tests/services/permissions.test.ts` (`canAssignRole`),
+  `tests/web/invites-route.test.ts` (401, Origin, 413, extra fields, error mapping),
+  `tests/web/api-route.test.ts` (token not logged) and `tests/e2e/invite.spec.ts`.
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from
@@ -274,7 +301,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **Verified by:** `tests/services/rate-limit.integration.test.ts` (6th failed sign-in is 429 per
   IP and per email, a closed sign-up writes nothing but an invite-token attempt is counted, reset after the window, 40 parallel hits let exactly 5 through, spoofed
   `x-forwarded-for` ignored, injection payload as data, fail closed/open) and
-  `tests/services/client-ip.test.ts`.
+  `tests/services/client-ip.test.ts`. Invites add two buckets: `invites` (20 a day per pool, fails
+  open) and `invites.lookup` (60 a minute per client IP for the public invite page, fails open);
+  `tests/services/invites.integration.test.ts` covers the 21st invite and the 61st lookup.
 
 ## 12. Bot protection
 - **What (now):** sign-up is closed by default (`ALLOW_SIGNUP=false`); people join through invites
@@ -282,7 +311,7 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What (when exposed to the internet):** Cloudflare Turnstile on sign-up, login and password
   reset.
 - **Where:** `packages/services/src/auth/signup-policy.ts` (the invite check is a port, wired to the
-  invites table in NES-25; `x-invite-token` header).
+  invites table by `createInviteVerifier`, NES-27; `x-invite-token` header).
 - **Verified by:** `tests/services/auth.integration.test.ts` (403 when `ALLOW_SIGNUP=false` without
   a valid invite for that email), `tests/services/signup.integration.test.ts` (403 `signup_closed`)
   and `tests/e2e/signup.spec.ts` (both modes).

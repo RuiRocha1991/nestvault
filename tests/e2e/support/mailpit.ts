@@ -20,13 +20,16 @@ export async function clearMailbox(address: string): Promise<void> {
   });
 }
 
-/** Waits for a message to `address` and returns its subject and plain-text body. */
-export async function waitForEmail(address: string, timeoutMs = 15_000) {
+/**
+ * Waits for a message to `address` and returns its subject and plain-text body. `subject` narrows
+ * it to a message whose subject contains that text (an address can get several emails in a flow).
+ */
+export async function waitForEmail(address: string, timeoutMs = 15_000, subject?: string) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const found = await fetch(`${MAILPIT}/search?query=${encodeURIComponent(`to:${address}`)}`);
     const { messages } = (await found.json()) as { messages?: Summary[] };
-    const first = messages?.[0];
+    const first = subject ? messages?.find((m) => m.Subject.includes(subject)) : messages?.[0];
     if (first) {
       const message = await fetch(`${MAILPIT}/message/${first.ID}`);
       const { Text } = (await message.json()) as { Text: string };

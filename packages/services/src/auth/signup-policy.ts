@@ -1,7 +1,7 @@
 /**
  * Decides whether a sign-up request may proceed. Closed by default (`ALLOW_SIGNUP=false`): people
- * join with an invite for the same email. Invites live in NES-25; until then the verifier is a
- * port that rejects everything, so only `ALLOW_SIGNUP=true` opens registration.
+ * join with an invite for the same email. The verifier is a port: `createInviteVerifier` (invites
+ * table, NES-27) in the app, `NO_INVITES` (rejects everything) when none is wired.
  */
 export interface InviteVerifier {
   /** True when `token` is a valid, unused, unexpired invite issued for exactly `email`. */

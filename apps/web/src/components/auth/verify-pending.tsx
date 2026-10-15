@@ -16,10 +16,16 @@ import { RESEND_COOLDOWN_SECONDS, useCountdown } from '@webapp/lib/use-countdown
 export function VerifyPending({
   email,
   variant = 'account',
+  back,
+  extraHint,
 }: {
   email: string;
   /** `signup`: shown right after registering, with no session yet, so "change" goes back to the form. */
   variant?: 'account' | 'signup';
+  /** Replaces the "change address" link (a sign-up through an invite goes back to the invite). */
+  back?: { href: string; label: string };
+  /** Extra line under the hint. */
+  extraHint?: string;
 }) {
   const t = useTranslations('auth.verify');
   const [pending, setPending] = useState(false);
@@ -29,6 +35,7 @@ export function VerifyPending({
     variant === 'signup'
       ? ({ href: '/registar', label: 'changeSignup' } as const)
       : ({ href: '/conta', label: 'change' } as const);
+  const changeLink = back ?? { href: change.href, label: t(change.label) };
 
   async function resend() {
     if (pending || cooldown > 0) return;
@@ -80,12 +87,15 @@ export function VerifyPending({
         </p>
       )}
       <Link
-        href={change.href}
+        href={changeLink.href}
         className="py-2 text-center text-md font-semibold text-fg-2 no-underline"
       >
-        {t(change.label)}
+        {changeLink.label}
       </Link>
-      <p className="rounded-md bg-bg px-3 py-2.5 text-sm text-fg-3">{t('pendingHint')}</p>
+      <p className="rounded-md bg-bg px-3 py-2.5 text-sm text-fg-3">
+        {t('pendingHint')}
+        {!!extraHint && <> {extraHint}</>}
+      </p>
     </LinkStatus>
   );
 }

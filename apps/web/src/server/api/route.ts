@@ -37,6 +37,17 @@ function requestIdOf(req: Request): string {
   return supplied && SAFE_REQUEST_ID.test(supplied) ? supplied : crypto.randomUUID();
 }
 
+// Paths that carry a secret in a segment; the access log shows a placeholder instead (control 15).
+const SECRET_SEGMENT_PATHS = [/^(\/api\/v1\/invites\/)[^/]+/];
+
+/** The path as it may appear in a log line: a token in the address never reaches the log. */
+export function loggablePath(pathname: string): string {
+  return SECRET_SEGMENT_PATHS.reduce(
+    (path, pattern) => path.replace(pattern, '$1:token'),
+    pathname,
+  );
+}
+
 function errorBody(
   code: string,
   message: string,
@@ -133,7 +144,7 @@ export function route<P = Record<string, never>>(
     log.info(
       {
         method: req.method,
-        path: new URL(req.url).pathname,
+        path: loggablePath(new URL(req.url).pathname),
         status: response.status,
         duration_ms: Math.round(performance.now() - started),
       },

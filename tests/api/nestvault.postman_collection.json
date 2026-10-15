@@ -36,6 +36,14 @@
     {
       "key": "otherSessionId",
       "value": ""
+    },
+    {
+      "key": "inviteId",
+      "value": ""
+    },
+    {
+      "key": "inviteToken",
+      "value": ""
     }
   ],
   "item": [
@@ -834,6 +842,234 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Invites",
+      "item": [
+        {
+          "name": "Invite somebody to the pool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "invites"
+              ]
+            },
+            "description": "Needs members.invite (owner, admin). Sends a pt-PT email (see Mailpit at http://localhost:8025) with a single-use link valid for 7 days. The role cannot be above your own. 20 invites a day per pool.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@example.test\",\n  \"role\": \"member\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('the answer has no token', () => pm.expect(JSON.stringify(pm.response.json())).to.not.match(/token/i));",
+                  "pm.collectionVariables.set('inviteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invite with extra fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "invites"
+              ]
+            },
+            "description": "Mass assignment is refused: poolId, id and invitedBy are never read from the body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@example.test\",\n  \"role\": \"member\",\n  \"poolId\": \"00000000-0000-7000-8000-000000000000\",\n  \"invitedBy\": \"00000000-0000-7000-8000-000000000000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List pending invites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "invites"
+              ]
+            },
+            "description": "Invites that were neither accepted nor cancelled, newest first (expired ones too, so they can be resent)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has an invites array', () => pm.expect(pm.response.json().invites).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend an invite",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/invites/{{inviteId}}/resend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "invites",
+                "{{inviteId}}",
+                "resend"
+              ]
+            },
+            "description": "New link and a new 7-day expiry; the previous link stops working. Counts towards the 20 a day."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel an invite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/invites/{{inviteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "invites",
+                "{{inviteId}}"
+              ]
+            },
+            "description": "The link stops working. An id of another pool, an accepted or an unknown invite answers 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept an invite (token from the email)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invites/{{inviteToken}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invites",
+                "{{inviteToken}}",
+                "accept"
+              ]
+            },
+            "description": "Sign in as the invited address first (verified email). The token is the last segment of the /convite/{token} link in the email. Unknown, expired, used or someone else's token: the same 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the pool id', () => pm.expect(pm.response.json().poolId).to.be.a('string'));"
                 ]
               }
             }

@@ -14,7 +14,7 @@ import {
 
 import { assertSameOrigin } from '../../apps/web/src/server/api/origin';
 import { readJson } from '../../apps/web/src/server/api/read-json';
-import { route, type RouteHandler } from '../../apps/web/src/server/api/route';
+import { loggablePath, route, type RouteHandler } from '../../apps/web/src/server/api/route';
 
 const ORIGIN = 'http://localhost:4000';
 
@@ -128,6 +128,28 @@ describe('route(): request id, headers and access log', () => {
     });
     expect(typeof access?.duration_ms).toBe('number');
     expect(JSON.stringify(lines)).not.toContain('secret=1');
+  });
+});
+
+describe('route(): tokens in the address never reach the log', () => {
+  it('replaces the invite token of /api/v1/invites/{token}/accept with a placeholder', async () => {
+    const token = 'A'.repeat(43);
+    const { handle, lines } = setup(() => Promise.resolve(new Response('ok')));
+    await call(
+      handle,
+      new Request(`${ORIGIN}/api/v1/invites/${token}/accept`, {
+        method: 'POST',
+        headers: { origin: ORIGIN },
+      }),
+    );
+    const access = lines.find((line) => line.msg === 'request');
+    expect(access).toMatchObject({ path: '/api/v1/invites/:token/accept' });
+    expect(JSON.stringify(lines)).not.toContain(token);
+  });
+
+  it('leaves other paths alone', () => {
+    expect(loggablePath('/api/v1/pools/abc/invites')).toBe('/api/v1/pools/abc/invites');
+    expect(loggablePath('/api/v1/invites')).toBe('/api/v1/invites');
   });
 });
 

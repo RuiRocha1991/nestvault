@@ -1,5 +1,6 @@
 export { can, requirePoolAccess, systemContext } from './pool-access';
 export {
+  canAssignRole,
   PERMISSIONS,
   permissionsFor,
   permissionsOfRole,

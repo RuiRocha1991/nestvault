@@ -39,7 +39,7 @@ export function buildCsp({ nonce, development, pathname }: HeaderOptions): strin
 }
 
 /** Pages whose address carries a secret token (emailed links): nothing may leak it as a Referer. */
-const TOKEN_PAGE = /^\/(?:recuperar|verificar)\/[^/]+/;
+const TOKEN_PAGE = /^\/(?:recuperar|verificar|convite)\/[^/]+/;
 
 export function buildSecurityHeaders(options: HeaderOptions): Record<string, string> {
   return {

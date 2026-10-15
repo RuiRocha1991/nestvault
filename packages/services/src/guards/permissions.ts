@@ -54,6 +54,23 @@ export const ROLE_PERMISSIONS: Readonly<Record<Role, ReadonlySet<Permission>>> =
   viewer: new Set<Permission>(['pool.read']),
 };
 
+/**
+ * The roles a member may hand out when inviting (PRD 01): never above their own, so an admin cannot
+ * make an owner. Kept next to the role sets so no feature code compares role names.
+ */
+const ASSIGNABLE_ROLES: Readonly<Record<Role | 'system', ReadonlySet<Role>>> = {
+  owner: new Set<Role>(['owner', 'admin', 'member', 'viewer']),
+  admin: new Set<Role>(['admin', 'member', 'viewer']),
+  member: new Set<Role>(),
+  viewer: new Set<Role>(),
+  system: new Set<Role>(), // background work never hands out roles
+};
+
+/** True when the caller may give `role` to somebody else. */
+export function canAssignRole(ctx: PoolContext, role: Role): boolean {
+  return ASSIGNABLE_ROLES[ctx.role].has(role);
+}
+
 /** The permissions a role grants. */
 export function permissionsOfRole(role: Role): ReadonlySet<Permission> {
   return ROLE_PERMISSIONS[role];
