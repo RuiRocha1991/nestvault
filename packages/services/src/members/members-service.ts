@@ -54,6 +54,7 @@ export interface MembersServiceDeps {
   identity: IdentityDatabase;
   limiter: RateLimiter;
   trustedProxyHops?: number;
+  now?: () => Date;
 }
 
 interface Member {
@@ -77,6 +78,7 @@ function find(locked: readonly Member[], userId: string): Member {
 export function createMembersService(deps: MembersServiceDeps): MembersService {
   const { auth, identity, limiter } = deps;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
+  const now = deps.now ?? (() => new Date());
 
   const parseUserId = (userId: string) => {
     if (!isUuid(userId)) throw new NotFoundError();
@@ -105,7 +107,7 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
       const session = await requireSession(auth, headers);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
-      const rows = await poolMembersRepo.listMembers(identity.db, ctx.poolId);
+      const rows = await poolMembersRepo.listMembers(identity.db, ctx.poolId, now());
       const me = rows.find((row) => row.userId === session.userId);
       if (!me) throw new NotFoundError();
       const showEmail = ctx.permissions.has('members.manage');

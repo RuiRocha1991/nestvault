@@ -173,9 +173,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `BEFORE TRUNCATE` trigger that raise `audit_log is insert-only` for every role, the owner
   included (layer 2: a later `GRANT ALL`, `ALTER DEFAULT PRIVILEGES` or inheriting role cannot
   restore the ability to rewrite history); the table has no foreign keys, so no cascade can erase
-  history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`, among them `actorRole`, the
-  role the caller holds after the action: `pool.ownership_transferred` records both the new owner
-  and the caller's demotion) with
+  history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`, among them `actorRole`: the role the caller holds
+  **after** the action, not before it; `pool.ownership_transferred` records the new owner in `role`
+  and the caller's own role afterwards in `actorRole`, so a demotion shows as `admin`) with
   short codes, numbers or booleans, so amounts, IBANs, notes, emails and tokens cannot get in; the
   target must be an id, the placeholder for an unknown address is not stored. A failed account
   entry is logged and never blocks the user; a pool entry throws, so the action does not look done.
@@ -265,11 +265,14 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `PATCH` (`{ role: 'owner', password }`; the password is not read for other roles), need the caller's **password**,
   verified against the stored argon2id hash and counted in the account's password bucket
   (`auth.account.user`, 5 / 15 min, 429; a success gives its hit back); the password is never logged
-  or echoed, and a wrong one answers 400 with an issue on `password` only. The password is asked
-  **after** the cheap, unlocked checks (unknown person: 404; a role they already have, or somebody
-  who already owns the pool: no-op / 409), so a refusal that was certain anyway spends neither a
-  rate-limit hit nor an argon2 verification; if the role changed between that check and the lock,
-  the locked transaction refuses to make an owner that was not confirmed (409, try again). `GET …/members` fills
+  or echoed. When it is required: the order of answers is 401, 400 (malformed body), 404 (not a
+  member), **403 first** for a caller without the permission and for an admin trying to make an
+  owner, then the cheap unlocked checks: an unknown person is **404** and a person who already holds
+  the role is a **no-op** (promotion) or **409** (transfer), all answered **before** the password is
+  read or any rate-limit hit or argon2 verification is spent. Only a real promotion or transfer asks
+  for it, and then a missing or wrong password answers **400** with an issue on `password` only
+  (429 after five wrong guesses). If the role changed between the unlocked check and the lock, the
+  locked transaction refuses to make an owner that was not confirmed (409, try again). `GET …/members` fills
   emails only for `members.manage`, and the DTO adds `owner` and `editable` flags so the screen never
   compares roles itself (hiding stays cosmetic; every service re-checks). `lastActivityAt` is the
   newest activity of the member's **unexpired** sessions that are working in this pool; activity in
@@ -280,7 +283,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   pending list at any time).
 - **Verified by:** `tests/services/members.integration.test.ts` (list visibility and flags, role
   changes with sessions ended and permissions applied at once, admin vs owner, self, last owner,
-  parallel demotions and leaves, removal, leave, transfer with wrong password, 429 and keep-ownership,
+  parallel demotions and leaves, removal, leave, transfer with wrong password, 429 and keep-ownership, no password spent on 404/no-op/409,
+  `lastActivityAt` following the injected clock,
   mass assignment, other pool's ids, 401/403/404, repository isolation and injection payloads),
   `tests/services/member-rules.test.ts` (the rule helpers), `tests/web/members-route.test.ts` (401,
   Origin, 413, extra fields, error mapping, no password echo), `tests/web/members-screen.test.tsx`

@@ -84,11 +84,7 @@ export const poolMembersRepo = {
   },
 
   /** The pool's members with name, email and last activity, owners first and then by name. */
-  async listMembers(
-    db: IdentityDatabase['db'],
-    poolId: string,
-    now: Date = new Date(),
-  ): Promise<MemberRow[]> {
+  async listMembers(db: IdentityDatabase['db'], poolId: string, now: Date): Promise<MemberRow[]> {
     const rows = await db
       .select({
         userId: poolMembers.userId,

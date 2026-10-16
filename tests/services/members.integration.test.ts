@@ -65,7 +65,13 @@ function build() {
     checkBreached: () => Promise.resolve(false),
   });
   pools = createPoolsService({ auth, identity });
-  members = createMembersService({ auth, identity, limiter, trustedProxyHops: 1 });
+  members = createMembersService({
+    auth,
+    identity,
+    limiter,
+    trustedProxyHops: 1,
+    now: clock.now,
+  });
   invites = createInvitesService({
     auth,
     identity,
@@ -233,11 +239,20 @@ describe('list', () => {
     await members.list(s.admin, s.poolId);
     await rows(
       identity,
-      sql`update session set expires_at = now() - interval '1 day' where user_id = ${s.ids.owner}`,
+      sql`update session set expires_at = '2025-12-31T00:00:00Z' where user_id = ${s.ids.owner}`,
     );
     const list = await members.list(s.admin, s.poolId);
     expect(list.members.find((m) => m.name === 'Rui')?.lastActivityAt).toBeNull();
     expect(list.members.find((m) => m.name === 'Ana')?.lastActivityAt).not.toBeNull();
+  });
+
+  it('follows the injected clock: a session that has expired by then reports no activity', async () => {
+    const s = await setUpPool();
+    const before = await members.list(s.owner, s.poolId);
+    expect(before.members.find((m) => m.name === 'Rui')?.lastActivityAt).not.toBeNull();
+    clock.advance(60 * 60 * 24 * 365);
+    const after = await members.list(s.owner, s.poolId);
+    expect(after.members.every((m) => m.lastActivityAt === null)).toBe(true);
   });
 
   it('does not show activity in another pool as activity in this one', async () => {
@@ -889,7 +904,7 @@ describe('poolMembersRepo and sessionsRepo (pool isolation and injection)', () =
     const outsider = await userIdOf('other@example.test');
 
     expect(
-      (await poolMembersRepo.listMembers(identity.db, s.poolId)).map((m) => m.userId),
+      (await poolMembersRepo.listMembers(identity.db, s.poolId, new Date())).map((m) => m.userId),
     ).not.toContain(outsider);
     expect(await poolMembersRepo.updateRole(identity.db, s.poolId, outsider, 'viewer')).toBe(false);
     expect(await poolMembersRepo.remove(identity.db, s.poolId, outsider)).toBe(false);
@@ -904,7 +919,7 @@ describe('poolMembersRepo and sessionsRepo (pool isolation and injection)', () =
       const s = await setUpPool();
       const before = await rows(identity, sql`select * from pool_members`);
 
-      await expect(poolMembersRepo.listMembers(identity.db, payload)).rejects.toThrow();
+      await expect(poolMembersRepo.listMembers(identity.db, payload, new Date())).rejects.toThrow();
       await expect(
         poolMembersRepo.updateRole(identity.db, s.poolId, payload, 'viewer'),
       ).rejects.toThrow();

@@ -7,7 +7,7 @@ import type { AuditMeta } from '@nestvault/db';
 export const ALLOWED_META_KEYS = [
   'role',
   'previousRole',
-  'actorRole',
+  'actorRole', // the role the actor holds AFTER the action (not before): a transfer demotes them
   'targetUserId',
   'inviteId',
   'sessionId',
