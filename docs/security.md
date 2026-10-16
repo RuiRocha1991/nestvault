@@ -274,6 +274,13 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   Origin, 413, extra fields, error mapping, no password echo), `tests/web/members-screen.test.tsx`
   (controls by role, escaping), `tests/lint/rules.test.ts` (no role comparisons) and
   `tests/e2e/members.spec.ts`.
+- **Open decision (NES-125): admin acting on admin.** PRD 01 gives admins `members.invite` and
+  `members.manage` "(not owners)" and says only "an admin cannot remove or demote an owner"; it says
+  nothing about admins acting on other admins. Current behaviour, pinned by `canActOnMember` in
+  `tests/services/member-rules.test.ts` (`admin` -> `admin`: true): an admin may change the role of,
+  or remove, another admin; only owners are protected. Restricting it (admin acts only on roles
+  strictly below admin) is a product decision that has not been taken; until it is, this is the
+  documented behaviour, not an accident.
 
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
