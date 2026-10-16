@@ -7,9 +7,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState, useTransition, type ReactNode } from 'react';
 
+import { MemberAvatar } from '@webapp/components/members/member-avatar';
 import { auditSearch, type AuditFilters } from '@webapp/lib/audit-filters';
 import {
-  avatarColor,
   CATEGORY_TONE,
   FAILED_SIGN_IN,
   splitAction,
@@ -53,18 +53,6 @@ function PageLink({ href, children }: { href: string | null; children: ReactNode
     <Link href={href} scroll={false} className={pageLinkStyles}>
       {children}
     </Link>
-  );
-}
-
-function Avatar({ id, name }: { id: string; name: string }) {
-  return (
-    <span
-      aria-hidden
-      className="grid size-[22px] shrink-0 place-items-center rounded-full text-xs font-bold text-white"
-      style={{ background: avatarColor(id) }}
-    >
-      {name.trim().charAt(0).toUpperCase()}
-    </span>
   );
 }
 
@@ -175,7 +163,9 @@ export function AuditScreen({
                       </Td>
                       <Td>
                         <span className="flex items-center gap-2">
-                          {!!entry.userId && !!person && <Avatar id={entry.userId} name={person} />}
+                          {!!entry.userId && !!person && (
+                            <MemberAvatar id={entry.userId} name={person} size="sm" />
+                          )}
                           {person ?? <span className="text-fg-3">{t('person.unknown')}</span>}
                         </span>
                       </Td>

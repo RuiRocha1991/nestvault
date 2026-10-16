@@ -245,6 +245,35 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/services/invite-tokens.test.ts`, `tests/services/permissions.test.ts` (`canAssignRole`),
   `tests/web/invites-route.test.ts` (401, Origin, 413, extra fields, error mapping),
   `tests/web/api-route.test.ts` (token not logged) and `tests/e2e/invite.spec.ts`.
+- **Members (NES-28):** `GET …/members`, `PATCH` and `DELETE …/members/{userId}`, `POST …/transfer`
+  and `POST …/leave` go through the chain: session (401), strict body (`{ role }`, or `{ userId,
+  password, keepOwnership? }`; `poolId`/`userId` in the PATCH body answer 400, they come from the
+  URL), `requirePoolAccess` (404), then the permission (`members.manage`, `pool.transfer`; leaving
+  and listing need membership only), then one transaction that **locks the pool's membership rows**
+  (`SELECT … FOR UPDATE`), reads the caller's role again from the locked rows and applies the rules
+  from `guards/permissions.ts`: nobody acts on themselves, only an owner touches an owner
+  (`canActOnMember`), nobody hands out a role above their own (`canAssignRoleAs`), and a pool never
+  loses its last owner (`leavesNoOwner`, 409). The locks make two owners demoting or leaving each
+  other at once leave exactly one winner. Rules compare permissions, never role names (the lint rule
+  stays on). Access is checked per request against the database, so a changed or removed membership
+  applies to the very next call (a removed person gets 404); role changes and removals also delete the
+  person's sessions that were working in the pool. The change and its audit entry
+  (`member.role_changed`, `member.removed`, `member.left`, `pool.ownership_transferred`, ids and role
+  codes only) share the transaction. Handing over the pool, and making somebody an owner through
+  `PATCH` (`{ role: 'owner', password }`; the password is not read for other roles), need the caller's **password**,
+  verified against the stored argon2id hash and counted in the account's password bucket
+  (`auth.account.user`, 5 / 15 min, 429; a success gives its hit back); the password is never logged
+  or echoed, and a wrong one answers 400 with an issue on `password` only. `GET …/members` fills
+  emails only for `members.manage`, and the DTO adds `owner` and `editable` flags so the screen never
+  compares roles itself (hiding stays cosmetic; every service re-checks).
+- **Verified by:** `tests/services/members.integration.test.ts` (list visibility and flags, role
+  changes with sessions ended and permissions applied at once, admin vs owner, self, last owner,
+  parallel demotions and leaves, removal, leave, transfer with wrong password, 429 and keep-ownership,
+  mass assignment, other pool's ids, 401/403/404, repository isolation and injection payloads),
+  `tests/services/member-rules.test.ts` (the rule helpers), `tests/web/members-route.test.ts` (401,
+  Origin, 413, extra fields, error mapping, no password echo), `tests/web/members-screen.test.tsx`
+  (controls by role, escaping), `tests/lint/rules.test.ts` (no role comparisons) and
+  `tests/e2e/members.spec.ts`.
 
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
@@ -315,7 +344,11 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `x-forwarded-for` ignored, injection payload as data, fail closed/open) and
   `tests/services/client-ip.test.ts`. Invites add two buckets: `invites` (20 a day per pool, fails
   open) and `invites.lookup` (60 a minute per client IP for the public invite page, fails open);
-  `tests/services/invites.integration.test.ts` covers the 21st invite and the 61st lookup.
+  `tests/services/invites.integration.test.ts` covers the 21st invite and the 61st lookup. Confirming
+  a pool transfer with the password (NES-28) counts in the account's `auth.account.user` bucket, so
+  a stolen session cannot guess the password faster than the other password checks allow;
+  `tests/services/members.integration.test.ts` covers the sixth wrong password, for a transfer and for
+  an owner promotion alike.
 
 ## 12. Bot protection
 - **What (now):** sign-up is closed by default (`ALLOW_SIGNUP=false`); people join through invites

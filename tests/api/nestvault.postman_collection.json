@@ -44,6 +44,10 @@
     {
       "key": "inviteToken",
       "value": ""
+    },
+    {
+      "key": "memberId",
+      "value": ""
     }
   ],
   "item": [
@@ -1070,6 +1074,291 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('answers the pool id', () => pm.expect(pm.response.json().poolId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List the pool's members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "members"
+              ]
+            },
+            "description": "Every member may list. The emails are only filled for owners and admins (null for everybody else). Saves the first other member as memberId for the requests below."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const members = pm.response.json().members;",
+                  "pm.test('has a members array', () => pm.expect(members).to.be.an('array'));",
+                  "pm.test('exactly one row is mine', () => pm.expect(members.filter((m) => m.isYou)).to.have.length(1));",
+                  "const other = members.find((m) => !m.isYou);",
+                  "if (other) pm.collectionVariables.set('memberId', other.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a member's role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Needs members.manage (owner, admin). Admins cannot touch owners or hand out owner (403); nobody changes their own role (403); the last owner cannot lose the role (409). The member's sessions in this pool end. The body is the role (and your password, only when making an owner) and nothing else.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"viewer\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the new role', () => pm.expect(pm.response.json().role).to.eql('viewer'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a role with extra fields (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Mass assignment is refused: poolId and userId come from the URL, never from the body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"viewer\",\n  \"poolId\": \"00000000-0000-7000-8000-000000000000\",\n  \"userId\": \"00000000-0000-7000-8000-000000000000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Promote a member to owner (password)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Making an owner needs your password (userPassword, kept as a secret in the environment): a missing or wrong one answers 400 with an issue on password and counts towards the password-attempt limit. For any other role the password is not read.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"owner\",\n  \"password\": \"{{userPassword}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('the member is an owner now', () => pm.expect(pm.response.json().role).to.eql('owner'));",
+                  "pm.test('the password is not echoed', () => pm.expect(pm.response.text()).to.not.include(pm.variables.get('userPassword')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove a member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Needs members.manage. Admins cannot remove owners (403); leaving yourself is the leave request (403). The person gets 404 on the pool at once, their sessions in it end, and what they created stays."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Leave the pool",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/leave",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "leave"
+              ]
+            },
+            "description": "Any member may leave. The only owner cannot (409): transfer the pool first. Coming back needs a new invite."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer the pool to another member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/transfer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "transfer"
+              ]
+            },
+            "description": "Needs pool.transfer (owners). Confirms with your password (userPassword, kept as a secret in the environment): a wrong one answers 400 with an issue on password. You become an admin unless keepOwnership is true.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{memberId}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('the caller is an admin now', () => pm.expect(pm.response.json().role).to.eql('admin'));"
                 ]
               }
             }

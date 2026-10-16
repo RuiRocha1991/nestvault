@@ -1,8 +1,19 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, max, sql } from 'drizzle-orm';
 
 import { parseRole, type Role } from '../../pool-context';
 import type { IdentityDatabase, IdentityExecutor } from '../client';
-import { poolMembers, user } from '../schema';
+import { poolMembers, session, user } from '../schema';
+
+/** A member of a pool as the members screen lists them. */
+export interface MemberRow {
+  userId: string;
+  name: string;
+  email: string;
+  role: Role;
+  joinedAt: Date;
+  /** The newest activity of one of the member's sessions in this pool, or `null`. */
+  lastActivityAt: Date | null;
+}
 
 /** Ids and values are bound parameters. The caller validates the ids as UUIDs first. */
 export const poolMembersRepo = {
@@ -66,5 +77,80 @@ export const poolMembersRepo = {
       .where(and(eq(poolMembers.poolId, poolId), eq(user.email, email)))
       .limit(1);
     return !!row;
+  },
+
+  /** The pool's members with name, email and last activity, owners first and then by name. */
+  async listMembers(db: IdentityDatabase['db'], poolId: string): Promise<MemberRow[]> {
+    const rows = await db
+      .select({
+        userId: poolMembers.userId,
+        name: user.name,
+        email: user.email,
+        role: poolMembers.role,
+        joinedAt: poolMembers.createdAt,
+        lastActivityAt: max(session.updatedAt),
+      })
+      .from(poolMembers)
+      .innerJoin(user, eq(user.id, poolMembers.userId))
+      .leftJoin(
+        session,
+        and(eq(session.userId, poolMembers.userId), eq(session.activePoolId, poolMembers.poolId)),
+      )
+      .where(eq(poolMembers.poolId, poolId))
+      .groupBy(poolMembers.userId, user.name, user.email, poolMembers.role, poolMembers.createdAt)
+      .orderBy(
+        sql`case ${poolMembers.role} when 'owner' then 0 when 'admin' then 1 when 'member' then 2 else 3 end`,
+        asc(user.name),
+        asc(poolMembers.userId),
+      );
+    return rows.flatMap((row) => {
+      const role = parseRole(row.role);
+      return role ? [{ ...row, role }] : [];
+    });
+  },
+
+  /**
+   * Locks the pool's membership rows until the transaction ends and returns them. Every change of
+   * a role or a membership starts here, so two parallel requests cannot both leave the pool
+   * without an owner.
+   */
+  async lockMembers(
+    db: IdentityExecutor,
+    poolId: string,
+  ): Promise<{ userId: string; role: Role }[]> {
+    const rows = await db
+      .select({ userId: poolMembers.userId, role: poolMembers.role })
+      .from(poolMembers)
+      .where(eq(poolMembers.poolId, poolId))
+      .orderBy(asc(poolMembers.userId))
+      .for('update');
+    return rows.flatMap((row) => {
+      const role = parseRole(row.role);
+      return role ? [{ userId: row.userId, role }] : [];
+    });
+  },
+
+  /** Gives the member a new role. `false` when the user is not a member of the pool. */
+  async updateRole(
+    db: IdentityExecutor,
+    poolId: string,
+    userId: string,
+    role: Role,
+  ): Promise<boolean> {
+    const updated = await db
+      .update(poolMembers)
+      .set({ role })
+      .where(and(eq(poolMembers.poolId, poolId), eq(poolMembers.userId, userId)))
+      .returning({ userId: poolMembers.userId });
+    return updated.length > 0;
+  },
+
+  /** Removes the membership. `false` when the user was not a member of the pool. */
+  async remove(db: IdentityExecutor, poolId: string, userId: string): Promise<boolean> {
+    const removed = await db
+      .delete(poolMembers)
+      .where(and(eq(poolMembers.poolId, poolId), eq(poolMembers.userId, userId)))
+      .returning({ userId: poolMembers.userId });
+    return removed.length > 0;
   },
 };

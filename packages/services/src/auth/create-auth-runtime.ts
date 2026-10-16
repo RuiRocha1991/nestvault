@@ -5,6 +5,7 @@ import { createAuditService, type AuditService } from '../audit';
 import type { EmailSender } from '../email';
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
 import type { Logger } from '../logger';
+import { createMembersService, type MembersService } from '../members';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
 
@@ -30,6 +31,8 @@ export interface AuthRuntime {
   pools: PoolsService;
   /** Invite members by email and accept invites. */
   invites: InvitesService;
+  /** Roles, removal, leaving and ownership transfer of a pool's members. */
+  members: MembersService;
   /** The pool's audit log for its owner. */
   audit: AuditService;
 }
@@ -69,6 +72,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
       appUrl: config.appUrl,
       ...hops,
     }),
+    members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
   };
 }

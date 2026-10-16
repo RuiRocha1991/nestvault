@@ -16,7 +16,7 @@ export interface SettingsTab {
 export const SETTINGS_TABS: readonly SettingsTab[] = [
   { key: 'params', path: '', available: true },
   { key: 'plan', path: '/plano', available: false },
-  { key: 'members', path: '/membros', available: false },
+  { key: 'members', path: '/membros', available: true },
   { key: 'audit', path: '/auditoria', available: true, requires: 'audit.read' },
 ];
 

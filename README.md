@@ -111,13 +111,23 @@ The design reference (tokens, components, mockups) lives in Confluence and `desi
   people join by invite). Registering sends a confirmation link (Mailpit in development) and starts
   no session: you can only sign in after opening it. Registering an email that already has an
   account looks the same and warns the owner by email.
-- **Invites:** an owner or admin invites somebody by email with a role (`POST /api/v1/pools/<id>/invites`;
-  the invite dialog arrives with the members tab, NES-28). The email (Mailpit in development) links to
+- **Invites:** an owner or admin invites somebody by email with a role (the "Convidar utilizador"
+  button of Definições → Utilizadores e convites, or `POST /api/v1/pools/<id>/invites`). The email (Mailpit in development) links to
   `/convite/<token>`: single use, valid 7 days, bound to that address. Signed out you can sign in or
   create the account with the invited address (`/convite/<token>/registar`, which works even with
   `ALLOW_SIGNUP=false`; confirm the email, sign in and open the link again); signed in with the invited
   address you accept it; with another address you are asked to switch. Expired, used and unknown links
   show the same generic screen. Pending invites can be listed, resent (new link) and cancelled.
+- **Members:** Definições → "Utilizadores e convites" (`/<poolId>/definicoes/membros`). Everybody
+  in the pool sees who is in it and can leave it (`POST /api/v1/pools/<id>/leave`; the only owner
+  cannot). Owners and admins also see the emails, change roles, remove people (`PATCH`/`DELETE
+/api/v1/pools/<id>/members/<userId>`) and manage the pending invites; only the owner hands the pool
+  over (`POST /api/v1/pools/<id>/transfer`, confirmed with the password; the owner becomes an admin
+  unless they tick "Continuar também como proprietário"). Making somebody an owner by changing their
+  role through the API needs the password too.
+  A role change or removal ends that person's sessions in the pool, a pool always keeps at least one
+  owner, and admins never touch owners. Every action is audited (Definições → Auditoria). See the
+  Postman "Members" folder.
 - **My account:** `/conta` (link "A minha conta" in the sidebar footer): change the name, change the
   email (the link goes to the new address and the email only changes once it is used), change the
   password (the other sessions end and a notice is emailed) and see or end the active sessions. The

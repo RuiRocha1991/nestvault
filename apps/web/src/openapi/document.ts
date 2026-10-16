@@ -4,6 +4,7 @@ import './auth';
 import './health';
 import './invites';
 import './me';
+import './members';
 import './pools';
 import { registry } from './registry';
 
@@ -23,6 +24,10 @@ export function buildOpenApiDocument() {
       { name: 'Account', description: 'Profile and sessions of the signed-in user' },
       { name: 'Pools', description: 'Households of the signed-in user' },
       { name: 'Invites', description: 'Invite people to a pool by email and accept invites' },
+      {
+        name: 'Members',
+        description: 'Roles, removal, leaving and ownership transfer of a pool’s members',
+      },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },
     ],
   });

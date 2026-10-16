@@ -11,3 +11,4 @@ export * from './guards';
 export * from './audit';
 export * from './pools';
 export * from './invites';
+export * from './members';
