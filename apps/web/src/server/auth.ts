@@ -6,6 +6,7 @@ import {
   type AuditService,
   type Auth,
   type InvitesService,
+  type MembersService,
   type PoolsService,
   type AuthRuntime,
   type RateLimiter,
@@ -66,6 +67,10 @@ export async function getPoolsService(): Promise<PoolsService> {
 
 export async function getInvitesService(): Promise<InvitesService> {
   return (await getRuntime()).invites;
+}
+
+export async function getMembersService(): Promise<MembersService> {
+  return (await getRuntime()).members;
 }
 
 export async function getAuditService(): Promise<AuditService> {

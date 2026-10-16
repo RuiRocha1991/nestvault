@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, isNull, ne, or } from 'drizzle-orm';
 
-import type { IdentityDatabase } from '../client';
+import type { IdentityDatabase, IdentityExecutor } from '../client';
 import { session } from '../schema';
 
 /** A session as the account page needs it. The token (hash) is never selected. */
@@ -86,5 +86,26 @@ export const sessionsRepo = {
       .where(and(eq(session.userId, userId), ne(session.id, keepSessionId)))
       .returning({ id: session.id });
     return deleted.length;
+  },
+
+  /**
+   * Ends every session of the user that was working in the pool, so the person signs in again with
+   * the permissions they have now. Sessions that last worked in another pool stay. Returns how
+   * many ended.
+   */
+  async endInPool(db: IdentityExecutor, userId: string, poolId: string): Promise<number> {
+    const ended = await db
+      .delete(session)
+      .where(and(eq(session.userId, userId), eq(session.activePoolId, poolId)))
+      .returning({ id: session.id });
+    return ended.length;
+  },
+
+  /** Forgets the pool as the active one of the user's sessions (the user left it). */
+  async clearActivePool(db: IdentityExecutor, userId: string, poolId: string): Promise<void> {
+    await db
+      .update(session)
+      .set({ activePoolId: null })
+      .where(and(eq(session.userId, userId), eq(session.activePoolId, poolId)));
   },
 };

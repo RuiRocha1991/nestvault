@@ -403,6 +403,131 @@
       "audit": "Auditoria"
     }
   },
+  "members": {
+    "lead": "Convida as pessoas do agregado e escolhe o que cada uma pode fazer.",
+    "invite": "Convidar utilizador",
+    "users": {
+      "title": "Utilizadores",
+      "count": "{count, plural, one {# pessoa com conta} other {# pessoas com conta}}",
+      "name": "Nome",
+      "role": "Função",
+      "joined": "Entrou em",
+      "activity": "Última atividade",
+      "you": "Tu",
+      "noActivity": "—",
+      "leave": "Sair",
+      "remove": "Remover",
+      "roleOf": "Função de {name}",
+      "leaveLabel": "Sair do agregado",
+      "removeLabel": "Remover {name} do agregado",
+      "note": "Os administradores não podem remover nem alterar proprietários. Mudar a função de uma pessoa termina as sessões dela neste agregado e fica registado."
+    },
+    "invites": {
+      "title": "Convites pendentes",
+      "email": "Email",
+      "role": "Função",
+      "expires": "Expira",
+      "resend": "Reenviar",
+      "cancel": "Cancelar",
+      "resendLabel": "Reenviar o convite para {email}",
+      "cancelLabel": "Cancelar o convite para {email}",
+      "expired": "expirado",
+      "remaining": {
+        "day": "{count, plural, one {amanhã} other {em # dias}}",
+        "hour": "{count, plural, one {dentro de # hora} other {dentro de # horas}}",
+        "minute": "{count, plural, one {dentro de # minuto} other {dentro de # minutos}}"
+      },
+      "empty": "Não há convites pendentes.",
+      "note": "Cada convite é uma ligação de uso único válida durante 7 dias, só para esse email."
+    },
+    "ownership": {
+      "title": "Propriedade do agregado",
+      "lead": "Um agregado tem sempre pelo menos um proprietário.",
+      "transfer": "Transferir propriedade",
+      "leave": "Sair do agregado",
+      "soleNote": "Não podes sair enquanto fores o único proprietário."
+    },
+    "capabilities": {
+      "viewData": "Ver todos os dados",
+      "movements": "Criar e editar movimentos",
+      "imports": "Importar extratos",
+      "structure": "Gerir contas e portfolios",
+      "categories": "Gerir categorias e objetivos",
+      "people": "Convidar e remover membros"
+    },
+    "changeRole": {
+      "title": "Alterar função de {name}",
+      "keeps": "Mantém",
+      "loses": "Perde",
+      "gains": "Ganha",
+      "none": "Nada",
+      "sessionNote": "A sessão de {name} neste agregado termina e a pessoa volta a entrar com as novas permissões. A alteração fica registada.",
+      "submit": "Alterar função"
+    },
+    "removeMember": {
+      "title": "Remover {name} do agregado?",
+      "access": "Perde o acesso imediatamente e as sessões dela neste agregado terminam.",
+      "data": "Os movimentos e notas que criou ficam no agregado.",
+      "holder": "{name} continua como pessoa sem conta (titular) nas contas e portfolios.",
+      "audit": "Fica registado no histórico de auditoria.",
+      "submit": "Remover"
+    },
+    "leavePool": {
+      "title": "Sair do agregado",
+      "lead": "Vais deixar de ter acesso a <b>{pool}</b>.",
+      "data": "Os movimentos e notas que criaste ficam no agregado.",
+      "account": "A tua conta pessoal e os outros agregados não mudam.",
+      "reinvite": "Só voltas a entrar com um novo convite.",
+      "submit": "Sair do agregado"
+    },
+    "leaveBlocked": {
+      "title": "És o único proprietário de {pool}.",
+      "text": "Um agregado tem de ter sempre pelo menos um proprietário. Transfere a propriedade para outra pessoa antes de saíres.",
+      "close": "Fechar",
+      "transfer": "Transferir propriedade"
+    },
+    "transfer": {
+      "title": "Transferir propriedade",
+      "lead": "A nova pessoa passa a ser proprietária de <b>{pool}</b> e pode apagar o agregado e gerir o plano.",
+      "target": "Novo proprietário",
+      "targetPlaceholder": "Escolhe uma pessoa",
+      "noTargets": "Não há outras pessoas no agregado. Convida alguém primeiro.",
+      "password": "Confirma com a tua palavra-passe",
+      "wrongPassword": "A palavra-passe não está correta.",
+      "keep": "Continuar também como proprietário",
+      "keepHint": "Ficam dois proprietários e podes deixar de o ser mais tarde.",
+      "warning": "Passas a <b>Administrador</b>. Só o novo proprietário pode voltar a mudar isto.",
+      "warningKeep": "Continuas <b>Proprietário</b>, ao lado da nova pessoa.",
+      "submit": "Transferir propriedade"
+    },
+    "dialog": {
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "errorTitle": "Não foi possível concluir a ação.",
+      "errorText": "Ocorreu um problema. Tenta novamente dentro de instantes.",
+      "forbiddenText": "Já não tens permissão para fazer isto.",
+      "missingText": "Esta pessoa já não pertence ao agregado.",
+      "lastOwnerText": "Um agregado tem de ter sempre pelo menos um proprietário.",
+      "lockedTitle": "Demasiadas tentativas.",
+      "lockedText": "Tenta novamente dentro de <time></time>."
+    },
+    "toast": {
+      "roleChanged": "Função alterada.",
+      "removed": "Pessoa removida do agregado.",
+      "left": "Saíste do agregado.",
+      "transferred": "Propriedade transferida.",
+      "inviteSent": "Convite enviado.",
+      "inviteResent": "Convite reenviado.",
+      "inviteCancelled": "Convite cancelado.",
+      "inviteFailed": "Não foi possível atualizar o convite."
+    },
+    "states": {
+      "loading": "A carregar os utilizadores",
+      "errorTitle": "Não foi possível carregar os utilizadores",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "retry": "Tentar novamente"
+    }
+  },
   "audit": {
     "lead": "Registo de ações de segurança do agregado: quem entrou, quem mudou funções, convites e propriedade.",
     "filters": {

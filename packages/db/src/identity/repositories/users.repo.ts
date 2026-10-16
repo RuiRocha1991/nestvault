@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import { newId } from '../../ids';
 import type { IdentityDatabase } from '../client';
@@ -29,6 +29,16 @@ export const usersRepo = {
       .select({ id: user.id, name: user.name })
       .from(user)
       .where(inArray(user.id, [...ids]));
+  },
+
+  /** The argon2id hash of the user's password login, or `null` for an account without one. */
+  async passwordHashOf(db: IdentityDatabase['db'], userId: string): Promise<string | null> {
+    const [row] = await db
+      .select({ password: account.password })
+      .from(account)
+      .where(and(eq(account.userId, userId), eq(account.providerId, 'credential')))
+      .limit(1);
+    return row?.password ?? null;
   },
 
   /** Marks the address as verified (the person proved they read it, e.g. through a reset link). */

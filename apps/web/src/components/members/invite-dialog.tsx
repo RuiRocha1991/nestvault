@@ -7,9 +7,8 @@ import { useId, useState, type SyntheticEvent } from 'react';
 import { z } from 'zod';
 
 import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
-import { postJson, readOutcome } from '@webapp/lib/post-json';
-import { parseRetryAfter } from '@webapp/lib/sign-in';
-import { useCountdown } from '@webapp/lib/use-countdown';
+import { postJson } from '@webapp/lib/post-json';
+import { useMemberAction } from '@webapp/lib/use-member-action';
 import '@webapp/lib/zod-csp';
 
 /** The roles an invite offers in the dialog (an owner is made by transferring ownership). */
@@ -17,8 +16,6 @@ const INVITE_ROLES = ['admin', 'member', 'viewer'] as const;
 type InviteRole = (typeof INVITE_ROLES)[number];
 
 const EMAIL = z.email().max(254);
-
-type Problem = 'email' | 'member' | 'error' | null;
 
 export interface InviteDialogProps {
   poolId: string;
@@ -38,47 +35,46 @@ export function InviteDialog({ poolId, open, onOpenChange, onInvited }: InviteDi
   const ids = { form: useId(), email: useId(), role: useId() };
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<InviteRole>('viewer');
-  const [pending, setPending] = useState(false);
-  const [problem, setProblem] = useState<Problem>(null);
-  const [locked, startLock] = useCountdown();
+  const [invalid, setInvalid] = useState(false);
+  const action = useMemberAction(() => {
+    onInvited?.();
+    close(false);
+  });
+
+  // 429 is the pause banner, not a problem of its own; 409 and 400 belong to the email field.
+  const failed = action.problem?.status === 429 ? null : action.problem;
+  const problem = invalid
+    ? 'email'
+    : failed?.status === 409
+      ? 'member'
+      : failed?.status === 400
+        ? 'email'
+        : failed
+          ? 'error'
+          : null;
 
   function close(next: boolean) {
     if (!next) {
       setEmail('');
       setRole('viewer');
-      setProblem(null);
+      setInvalid(false);
+      action.clearProblem();
     }
     onOpenChange(next);
   }
 
-  async function onSubmit(event: SyntheticEvent<HTMLFormElement>) {
+  function onSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || locked > 0) return;
+    if (action.busy) return;
     const parsed = EMAIL.safeParse(email.trim());
-    if (!parsed.success) {
-      setProblem('email');
-      return;
-    }
-    setPending(true);
-    setProblem(null);
-    try {
-      const response = await postJson(`/api/v1/pools/${encodeURIComponent(poolId)}/invites`, {
+    setInvalid(!parsed.success);
+    if (!parsed.success) return;
+    void action.run(() =>
+      postJson(`/api/v1/pools/${encodeURIComponent(poolId)}/invites`, {
         email: parsed.data,
         role,
-      });
-      if (response.ok) {
-        onInvited?.();
-        close(false);
-      } else {
-        const outcome = await readOutcome(response);
-        if (outcome.status === 429) startLock(parseRetryAfter(outcome.retryAfter));
-        else if (outcome.status === 409) setProblem('member');
-        else setProblem(outcome.status === 400 ? 'email' : 'error');
-      }
-    } catch {
-      setProblem('error');
-    }
-    setPending(false);
+      }),
+    );
   }
 
   const emailProblem = problem === 'email' || problem === 'member';
@@ -100,7 +96,7 @@ export function InviteDialog({ poolId, open, onOpenChange, onInvited }: InviteDi
           >
             {t('cancel')}
           </Button>
-          <Button type="submit" form={ids.form} variant="primary" disabled={pending || locked > 0}>
+          <Button type="submit" form={ids.form} variant="primary" disabled={action.busy}>
             <Mail aria-hidden />
             {t('submit')}
           </Button>
@@ -108,18 +104,13 @@ export function InviteDialog({ poolId, open, onOpenChange, onInvited }: InviteDi
       }
     >
       {problem === 'error' && <ProblemAlert title={t('errorTitle')} text={t('errorText')} />}
-      {locked > 0 && (
+      {action.locked > 0 && (
         <LockedAlert
           title={t('lockedTitle')}
-          text={t.rich('lockedText', { time: () => <Countdown seconds={locked} /> })}
+          text={t.rich('lockedText', { time: () => <Countdown seconds={action.locked} /> })}
         />
       )}
-      <form
-        id={ids.form}
-        onSubmit={(event) => void onSubmit(event)}
-        noValidate
-        className="flex flex-col gap-4"
-      >
+      <form id={ids.form} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor={ids.email} className="text-sm font-medium text-fg-2">
             {t('email')}
@@ -136,7 +127,8 @@ export function InviteDialog({ poolId, open, onOpenChange, onInvited }: InviteDi
             aria-invalid={emailProblem}
             onChange={(event) => {
               setEmail(event.target.value);
-              setProblem(null);
+              setInvalid(false);
+              action.clearProblem();
             }}
           />
           {emailProblem ? (
