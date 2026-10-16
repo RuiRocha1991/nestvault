@@ -7,6 +7,7 @@ import type { AuditMeta } from '@nestvault/db';
 export const ALLOWED_META_KEYS = [
   'role',
   'previousRole',
+  'actorRole',
   'targetUserId',
   'inviteId',
   'sessionId',

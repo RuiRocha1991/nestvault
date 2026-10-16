@@ -173,7 +173,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `BEFORE TRUNCATE` trigger that raise `audit_log is insert-only` for every role, the owner
   included (layer 2: a later `GRANT ALL`, `ALTER DEFAULT PRIVILEGES` or inheriting role cannot
   restore the ability to rewrite history); the table has no foreign keys, so no cascade can erase
-  history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`) with
+  history. `meta` keeps only allow-listed keys (`ALLOWED_META_KEYS`, among them `actorRole`, the
+  role the caller holds after the action: `pool.ownership_transferred` records both the new owner
+  and the caller's demotion) with
   short codes, numbers or booleans, so amounts, IBANs, notes, emails and tokens cannot get in; the
   target must be an id, the placeholder for an unknown address is not stored. A failed account
   entry is logged and never blocks the user; a pool entry throws, so the action does not look done.
@@ -263,9 +265,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `PATCH` (`{ role: 'owner', password }`; the password is not read for other roles), need the caller's **password**,
   verified against the stored argon2id hash and counted in the account's password bucket
   (`auth.account.user`, 5 / 15 min, 429; a success gives its hit back); the password is never logged
-  or echoed, and a wrong one answers 400 with an issue on `password` only. `GET …/members` fills
+  or echoed, and a wrong one answers 400 with an issue on `password` only. The password is asked
+  **after** the cheap, unlocked checks (unknown person: 404; a role they already have, or somebody
+  who already owns the pool: no-op / 409), so a refusal that was certain anyway spends neither a
+  rate-limit hit nor an argon2 verification; if the role changed between that check and the lock,
+  the locked transaction refuses to make an owner that was not confirmed (409, try again). `GET …/members` fills
   emails only for `members.manage`, and the DTO adds `owner` and `editable` flags so the screen never
-  compares roles itself (hiding stays cosmetic; every service re-checks).
+  compares roles itself (hiding stays cosmetic; every service re-checks). `lastActivityAt` is the
+  newest activity of the member's **unexpired** sessions that are working in this pool; activity in
+  another pool is never shown, so a pool does not learn when its members were active elsewhere.
+  **Leaving** removes the membership, clears the active pool of the leaver's sessions in this pool and
+  audits it; the leaver's sessions in other pools stay, and the invites they sent stay valid, because
+  an invite belongs to the pool, not to the person who sent it (the owner can cancel it from the
+  pending list at any time).
 - **Verified by:** `tests/services/members.integration.test.ts` (list visibility and flags, role
   changes with sessions ended and permissions applied at once, admin vs owner, self, last owner,
   parallel demotions and leaves, removal, leave, transfer with wrong password, 429 and keep-ownership,

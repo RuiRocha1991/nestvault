@@ -227,6 +227,27 @@ describe('list', () => {
     expect(list.members.find((m) => m.name === 'Beto')?.lastActivityAt).toBeNull();
   });
 
+  it('ignores expired sessions when reporting the last activity', async () => {
+    const s = await setUpPool();
+    await members.list(s.owner, s.poolId);
+    await members.list(s.admin, s.poolId);
+    await rows(
+      identity,
+      sql`update session set expires_at = now() - interval '1 day' where user_id = ${s.ids.owner}`,
+    );
+    const list = await members.list(s.admin, s.poolId);
+    expect(list.members.find((m) => m.name === 'Rui')?.lastActivityAt).toBeNull();
+    expect(list.members.find((m) => m.name === 'Ana')?.lastActivityAt).not.toBeNull();
+  });
+
+  it('does not show activity in another pool as activity in this one', async () => {
+    const s = await setUpPool();
+    await members.list(s.admin, s.poolId);
+    await pools.create(s.owner, { name: 'Casa do Rui' });
+    const list = await members.list(s.admin, s.poolId);
+    expect(list.members.find((m) => m.name === 'Rui')?.lastActivityAt).toBeNull();
+  });
+
   it('never lists another pool’s people, and answers 404/401 to strangers', async () => {
     const s = await setUpPool();
     const other = await register('other@example.test', 'Outra');
@@ -419,6 +440,31 @@ describe('changeRole', () => {
       ).resolves.toMatchObject({ role: 'member' });
     });
 
+    it('spends no password attempt on an unknown person or on a role they already have', async () => {
+      const s = await setUpPool();
+      const stranger = '0197c0a0-0000-7000-8000-000000000001';
+      const wrong = 'wrong-password-for-promotion';
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await expect(
+          members.changeRole(s.owner, s.poolId, stranger, { role: 'owner', password: wrong }),
+        ).rejects.toBeInstanceOf(NotFoundError);
+        await expect(
+          members.changeRole(s.owner, s.poolId, s.ids.owner, { role: 'owner', password: wrong }),
+        ).rejects.toBeInstanceOf(ForbiddenError);
+      }
+      await members.changeRole(s.owner, s.poolId, s.ids.admin, {
+        role: 'owner',
+        password: PASSWORD,
+      });
+      await expect(
+        members.changeRole(s.owner, s.poolId, s.ids.admin, { role: 'owner', password: wrong }),
+      ).resolves.toEqual({ id: s.ids.admin, role: 'owner' });
+      await expect(promote(s, { role: 'owner', password: PASSWORD })).resolves.toMatchObject({
+        role: 'owner',
+      });
+      expect(await auditActions()).toEqual(['member.role_changed', 'member.role_changed']);
+    });
+
     it('does not count a successful promotion against the limit', async () => {
       const s = await setUpPool();
       for (let round = 0; round < 6; round += 1) {
@@ -579,6 +625,22 @@ describe('leave', () => {
     await expect(members.leave(s.member, s.poolId)).rejects.toBeInstanceOf(NotFoundError);
   });
 
+  it('keeps the leaver’s sessions in other pools and the invites they sent', async () => {
+    const s = await setUpPool();
+    const { id: otherPoolId } = await pools.create(s.admin, { name: 'Casa da Ana' });
+    const elsewhere = await signIn('admin@example.test');
+    await members.list(elsewhere, otherPoolId);
+    await members.list(s.admin, s.poolId);
+    await invites.create(s.admin, s.poolId, { email: 'friend@example.test', role: 'viewer' });
+
+    await members.leave(s.admin, s.poolId);
+
+    expect(await sessionCount(s.ids.admin)).toBe('2');
+    expect((await members.list(elsewhere, otherPoolId)).members).toHaveLength(1);
+    const pending = await invites.listPending(s.owner, s.poolId);
+    expect(pending.invites).toHaveLength(1);
+  });
+
   it('lets a viewer and an admin leave too', async () => {
     const s = await setUpPool();
     await members.leave(s.viewer, s.poolId);
@@ -662,6 +724,56 @@ describe('transferOwnership', () => {
       sql`select meta from audit_log where action = 'pool.ownership_transferred'`,
     );
     expect(entry?.meta).toMatchObject({ role: 'owner', reason: 'kept_owner' });
+  });
+
+  it('audits both sides of the handover: the new owner and the caller’s demotion', async () => {
+    const s = await setUpPool();
+    await members.transferOwnership(s.owner, s.poolId, { userId: s.ids.admin, password: PASSWORD });
+    const [entry] = await rows<{ meta: Record<string, string>; user_id: string }>(
+      identity,
+      sql`select meta, user_id from audit_log where action = 'pool.ownership_transferred'`,
+    );
+    expect(entry?.user_id).toBe(s.ids.owner);
+    expect(entry?.meta).toMatchObject({
+      targetUserId: s.ids.admin,
+      previousRole: 'admin',
+      role: 'owner',
+      actorRole: 'admin',
+    });
+  });
+
+  it('records that the caller stayed an owner when asked to', async () => {
+    const s = await setUpPool();
+    await members.transferOwnership(s.owner, s.poolId, {
+      userId: s.ids.member,
+      password: PASSWORD,
+      keepOwnership: true,
+    });
+    const [entry] = await rows<{ meta: Record<string, string> }>(
+      identity,
+      sql`select meta from audit_log where action = 'pool.ownership_transferred'`,
+    );
+    expect(entry?.meta).toMatchObject({ role: 'owner', actorRole: 'owner', reason: 'kept_owner' });
+  });
+
+  it('spends no password attempt on a stranger or on somebody who already owns the pool', async () => {
+    const s = await setUpPool();
+    const other = await register('other@example.test', 'Outra');
+    await pools.create(other, { name: 'Outra' });
+    const outsider = await userIdOf('other@example.test');
+    await members.changeRole(s.owner, s.poolId, s.ids.admin, { role: 'owner', password: PASSWORD });
+    const wrong = 'wrong-password-123';
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await expect(
+        members.transferOwnership(s.owner, s.poolId, { userId: outsider, password: wrong }),
+      ).rejects.toBeInstanceOf(NotFoundError);
+      await expect(
+        members.transferOwnership(s.owner, s.poolId, { userId: s.ids.admin, password: wrong }),
+      ).rejects.toBeInstanceOf(ConflictError);
+    }
+    await expect(
+      members.transferOwnership(s.owner, s.poolId, { userId: s.ids.member, password: PASSWORD }),
+    ).resolves.toMatchObject({ poolId: s.poolId });
   });
 
   it('refuses a wrong password with an issue on `password`, changes nothing and never logs it', async () => {
