@@ -27,6 +27,53 @@ rule that decides where a test goes is the file name: `*.integration.test.ts` is
 - `tests/web/headers.integration.test.ts` builds the web app and serves it on port 4010 to read
   the real response headers.
 
+## Pool isolation and authorization suite (NES-30)
+
+Every protected route is tested for the same things, and the cases are generated: a new route only
+adds an entry to the registry.
+
+| File | What it does |
+| ---- | ------------ |
+| `tests/support/route-registry.ts` | one entry per Route Handler under `app/api/v1`: method, path, `permission`, a valid `body`/`params`, the success `schema`, `foreign` (the same kind of resource in another pool) and the exemptions |
+| `tests/support/api-world.ts` | the real services on the `_test` databases (same wiring as `createAuthRuntime`, a memory mailbox, a test clock) and `newScenario()`: pool A with an owner, an admin, a member and a viewer; pool B with its own owner and member; a newcomer with no pool |
+| `tests/web/route-isolation.integration.test.ts` | generates the cases below for every entry and calls the real Route Handler with a real session cookie |
+| `tests/web/route-registry.test.ts` | unit test: fails when a Route Handler on disk has no entry (or an entry has no handler) |
+| `tests/support/expect-isolated.ts` | `expectIsolated({ database, seed, run, snapshot })`: seeds pool B, runs a repository function as pool A and demands an empty result and an unchanged B (`tests/db/expect-isolated.integration.test.ts` shows it on the probe repository and proves it fails on a leaking function) |
+| `tests/support/strict-schema.ts` | `strictly(schema)` closes every object of a DTO, so a leaked field fails the parse |
+
+Cases generated for a route under `/pools/:poolId` (scope `pool`):
+
+1. no session → 401;
+2. a non-member → 404, with a body identical to an unknown pool, a malformed pool id and somebody
+   else's pool (timing is not asserted);
+3. every role below `permission` → 403, and the lowest role that holds it is the one that succeeds
+   (so a wrong `permission` in the registry fails the test);
+4. an id of another pool in the URL or body → 404 and the resource unchanged (`foreign`);
+5. extra fields (`poolId`, `id`, `role`, `createdBy`, `userId`, `ownerId`, `email`) → 400
+   `validation_error`, for routes that read a body;
+6. a foreign or missing `Origin` on writes → 403;
+7. `leaks`: strings of pool B (ids, emails) must not appear in the response;
+8. route-specific `negatives`, then the success: status, `Cache-Control: no-store`, the body parsed
+   by the DTO with every object closed, and the entry's `check` of the resulting state.
+
+Routes of the signed-in user (scope `user`: `/me`, `/me/sessions`, `POST /pools`, accepting an
+invite) get 1, 4 (an id of another user), 5, 6, 7 and 8. Routes with no pool data (`/auth/*`,
+`/health`) are `exempt` and must say why.
+
+Adding a route (the `protected-route` skill does this step):
+
+1. Copy the entry of a similar route in `tests/support/route-registry.ts`; set `permission` to what
+   the service checks with `can()`, give a valid `body` and/or `params`, the success `schema`, and
+   `foreign` (or `noForeignBecause` when the request names no resource).
+2. Run `pnpm test:unit` (the static check) and `pnpm test:integration` (the generated cases).
+3. A new repository function of the `app` database also gets one `expectIsolated` call.
+
+The unit check reads the files, so it is the one that fails in CI when a route is added without an
+entry. It finds `export const GET`, `export async function GET` and `export { handle as GET }`; it
+cannot follow `export * from` or `export { X } from`, so a `route.ts` that uses either one fails the
+check until its handlers are declared in the file itself. Prove the suite still bites after changing guards: remove a `can()` call or a pool filter and
+the matching cases must fail.
+
 ## Factories (`tests/support/factories.ts`)
 
 In-memory objects, usable from unit tests with mocked repositories:

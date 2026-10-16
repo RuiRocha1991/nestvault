@@ -115,6 +115,13 @@ include a test script asserting the status code and that the response has no une
 
 ## Tests (required for every route)
 
+Register the route in the isolation suite first (`tests/support/route-registry.ts`, described in
+`docs/testing.md`, section "Pool isolation and authorization suite"): `tests/web/route-registry.test.ts`
+fails CI for a Route Handler without an entry, and `tests/web/route-isolation.integration.test.ts`
+then generates the cases of the table below for it. Add `expectIsolated()` for every new repository
+function. The table is what the generated cases cover; write by hand only what is specific to the
+route (service rules, injection payloads in string fields, the happy path in the service tests).
+
 | Case | Expected |
 | --- | --- |
 | No session | 401 |
