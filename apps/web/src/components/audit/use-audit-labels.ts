@@ -67,7 +67,9 @@ export function useAuditLabels(people: Readonly<Record<string, string>>) {
 
     /** A value of the "action data" box: a role is translated, anything else is shown as it is. */
     metaValue: (key: string, value: string | number | boolean) =>
-      key === 'role' || key === 'previousRole' ? roleLabel(value) : String(value),
+      key === 'role' || key === 'previousRole' || key === 'actorRole'
+        ? roleLabel(value)
+        : String(value),
 
     metaKey: (key: string) => (t.has(`meta.${key}`) ? t(`meta.${key}`) : key),
   };

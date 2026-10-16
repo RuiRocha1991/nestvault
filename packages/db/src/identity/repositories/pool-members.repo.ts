@@ -1,4 +1,4 @@
-import { and, asc, eq, max, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, max, sql } from 'drizzle-orm';
 
 import { parseRole, type Role } from '../../pool-context';
 import type { IdentityDatabase, IdentityExecutor } from '../client';
@@ -11,7 +11,11 @@ export interface MemberRow {
   email: string;
   role: Role;
   joinedAt: Date;
-  /** The newest activity of one of the member's sessions in this pool, or `null`. */
+  /**
+   * The newest activity of one of the member's unexpired sessions that is working in this pool,
+   * or `null`. Work in another pool is not shown here on purpose: a pool never learns when its
+   * members were active elsewhere.
+   */
   lastActivityAt: Date | null;
 }
 
@@ -80,7 +84,7 @@ export const poolMembersRepo = {
   },
 
   /** The pool's members with name, email and last activity, owners first and then by name. */
-  async listMembers(db: IdentityDatabase['db'], poolId: string): Promise<MemberRow[]> {
+  async listMembers(db: IdentityDatabase['db'], poolId: string, now: Date): Promise<MemberRow[]> {
     const rows = await db
       .select({
         userId: poolMembers.userId,
@@ -94,7 +98,11 @@ export const poolMembersRepo = {
       .innerJoin(user, eq(user.id, poolMembers.userId))
       .leftJoin(
         session,
-        and(eq(session.userId, poolMembers.userId), eq(session.activePoolId, poolMembers.poolId)),
+        and(
+          eq(session.userId, poolMembers.userId),
+          eq(session.activePoolId, poolMembers.poolId),
+          gt(session.expiresAt, now),
+        ),
       )
       .where(eq(poolMembers.poolId, poolId))
       .groupBy(poolMembers.userId, user.name, user.email, poolMembers.role, poolMembers.createdAt)

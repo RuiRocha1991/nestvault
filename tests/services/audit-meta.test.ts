@@ -9,6 +9,14 @@ describe('sanitizeAuditMeta', () => {
     ).toEqual({ role: 'admin', count: 3, reason: 'left', inviteId: 'a1-b2_c3.d4:e5' });
   });
 
+  it('keeps the role of the person who acted (NES-123) and drops look-alike keys', () => {
+    expect(
+      sanitizeAuditMeta({ actorRole: 'admin', actor: 'admin', actorEmail: 'a@b.test' }),
+    ).toEqual({
+      actorRole: 'admin',
+    });
+  });
+
   it.each([
     ['an amount', { amount: 10 }],
     ['an iban', { iban: 'PT50000201231234567890154' }],

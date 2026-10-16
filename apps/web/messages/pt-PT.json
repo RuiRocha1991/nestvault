@@ -621,6 +621,7 @@
     "meta": {
       "role": "função",
       "previousRole": "função anterior",
+      "actorRole": "função do autor depois da ação",
       "targetUserId": "pessoa",
       "inviteId": "convite",
       "sessionId": "sessão",

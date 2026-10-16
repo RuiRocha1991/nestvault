@@ -54,6 +54,7 @@ export interface MembersServiceDeps {
   identity: IdentityDatabase;
   limiter: RateLimiter;
   trustedProxyHops?: number;
+  now?: () => Date;
 }
 
 interface Member {
@@ -77,6 +78,7 @@ function find(locked: readonly Member[], userId: string): Member {
 export function createMembersService(deps: MembersServiceDeps): MembersService {
   const { auth, identity, limiter } = deps;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
+  const now = deps.now ?? (() => new Date());
 
   const parseUserId = (userId: string) => {
     if (!isUuid(userId)) throw new NotFoundError();
@@ -105,7 +107,7 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
       const session = await requireSession(auth, headers);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
-      const rows = await poolMembersRepo.listMembers(identity.db, ctx.poolId);
+      const rows = await poolMembersRepo.listMembers(identity.db, ctx.poolId, now());
       const me = rows.find((row) => row.userId === session.userId);
       if (!me) throw new NotFoundError();
       const showEmail = ctx.permissions.has('members.manage');
@@ -123,10 +125,17 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
       const targetId = parseUserId(userId);
       const next = parsed.data.role;
       // Making an owner is as weighty as handing the pool over: the caller confirms their password.
+      let passwordConfirmed = false;
       if (holdsOwnerRights(next)) {
         // An admin is refused before being asked for a password (the locked check below stays).
         if (!canAssignRole(ctx, next)) throw new ForbiddenError();
-        await confirmPassword(session.userId, parsed.data.password);
+        // Unlocked and cheap: an unknown person or a role they already have costs no password attempt.
+        const current = await poolMembersRepo.findRole(identity.db, ctx.poolId, targetId);
+        if (current === null) throw new NotFoundError();
+        if (!sameRole(current, next)) {
+          await confirmPassword(session.userId, parsed.data.password);
+          passwordConfirmed = true;
+        }
       }
 
       await identity.db.transaction(async (tx) => {
@@ -139,6 +148,10 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
         if (!canAssignRoleAs(actor.role, next)) throw new ForbiddenError();
         if (sameRole(target.role, next)) return;
         if (leavesNoOwner(locked, target, next)) throw new ConflictError(NEEDS_AN_OWNER);
+        // The role changed after the unlocked check: never make an owner without the password.
+        if (holdsOwnerRights(next) && !passwordConfirmed) {
+          throw new ConflictError('The member changed in the meantime. Try again.');
+        }
         await poolMembersRepo.updateRole(tx, ctx.poolId, targetId, next);
         await sessionsRepo.endInPool(tx, targetId, ctx.poolId);
         await recordAudit(tx, ctx, 'member.role_changed', {
@@ -202,6 +215,11 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
       const targetId = parseUserId(parsed.data.userId);
       if (targetId === session.userId) throw new ValidationError();
 
+      // Unlocked and cheap: a stranger or somebody who already owns the pool costs no password
+      // attempt. The locked checks below stay the real guard.
+      const current = await poolMembersRepo.findRole(identity.db, ctx.poolId, targetId);
+      if (current === null) throw new NotFoundError();
+      if (holdsOwnerRights(current)) throw new ConflictError('This person already owns the pool.');
       await confirmPassword(session.userId, parsed.data.password);
 
       const keepOwnership = parsed.data.keepOwnership === true;
@@ -224,6 +242,7 @@ export function createMembersService(deps: MembersServiceDeps): MembersService {
             targetUserId: targetId,
             previousRole: target.role,
             role: HANDOVER_ROLES.incoming,
+            actorRole: keepOwnership ? HANDOVER_ROLES.incoming : HANDOVER_ROLES.outgoing,
             ...(keepOwnership ? { reason: 'kept_owner' } : {}),
           },
           ip: ipOf(headers),
