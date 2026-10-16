@@ -96,7 +96,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `safeNextPath` (same-origin relative paths only, never `/login`), so the sign-in page cannot be used
   as an open redirect. Wrong password and unknown email get the same answer (and Better Auth hashes a
   dummy password for an unknown email), so neither the message nor the timing reveals which accounts exist.
-- **Verified by:** for every route, a test without a session expects 401 (API) or a redirect (page);
+- **Verified by:** for every Route Handler, a generated test without a session expects 401 (the
+  isolation suite, see control 7; a page expects a redirect);
   `tests/e2e/login.spec.ts` (redirect with `next`, open-redirect payloads, identical error, sign-out
   kills the cookie), `tests/e2e/session.spec.ts` (a revoked or expired session is sent to the
   sign-in screen with the expiry message), `tests/services/safe-next-path.test.ts`, and
@@ -159,8 +160,16 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `systemContext`). Membership is read from `pool_members` in the identity database with bound
   parameters. A malformed id, a missing pool and a pool the caller is not in all throw the same
   `NotFoundError`; the session's `active_pool_id` is updated on a successful access only.
-- **Verified by:** for every route, tests for: non-member → 404, member without permission → 403,
-  viewer cannot write; pool-isolation tests. `tests/services/permissions.test.ts` compares the
+- **Verified by:** the generated pool-isolation suite (NES-30): `tests/web/route-isolation.integration.test.ts`
+  calls every Route Handler of `tests/support/route-registry.ts` with real sessions, services and
+  Postgres, and checks non-member → 404 (identical to an unknown or malformed pool), a role below
+  the permission → 403 (and the lowest role holding it succeeds, so a wrong permission in the
+  registry fails), a resource id of another pool or user → 404 and unchanged, and no pool B data in
+  any response. `tests/web/route-registry.test.ts` fails CI when a Route Handler is not in the
+  registry. At repository level `expectIsolated()` (`tests/support/expect-isolated.ts`) runs a
+  function as pool A against pool B data (`tests/db/expect-isolated.integration.test.ts`); both are
+  described in `docs/testing.md`. Timing of the 404 paths is not asserted by the suite (the
+  guard order makes them identical; `pool-access.integration.test.ts` covers the cases). `tests/services/permissions.test.ts` compares the
   matrix with the PRD table; `pool-access.integration.test.ts` covers identical 404s (also for
   injection payloads and timing) and the active pool; the ESLint rule `noRoleComparison` rejects
   `role ===` / `switch (x.role)` outside the context factory (`tests/lint/rules.test.ts`).
@@ -303,8 +312,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from
   the `PoolContext`/session. Repositories build insert/update objects field by field; never
   spread a request body into a query.
-- **Verified by:** for every write route, a test that sends extra fields (`poolId`, `role`,
-  `createdBy`) and expects 400 and no change.
+- **Verified by:** for every route that reads a body, the isolation suite sends each of `poolId`,
+  `id`, `role`, `createdBy`, `userId`, `ownerId` and `email` that the route does not legitimately
+  take, and expects 400 `validation_error` (`tests/web/route-isolation.integration.test.ts`).
 
 ## 9. Secure cookies
 - **What:** session cookie `HttpOnly; SameSite=Lax; Path=/`, `Secure` whenever not on
@@ -321,7 +331,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   prefix only on https, sliding renewal after the update age, expired sessions rejected, a second
   process accepts the same cookie); `tests/e2e/session.spec.ts` (persistent cookie attributes);
   `tests/web/api-route.test.ts`
-  for the `Origin` check (foreign, missing, look-alike origins).
+  for the `Origin` check (foreign, missing, look-alike origins); the isolation suite repeats it on
+  every write route (foreign and missing `Origin` → 403).
 
 ## 10. Password hashing
 - **What:** argon2id (`@node-rs/argon2`) configured as Better Auth's hash/verify (its default is
@@ -397,7 +408,8 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** zod at every boundary: Server Actions, Route Handlers, query strings, route params
   (UUIDs), file contents after parsing. Reject unknown fields (8). Normalize money as strings,
   parsed to decimals.
-- **Verified by:** validation-failure test per route (400 with field errors).
+- **Verified by:** validation-failure test per route (400 with field errors); for every body route
+  the isolation suite also covers unknown fields (control 8).
 
 ## 15. No data leaks
 - **What:** errors returned to clients are generic (`{ error: { code, message } }`, no stack, no SQL);
@@ -427,7 +439,9 @@ leave local-only development · **N/A** = does not apply to this stack (with the
 - **What:** every response is built from an explicit zod output schema (DTO) — never return a DB
   row as-is. Never expose password/token hashes, internal flags or other pools' data. The same
   schemas feed OpenAPI.
-- **Verified by:** route tests parse the response with the output schema in `strict` mode.
+- **Verified by:** the isolation suite parses every success body with the route's output schema
+  with all objects closed (`strictly()` in `tests/support/strict-schema.ts`, so an extra field fails)
+  and every error body with the one public error shape.
 
 ## 18. Security headers
 - **What:** CSP with a per-request nonce (`default-src 'self'`, no `unsafe-inline` for scripts),
