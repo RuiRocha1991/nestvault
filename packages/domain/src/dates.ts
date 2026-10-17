@@ -85,3 +85,9 @@ export function lastMonths(n: number, asOf: string): string[] {
   const first = `${monthKey(asOf)}-01`;
   return Array.from({ length: n }, (_, i) => monthKey(addMonths(first, i - n + 1)));
 }
+
+/** The `n` month keys starting with the month of `asOf`, soonest first. */
+export function nextMonths(n: number, asOf: string): string[] {
+  const first = `${monthKey(asOf)}-01`;
+  return Array.from({ length: n }, (_, i) => monthKey(addMonths(first, i)));
+}

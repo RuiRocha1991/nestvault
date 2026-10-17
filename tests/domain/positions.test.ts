@@ -17,6 +17,8 @@ import {
   type InvestmentOp,
 } from '@nestvault/domain';
 
+import { makeOp, must } from '../support/investments';
+
 const TODAY = '2026-09-01';
 const opts = { asOf: TODAY, today: TODAY };
 
@@ -24,16 +26,7 @@ const fund: InvestmentAsset = { id: 'fund', currency: 'EUR', price: '8.017' };
 const aapl: InvestmentAsset = { id: 'aapl', currency: 'USD', price: '200', dps: '1' };
 const sxr: InvestmentAsset = { id: 'sxr', currency: 'EUR', price: '100' };
 
-/** Narrows an indexed lookup that the test knows exists. */
-function must<T>(value: T | undefined): T {
-  if (value === undefined) throw new Error('Expected a value');
-  return value;
-}
-
-let seq = 0;
-function op(partial: Partial<InvestmentOp> & Pick<InvestmentOp, 'type' | 'assetId' | 'date'>) {
-  return { id: `op${++seq}`, ...partial };
-}
+const op = makeOp;
 
 /** Two lots per holder; the fee on the second lot makes each holder's cost exact. */
 const holders = [
