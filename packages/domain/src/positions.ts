@@ -12,6 +12,8 @@ export interface InvestmentAsset {
   prices?: readonly { date: string; price: string }[];
   /** Annual dividend per share in the asset's currency. */
   dps?: string | null;
+  /** Calendar months (1-12) in which the dividend is paid; the annual dps is split evenly. */
+  divMonths?: readonly number[] | null;
 }
 
 /** One investment operation. Quantities, prices and amounts are decimal strings; fees are in EUR. */
@@ -24,6 +26,8 @@ export interface InvestmentOp {
   /** Cash account the operation settles in; `null` means no account. */
   accountId?: string | null;
   subAccountId?: string | null;
+  /** A buy paid from the portfolio's own cash (counts in portfolio cash for untracked accounts). */
+  fromCash?: boolean;
   qty?: DecInput | null;
   price?: DecInput | null;
   fee?: DecInput | null;
@@ -80,6 +84,8 @@ export interface Holding {
   gainPct: Dec;
   total: Money;
   income: Money;
+  /** Payment months of the asset's dividend (empty when unknown). */
+  divMonths: readonly number[];
   /** Share of the total value of open positions; 0 for closed ones. */
   weight: Dec;
   isOpen: boolean;
@@ -125,7 +131,8 @@ export function positionKey(op: InvestmentOp): string {
   return [op.assetId, account, op.accountId ? (op.subAccountId ?? '') : ''].join('|');
 }
 
-function byDate(a: InvestmentOp, b: InvestmentOp): number {
+/** ISO dates sort as strings; works for any dated record. */
+export function byDate(a: { date: string }, b: { date: string }): number {
   return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
 }
 
@@ -134,7 +141,7 @@ function byDateBuysFirst(a: InvestmentOp, b: InvestmentOp): number {
   return byDate(a, b) || Number(a.type === 'sell') - Number(b.type === 'sell');
 }
 
-function indexAssets(assets: readonly InvestmentAsset[]): Map<string, InvestmentAsset> {
+export function indexAssets(assets: readonly InvestmentAsset[]): Map<string, InvestmentAsset> {
   return new Map(assets.map((asset) => [asset.id, asset]));
 }
 
@@ -170,9 +177,20 @@ export function cashEffectNative(
   return num(op.amount);
 }
 
-function matchesScope(op: InvestmentOp, options: HoldingsOptions): boolean {
+export type ScopeOptions = Pick<HoldingsOptions, 'portfolioIds' | 'accountId' | 'subAccountId'>;
+
+/** Empty or missing `portfolioIds` means every portfolio. */
+export function inPortfolios(
+  portfolioIds: readonly string[] | null | undefined,
+  portfolioId: string | null | undefined,
+): boolean {
+  return !portfolioIds?.length || portfolioIds.includes(portfolioId ?? '');
+}
+
+/** Portfolio / account / sub-account filter of the options (the date is checked by callers). */
+export function isInScope(op: InvestmentOp, options: ScopeOptions): boolean {
   const { portfolioIds, accountId, subAccountId } = options;
-  if (portfolioIds?.length && !portfolioIds.includes(op.portfolioId ?? '')) return false;
+  if (!inPortfolios(portfolioIds, op.portfolioId)) return false;
   if (accountId === undefined) return true;
   if (accountId === null) return !op.accountId;
   if (op.accountId !== accountId) return false;
@@ -204,7 +222,7 @@ export function computeHoldings(
   const byPosition = options.groupBy === 'position';
   const groups = new Map<string, Accumulator>();
   const scoped = ops
-    .filter((op) => op.date <= options.asOf && byId.has(op.assetId) && matchesScope(op, options))
+    .filter((op) => op.date <= options.asOf && byId.has(op.assetId) && isInScope(op, options))
     .sort(byDateBuysFirst);
 
   for (const op of scoped) {
@@ -290,6 +308,7 @@ export function computeHoldings(
         gainPct: cost.isZero() ? dec(0) : gain.div(cost),
         total: totalN.times(rate),
         income: incomeN.times(rate),
+        divMonths: h.asset.divMonths ?? [],
         weight: dec(0),
         isOpen,
       },

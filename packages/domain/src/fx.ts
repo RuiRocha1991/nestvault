@@ -22,3 +22,18 @@ export function toEur(
 ): Money {
   return mul(amount, fx(currency, rates));
 }
+
+/** Per-currency totals (`{ USD: 10 }`), as the portfolio summary reports them. */
+export type ByCurrency = Record<string, Dec>;
+
+export function addTo(map: ByCurrency, currency: string, amount: DecInput): void {
+  map[currency] = (map[currency] ?? dec(0)).plus(amount);
+}
+
+/** Converts per-currency totals to EUR with the given rates. */
+export function sumToEur(map: Readonly<ByCurrency>, rates: FxRates): Money {
+  return Object.entries(map).reduce(
+    (total, [currency, amount]) => total.plus(toEur(amount, currency, rates)),
+    dec(0),
+  );
+}
