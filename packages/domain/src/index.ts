@@ -8,6 +8,8 @@ export * from './parse-number';
 export * from './positions';
 export * from './xirr';
 export * from './portfolio-cash';
+export * from './deposits';
 export * from './dividends';
+export * from './interest';
 export * from './portfolio-summary';
 export * from './text';

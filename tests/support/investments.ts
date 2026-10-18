@@ -10,7 +10,7 @@ export function makeOp(
 }
 
 /** Narrows an indexed lookup that the test knows exists. */
-export function must<T>(value: T | undefined): T {
-  if (value === undefined) throw new Error('Expected a value');
+export function must<T>(value: T | null | undefined): T {
+  if (value === undefined || value === null) throw new Error('Expected a value');
   return value;
 }
