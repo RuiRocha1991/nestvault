@@ -29,7 +29,8 @@ export interface InterestCandidate {
   transfer?: boolean;
   /** Already counted as a deposit's interest, so it must not count twice. */
   depositInterest?: boolean;
-  category?: { kind: string; name: string } | null;
+  /** `systemKey: 'interest'` marks the global interest category; `name` is the older fallback. */
+  category?: { kind: string; name?: string | null; systemKey?: string | null } | null;
 }
 
 const INTEREST_WORDS = /\b(JUROS|INTEREST)\b/;
@@ -38,7 +39,11 @@ const INTEREST_CATEGORY = /juros/i;
 /** A positive, non-transfer line whose category is income "Juros", or (uncategorized) that says so. */
 export function isInterestTransaction(tx: Omit<InterestCandidate, 'id' | 'date'>): boolean {
   if (dec(tx.amount).lte(0) || tx.transfer) return false;
-  if (tx.category) return tx.category.kind === 'income' && INTEREST_CATEGORY.test(tx.category.name);
+  const { category } = tx;
+  if (category) {
+    const named = category.systemKey === 'interest' || INTEREST_CATEGORY.test(category.name ?? '');
+    return category.kind === 'income' && named;
+  }
   return INTEREST_WORDS.test(normalizeText(tx.description));
 }
 

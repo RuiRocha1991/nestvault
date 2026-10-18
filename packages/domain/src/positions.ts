@@ -31,6 +31,8 @@ export interface InvestmentOp {
   qty?: DecInput | null;
   price?: DecInput | null;
   fee?: DecInput | null;
+  /** Free text about the operation; user content, never interpreted. */
+  note?: string | null;
   /** Net dividend received, in the asset's currency. */
   amount?: DecInput | null;
   /** Gross dividend and withholding tax, when known. */
@@ -145,15 +147,21 @@ export function indexAssets(assets: readonly InvestmentAsset[]): Map<string, Inv
   return new Map(assets.map((asset) => [asset.id, asset]));
 }
 
-/** Latest history price on or before `asOf`; the current price from `today` on or without history. */
+/**
+ * Latest history price on or before `asOf`; before the first entry, the earliest known price. The
+ * current price is used from `today` on, and for assets without history.
+ */
 export function priceAt(asset: InvestmentAsset, asOf: string, today: string): Dec {
   const current = num(asset.price);
   if (asOf >= today || !asset.prices?.length) return current;
   let found: { date: string; price: string } | undefined;
+  let earliest: { date: string; price: string } | undefined;
   for (const entry of asset.prices) {
     if (entry.date <= asOf && (!found || entry.date >= found.date)) found = entry;
+    if (!earliest || entry.date < earliest.date) earliest = entry;
   }
-  return found ? num(found.price) : current;
+  const chosen = found ?? earliest;
+  return chosen ? num(chosen.price) : current;
 }
 
 /** Cash effect of an operation in EUR: buys out, sells and dividends in. Fees are already EUR. */

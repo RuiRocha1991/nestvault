@@ -1,6 +1,4 @@
-import { monthKey } from './dates';
-import { dec, type Dec, type DecInput, type Money } from './decimal';
-import { toEur, type FxRates } from './fx';
+import { dec, type DecInput } from './decimal';
 
 export type CategoryKind = 'expense' | 'income' | 'refund' | 'transfer' | 'invest';
 
@@ -18,6 +16,7 @@ export interface Category {
 export const SYSTEM_KEYS = {
   externalTransfers: 'external-transfers',
   otherExpenses: 'other-expenses',
+  interest: 'interest',
 } as const;
 
 export interface Transaction {
@@ -27,6 +26,8 @@ export interface Transaction {
   /** In the account's currency; negative leaves the account. */
   amount: DecInput;
   description: string;
+  /** Free text about the transaction; user content, never interpreted. */
+  note?: string | null;
   categoryId?: string | null;
   /** The user chose the category: rules and detection never override it. */
   manualCategory?: boolean;
@@ -36,6 +37,8 @@ export interface Transaction {
   pairId?: string | null;
   /** The user fixed the transfer flag. */
   transferLocked?: boolean;
+  /** Linked to a term deposit's interest (see `linkDepositFlows`), so it is not counted twice. */
+  depositInterest?: boolean;
 }
 
 /** Transfer flag first, then the category's kind, then the sign (negative = expense). */
@@ -43,11 +46,16 @@ export function transactionKind(
   tx: Pick<Transaction, 'transfer' | 'categoryId' | 'amount'>,
   categories: readonly Category[],
 ): CategoryKind {
-  return kindFromCategory(tx, new Map(categories.map((c) => [c.id, c.kind])));
+  return kindFromCategory(tx, indexCategoryKinds(categories));
 }
 
+/** `categoryId → kind` lookup for `kindFromCategory`. */
+export const indexCategoryKinds = (
+  categories: readonly Category[],
+): ReadonlyMap<string, CategoryKind> => new Map(categories.map((c) => [c.id, c.kind]));
+
 /** The kind rule on a prebuilt `categoryId → kind` lookup, for loops over many transactions. */
-function kindFromCategory(
+export function kindFromCategory(
   tx: Pick<Transaction, 'transfer' | 'categoryId' | 'amount'>,
   kindById: ReadonlyMap<string, CategoryKind>,
 ): CategoryKind {
@@ -69,41 +77,4 @@ export function findCategoryBySystemKey(
   systemKey: string,
 ): Category | undefined {
   return categories.find((c) => c.systemKey === systemKey);
-}
-
-export interface AccountCurrency {
-  id: string;
-  currency: string;
-}
-
-export interface MonthExpenses {
-  /** Expenses minus refunds, positive, in EUR. Transfers and investments are not expenses. */
-  expenses: Money;
-  refunds: Money;
-}
-
-/**
- * Expenses of a `yyyy-mm` month in EUR: expense-kind transactions minus refunds (a refund reduces
- * the month's expenses). Internal transfers are excluded because their kind is `transfer`.
- */
-export function monthExpenses(
-  transactions: readonly Transaction[],
-  categories: readonly Category[],
-  accounts: readonly AccountCurrency[],
-  rates: FxRates,
-  month: string,
-): MonthExpenses {
-  const currencyOf = new Map(accounts.map((a) => [a.id, a.currency]));
-  const kindById = new Map(categories.map((c) => [c.id, c.kind]));
-  let expenses: Dec = dec(0);
-  let refunds: Dec = dec(0);
-  for (const t of transactions) {
-    if (monthKey(t.date) !== month) continue;
-    const kind = kindFromCategory(t, kindById);
-    if (kind === 'expense')
-      expenses = expenses.plus(toEur(t.amount, currencyOf.get(t.accountId), rates));
-    else if (kind === 'refund')
-      refunds = refunds.plus(toEur(t.amount, currencyOf.get(t.accountId), rates));
-  }
-  return { expenses: expenses.neg().minus(refunds), refunds };
 }
