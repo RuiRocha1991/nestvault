@@ -14,5 +14,6 @@ export * from './dividends';
 export * from './interest';
 export * from './portfolio-summary';
 export * from './text';
+export * from './goals';
 export * from './transactions';
 export * from './transfers';
