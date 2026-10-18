@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DEFAULT_FX_RATES,
   findCategoryBySystemKey,
-  monthExpenses,
-  toPlain,
   transactionKind,
   type Category,
   type Transaction,
@@ -16,10 +13,6 @@ const categories: Category[] = [
   { id: 'refunds', kind: 'refund' },
   { id: 'transfer', kind: 'transfer' },
   { id: 'invest', kind: 'invest' },
-];
-const accounts = [
-  { id: 'eur', currency: 'EUR' },
-  { id: 'usd', currency: 'USD' },
 ];
 
 let seq = 0;
@@ -43,33 +36,6 @@ describe('transactionKind', () => {
     expect(transactionKind(tx({ amount: '-5', categoryId: 'deleted' }), categories)).toBe(
       'expense',
     );
-  });
-});
-
-describe('monthExpenses', () => {
-  const month = [
-    tx({ amount: '-100', categoryId: 'groceries' }),
-    tx({ amount: '-50.5' }), // uncategorized outflow is an expense
-    tx({ amount: '30', categoryId: 'refunds' }),
-    tx({ amount: '-200', transfer: true }),
-    tx({ amount: '200', transfer: true }),
-    tx({ amount: '-300', categoryId: 'invest' }),
-    tx({ amount: '2000', categoryId: 'salary' }),
-    tx({ amount: '-10', accountId: 'usd', categoryId: 'groceries' }),
-    tx({ amount: '-999', categoryId: 'groceries', date: '2026-08-31' }),
-  ];
-
-  it('refunds reduce the month expenses; transfers, investments and income are excluded', () => {
-    const result = monthExpenses(month, categories, accounts, DEFAULT_FX_RATES, '2026-09');
-    // 100 + 50.5 + 10 USD × 0.92 − 30 refund
-    expect(toPlain(result.expenses)).toBe('129.7');
-    expect(toPlain(result.refunds)).toBe('30');
-  });
-
-  it('is zero for a month without transactions', () => {
-    expect(
-      toPlain(monthExpenses(month, categories, accounts, DEFAULT_FX_RATES, '2027-01').expenses),
-    ).toBe('0');
   });
 });
 

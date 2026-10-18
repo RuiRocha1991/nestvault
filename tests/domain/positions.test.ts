@@ -372,7 +372,7 @@ describe('priceAt', () => {
   it('uses history before today, the current price otherwise', () => {
     expect(toPlain(priceAt(asset, '2025-02-01', TODAY))).toBe('6');
     expect(toPlain(priceAt(asset, '2025-03-01', TODAY))).toBe('8');
-    expect(toPlain(priceAt(asset, '2024-01-01', TODAY))).toBe('10');
+    expect(toPlain(priceAt(asset, '2024-01-01', TODAY))).toBe('6'); // earliest known, not today's
     expect(toPlain(priceAt(asset, TODAY, TODAY))).toBe('10');
     expect(toPlain(priceAt({ ...asset, prices: [] }, '2025-02-01', TODAY))).toBe('10');
   });
