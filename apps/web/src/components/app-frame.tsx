@@ -33,10 +33,19 @@ export async function AppFrame({
       scrimLabel={t('closeMenu')}
       skipLabel={t('skipToContent')}
       sidebar={
-        <Sidebar pool={pool} pools={pools} portfolios={[]} theme={theme} userName={session.name} />
+        // Explicit keys: elements built on the server and rendered as siblings inside the client
+        // `AppShell` trigger React's dev-only "unique key" warning otherwise.
+        <Sidebar
+          key="sidebar"
+          pool={pool}
+          pools={pools}
+          portfolios={[]}
+          theme={theme}
+          userName={session.name}
+        />
       }
     >
-      <main id="content" tabIndex={-1} className="outline-none">
+      <main key="content" id="content" tabIndex={-1} className="outline-none">
         {children}
       </main>
     </AppShell>
