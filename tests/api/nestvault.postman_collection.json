@@ -2333,6 +2333,220 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "categories"
+              ]
+            },
+            "description": "Any member. The 25 global categories (global true, systemKey set, no name: the name comes from i18n) plus the pool's own, each with this pool's budget, colour and hidden flag."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json().categories;",
+                  "pm.test('25 global categories at least', () => pm.expect(list.filter(c => c.global).length).to.eql(25));",
+                  "const g = list.find(c => c.global);",
+                  "if (g) pm.collectionVariables.set('globalCategoryId', g.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create a category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "categories"
+              ]
+            },
+            "description": "Needs categories.write (owner, admin). Belongs to this pool only; name unique in the pool (409). Strict body: poolId, id, systemKey answer 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cantina\",\n  \"kind\": \"expense\",\n  \"color\": \"#112233\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const c = pm.response.json();",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(c).sort()).to.eql(['color','colorOverride','global','hidden','id','kind','monthlyBudget','name','systemKey']));",
+                  "pm.collectionVariables.set('categoryId', c.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Needs categories.write. Only the pool's own categories: a global one answers 403.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Refeitório\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Budget, colour and visibility",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/categories/{{globalCategoryId}}/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "categories",
+                "{{globalCategoryId}}",
+                "settings"
+              ]
+            },
+            "description": "Needs categories.write. For any category the pool sees (global too); belongs to this pool only. null clears a budget or colour.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyBudget\": \"450\",\n  \"colorOverride\": \"#AABBCC\",\n  \"hidden\": false\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete a category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/categories/{{categoryId}}?replacement={{globalCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "categories",
+                "{{categoryId}}"
+              ],
+              "query": [
+                {
+                  "key": "replacement",
+                  "value": "{{globalCategoryId}}"
+                }
+              ]
+            },
+            "description": "Needs categories.write. Only the pool's own: a global one answers 403 (hide it instead). replacement receives its transactions and is required while any use it."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

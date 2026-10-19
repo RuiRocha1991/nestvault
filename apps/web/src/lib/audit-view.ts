@@ -24,6 +24,7 @@ export const CATEGORY_TONE: Readonly<Record<string, 'default' | 'accent' | 'pos'
   holder: 'default',
   account: 'default',
   asset: 'default',
+  category: 'default',
   settings: 'default',
 };
 

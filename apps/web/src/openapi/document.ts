@@ -4,6 +4,7 @@ import './auth';
 import './health';
 import './accounts';
 import './assets';
+import './categories';
 import './holders';
 import './invites';
 import './me';
@@ -37,6 +38,10 @@ export function buildOpenApiDocument() {
         description: 'Bank, savings, deposit and brokerage accounts with their holders',
       },
       { name: 'Assets', description: 'Assets (unique ticker per pool) and their price history' },
+      {
+        name: 'Categories',
+        description: 'The global category catalogue and the pool’s own categories',
+      },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },

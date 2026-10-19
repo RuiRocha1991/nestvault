@@ -131,6 +131,22 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `where`, composite foreign key, injection payloads, constraints),
   `tests/services/assets.integration.test.ts` (guards in order, atomic bulk, other pool's ids, audit
   without values) and the generated route cases for `/assets` and `/asset-prices`.
+- **Categories (NES-94, ADR 0004)**: `categories` is the one table with a nullable `pool_id`: global
+  rows (`pool_id` null, `system_key`, no name) are the shared catalogue, written by the migration
+  only; a pool's own rows carry its `pool_id` and a `name` (a CHECK forbids any mix). RLS uses one
+  policy per command: `SELECT` shows global rows and the pool's own, while `INSERT`, `UPDATE` and
+  `DELETE` need `pool_id = app_current_pool_id()`. A single `FOR ALL` policy with the rule from the
+  ADR would let a pool turn a global row into its own through an `UPDATE` (its `USING` passes for
+  global rows and its `WITH CHECK` for the new row), so it is not used; the table is FORCE row
+  secured, so the seed in the migration lifts FORCE for its own insert only. `pool_category_settings`
+  (budget, colour, hidden) follows the usual per-pool block and its `WITH CHECK` also requires the
+  category to be visible through RLS, which closes what a plain foreign key cannot (a global row has
+  no pool). Pools write with `categories.write` (owner, admin); a global category answers 403 to an
+  update or a delete; writes are audited (`category.*`, target id and a count, never names or
+  budgets). Verified by `tests/db/categories.repo.integration.test.ts` (the 25 defaults, no copy per
+  pool, raw `UPDATE`/`DELETE`/"steal" and a `pool_id` null insert refused, another pool's category
+  invisible, settings pointing at another pool's category refused, injection payloads, CHECKs),
+  `tests/services/categories.integration.test.ts` and the generated route cases for `/categories`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

@@ -10,3 +10,5 @@ export { accountHolders, accounts, subAccounts } from './accounts';
 export type { AccountHolderRow, AccountRow, SubAccountRow } from './accounts';
 export { assetPrices, assets } from './assets';
 export type { AssetPriceRow, AssetRow } from './assets';
+export { categories, poolCategorySettings } from './categories';
+export type { CategoryRow, CategorySettingsRow } from './categories';

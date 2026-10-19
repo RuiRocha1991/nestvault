@@ -35,18 +35,45 @@ const DROP_EVERYTHING = `
   DROP SCHEMA IF EXISTS drizzle CASCADE;
 `;
 
-// `fx_rates` is global reference data seeded by a migration: tests read it and never reset it.
+// `fx_rates` and the global rows of `categories` are reference data seeded by migrations: tests read
+// them and never reset them.
 const TRUNCATE_EVERYTHING = `
   DO $$
   DECLARE tables text;
   BEGIN
     SELECT string_agg(format('public.%I', tablename), ', ') INTO tables
-    FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'fx_rates';
+    FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('fx_rates', 'categories');
     IF tables IS NOT NULL THEN
       EXECUTE 'TRUNCATE ' || tables || ' RESTART IDENTITY CASCADE';
     END IF;
   END $$;
 `;
+
+/**
+ * What a test left in `categories`: the pools' own rows go, the global catalogue stays. The table is
+ * FORCE row-level secured, so even its owner only sees global rows; the policy is lifted just for
+ * the delete and put back in the same transaction.
+ */
+export const RESET_POOL_CATEGORIES = `
+  BEGIN;
+  ALTER TABLE public.categories NO FORCE ROW LEVEL SECURITY;
+  DELETE FROM public.categories WHERE pool_id IS NOT NULL;
+  ALTER TABLE public.categories FORCE ROW LEVEL SECURITY;
+  COMMIT;
+`;
+
+/** Every row of `categories`, global and pools', for a test that wants to see what a call left. */
+export async function allCategories(pool: Pool): Promise<unknown[]> {
+  await pool.query('ALTER TABLE public.categories NO FORCE ROW LEVEL SECURITY');
+  try {
+    const result = await pool.query<Record<string, unknown>>(
+      'select * from public.categories order by id',
+    );
+    return result.rows;
+  } finally {
+    await pool.query('ALTER TABLE public.categories FORCE ROW LEVEL SECURITY');
+  }
+}
 
 /**
  * `audit_log` rejects TRUNCATE for every role, so resetting the identity database goes through the
@@ -114,7 +141,10 @@ export function openTestDatabase(maxConnections = 4): TestDatabase {
     asIdentityMigrator: (run) => withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, run),
     async truncateAll() {
       await Promise.all([
-        withMigrator(env.TEST_MIGRATOR_URL_APP, (pool) => pool.query(TRUNCATE_EVERYTHING)),
+        withMigrator(env.TEST_MIGRATOR_URL_APP, async (pool) => {
+          await pool.query(TRUNCATE_EVERYTHING);
+          await pool.query(RESET_POOL_CATEGORIES);
+        }),
         withMigrator(env.TEST_MIGRATOR_URL_IDENTITY, (pool) => pool.query(TRUNCATE_IDENTITY)),
       ]);
     },

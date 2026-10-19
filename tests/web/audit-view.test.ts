@@ -42,6 +42,7 @@ describe('small helpers', () => {
       'account',
       'asset',
       'auth',
+      'category',
       'holder',
       'invite',
       'member',

@@ -14,5 +14,6 @@ export * from './invites';
 export * from './members';
 export * from './accounts';
 export * from './assets';
+export * from './categories';
 export * from './holders';
 export * from './settings';

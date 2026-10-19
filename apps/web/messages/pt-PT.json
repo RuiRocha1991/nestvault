@@ -556,7 +556,8 @@
       "holder": "Pessoas",
       "settings": "Definições",
       "account": "Contas",
-      "asset": "Ativos"
+      "asset": "Ativos",
+      "category": "Categorias"
     },
     "actions": {
       "auth": {
@@ -604,6 +605,12 @@
         "priceSet": "Preço definido",
         "priceDeleted": "Preço removido",
         "pricesImported": "Preços atualizados em lote"
+      },
+      "category": {
+        "created": "Categoria criada",
+        "updated": "Categoria alterada",
+        "deleted": "Categoria eliminada",
+        "settingsUpdated": "Definições da categoria alteradas"
       }
     },
     "table": {
@@ -726,5 +733,32 @@
       "lockedTitle": "Pedidos a mais",
       "lockedText": "Tenta novamente dentro de <time></time>."
     }
+  },
+  "categories": {
+    "housing": "Habitação",
+    "groceries": "Supermercado",
+    "dining": "Restauração",
+    "transport": "Transportes",
+    "fuel": "Combustível",
+    "utilities": "Utilidades (luz, água, gás)",
+    "telecoms": "Telecomunicações",
+    "subscriptions": "Subscrições",
+    "health": "Saúde",
+    "education": "Educação",
+    "insurance": "Seguros",
+    "shopping": "Compras",
+    "leisureTravel": "Lazer e viagens",
+    "sports": "Desporto e ginásio",
+    "taxes": "Impostos",
+    "cashWithdrawals": "Levantamentos (numerário)",
+    "bankFees": "Comissões bancárias",
+    "otherExpenses": "Outras despesas",
+    "salary": "Salário",
+    "interest": "Juros e dividendos",
+    "otherIncome": "Outros rendimentos",
+    "externalTransfers": "Envios para contas próprias fora da app",
+    "refunds": "Reembolsos",
+    "internalTransfer": "Transferência interna",
+    "investment": "Investimento"
   }
 }

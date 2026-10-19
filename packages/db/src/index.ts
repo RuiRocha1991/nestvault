@@ -27,6 +27,15 @@ export { assetsRepo } from './app/repositories/assets.repo';
 export type { AssetRow, AssetValues } from './app/repositories/assets.repo';
 export { assetPricesRepo } from './app/repositories/asset-prices.repo';
 export type { AssetPriceRow, PriceRange, PriceValues } from './app/repositories/asset-prices.repo';
+export { categoriesRepo } from './app/repositories/categories.repo';
+export type { CategoryRow, CategoryValues } from './app/repositories/categories.repo';
+export { categorySettingsRepo } from './app/repositories/category-settings.repo';
+export type {
+  CategorySettingsRow,
+  CategorySettingsValues,
+} from './app/repositories/category-settings.repo';
+export { GLOBAL_CATEGORIES, GLOBAL_CATEGORY_KINDS } from './app/global-categories';
+export type { GlobalCategoryKind, GlobalCategorySeed } from './app/global-categories';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';
