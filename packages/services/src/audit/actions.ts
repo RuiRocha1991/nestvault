@@ -20,6 +20,12 @@ export const POOL_AUDIT_ACTIONS = [
   'holder.updated',
   'holder.deleted',
   'settings.updated',
+  'account.created',
+  'account.updated',
+  'account.deleted',
+  'account.sub_account_created',
+  'account.sub_account_updated',
+  'account.sub_account_deleted',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
@@ -37,6 +43,7 @@ export const AUDIT_CATEGORIES = [
   'invite',
   'holder',
   'settings',
+  'account',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 

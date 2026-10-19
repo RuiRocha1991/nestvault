@@ -1,0 +1,686 @@
+{
+  "id": "db0457ae-9b3b-4d9e-b360-918f236366c4",
+  "prevId": "b177b3a3-4a5b-4605-b0b9-0dc5437aeea1",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.account_holders": {
+      "name": "account_holders",
+      "schema": "",
+      "columns": {
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "holder_id": {
+          "name": "holder_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_holders_pool_idx": {
+          "name": "account_holders_pool_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "account_holders_holder_idx": {
+          "name": "account_holders_holder_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "holder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_holders_account_fk": {
+          "name": "account_holders_account_fk",
+          "tableFrom": "account_holders",
+          "tableTo": "accounts",
+          "columnsFrom": ["pool_id", "account_id"],
+          "columnsTo": ["pool_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "account_holders_holder_fk": {
+          "name": "account_holders_holder_fk",
+          "tableFrom": "account_holders",
+          "tableTo": "holders",
+          "columnsFrom": ["pool_id", "holder_id"],
+          "columnsTo": ["pool_id", "id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "account_holders_account_id_holder_id_pk": {
+          "name": "account_holders_account_id_holder_id_pk",
+          "columns": ["account_id", "holder_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounts": {
+      "name": "accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iban": {
+          "name": "iban",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ccy": {
+          "name": "ccy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opening": {
+          "name": "opening",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "opening_date": {
+          "name": "opening_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "track_cash": {
+          "name": "track_cash",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "group_name": {
+          "name": "group_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "portfolio_id": {
+          "name": "portfolio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate": {
+          "name": "rate",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xtb_account_no": {
+          "name": "xtb_account_no",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "accounts_pool_idx": {
+          "name": "accounts_pool_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounts_pool_iban_uniq": {
+          "name": "accounts_pool_iban_uniq",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "iban",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"accounts\".\"iban\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "accounts_pool_id_uniq": {
+          "name": "accounts_pool_id_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["pool_id", "id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "accounts_type": {
+          "name": "accounts_type",
+          "value": "\"accounts\".\"type\" in ('checking', 'savings', 'term_deposit', 'brokerage')"
+        },
+        "accounts_name_len": {
+          "name": "accounts_name_len",
+          "value": "char_length(\"accounts\".\"name\") between 1 and 80"
+        },
+        "accounts_iban_format": {
+          "name": "accounts_iban_format",
+          "value": "\"accounts\".\"iban\" ~ '^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$'"
+        },
+        "accounts_currency_format": {
+          "name": "accounts_currency_format",
+          "value": "\"accounts\".\"ccy\" ~ '^[A-Z]{3}$'"
+        },
+        "accounts_term_deposit_eur": {
+          "name": "accounts_term_deposit_eur",
+          "value": "\"accounts\".\"type\" <> 'term_deposit' or \"accounts\".\"ccy\" = 'EUR'"
+        },
+        "accounts_rate_range": {
+          "name": "accounts_rate_range",
+          "value": "\"accounts\".\"rate\" between 0 and 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fx_rates": {
+      "name": "fx_rates",
+      "schema": "",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ccy": {
+          "name": "ccy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eur_rate": {
+          "name": "eur_rate",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "fx_rates_date_ccy_pk": {
+          "name": "fx_rates_date_ccy_pk",
+          "columns": ["date", "ccy"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fx_rates_ccy_format": {
+          "name": "fx_rates_ccy_format",
+          "value": "\"fx_rates\".\"ccy\" ~ '^[A-Z]{3}$' and \"fx_rates\".\"ccy\" <> 'EUR'"
+        },
+        "fx_rates_rate_positive": {
+          "name": "fx_rates_rate_positive",
+          "value": "\"fx_rates\".\"eur_rate\" > 0"
+        },
+        "fx_rates_source": {
+          "name": "fx_rates_source",
+          "value": "\"fx_rates\".\"source\" in ('seed', 'ecb', 'manual')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.holders": {
+      "name": "holders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aliases": {
+          "name": "aliases",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "holders_pool_idx": {
+          "name": "holders_pool_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "holders_pool_user_uniq": {
+          "name": "holders_pool_user_uniq",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"holders\".\"user_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "holders_pool_id_uniq": {
+          "name": "holders_pool_id_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["pool_id", "id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "holders_name_len": {
+          "name": "holders_name_len",
+          "value": "char_length(\"holders\".\"name\") between 1 and 60"
+        },
+        "holders_color_hex": {
+          "name": "holders_color_hex",
+          "value": "\"holders\".\"color\" ~ '^#[0-9A-Fa-f]{6}$'"
+        },
+        "holders_aliases_max": {
+          "name": "holders_aliases_max",
+          "value": "cardinality(\"holders\".\"aliases\") <= 10"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pool_settings": {
+      "name": "pool_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transfer_window_days": {
+          "name": "transfer_window_days",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "deposit_tax": {
+          "name": "deposit_tax",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'28'"
+        },
+        "dividend_tax": {
+          "name": "dividend_tax",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'28'"
+        },
+        "display_currency": {
+          "name": "display_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EUR'"
+        },
+        "fx_overrides": {
+          "name": "fx_overrides",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pool_settings_pool_uniq": {
+          "name": "pool_settings_pool_uniq",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pool_settings_window": {
+          "name": "pool_settings_window",
+          "value": "\"pool_settings\".\"transfer_window_days\" between 0 and 30"
+        },
+        "pool_settings_deposit_tax": {
+          "name": "pool_settings_deposit_tax",
+          "value": "\"pool_settings\".\"deposit_tax\" between 0 and 100"
+        },
+        "pool_settings_dividend_tax": {
+          "name": "pool_settings_dividend_tax",
+          "value": "\"pool_settings\".\"dividend_tax\" between 0 and 100"
+        },
+        "pool_settings_currency": {
+          "name": "pool_settings_currency",
+          "value": "\"pool_settings\".\"display_currency\" ~ '^[A-Z]{3}$'"
+        },
+        "pool_settings_overrides_object": {
+          "name": "pool_settings_overrides_object",
+          "value": "jsonb_typeof(\"pool_settings\".\"fx_overrides\") = 'object'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sub_accounts": {
+      "name": "sub_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "holder_id": {
+          "name": "holder_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sub_accounts_pool_account_idx": {
+          "name": "sub_accounts_pool_account_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sub_accounts_account_fk": {
+          "name": "sub_accounts_account_fk",
+          "tableFrom": "sub_accounts",
+          "tableTo": "accounts",
+          "columnsFrom": ["pool_id", "account_id"],
+          "columnsTo": ["pool_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "sub_accounts_holder_fk": {
+          "name": "sub_accounts_holder_fk",
+          "tableFrom": "sub_accounts",
+          "tableTo": "holders",
+          "columnsFrom": ["pool_id", "holder_id"],
+          "columnsTo": ["pool_id", "id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sub_accounts_pool_id_uniq": {
+          "name": "sub_accounts_pool_id_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["pool_id", "id"]
+        },
+        "sub_accounts_account_name_uniq": {
+          "name": "sub_accounts_account_name_uniq",
+          "nullsNotDistinct": false,
+          "columns": ["account_id", "name"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "sub_accounts_name_len": {
+          "name": "sub_accounts_name_len",
+          "value": "char_length(\"sub_accounts\".\"name\") between 1 and 60"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

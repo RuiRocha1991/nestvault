@@ -104,6 +104,20 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   RLS, constraints, injection payloads, and `app_rw` refused on insert, update and delete of
   `fx_rates`), `tests/services/settings.integration.test.ts` (guards in order, validation, audit
   without values, per-pool overrides) and the generated route cases for `/settings` and `/fx`.
+- **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
+  (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
+  foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or
+  account even without RLS; holders are `ON DELETE RESTRICT`, accounts cascade to their links and
+  sub-accounts. The IBAN is normalized, checked with mod-97 in `packages/domain` and unique per
+  pool (partial unique index); it is returned only inside the pool's own DTO and never reaches the
+  audit log or the logs (`account.*` actions carry the id as target and no meta). Reads need
+  `pool.read`, writes `accounts.write` (owner, admin); input is strict (no `poolId`/`id`), money
+  and rates are decimal strings, a term deposit is EUR (also a CHECK). Verified by
+  `tests/db/accounts.repo.integration.test.ts` (`expectIsolated` for every function, RLS without a
+  `where`, `WITH CHECK`, composite foreign keys, injection payloads, constraints),
+  `tests/services/accounts.integration.test.ts` (guards in order, IBAN rules, Banco Invest case,
+  mass assignment, other pool's ids, audit without values) and the generated route cases for
+  `/accounts` and `/sub-accounts` in `tests/support/route-registry.ts`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

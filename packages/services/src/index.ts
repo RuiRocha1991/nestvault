@@ -12,5 +12,6 @@ export * from './audit';
 export * from './pools';
 export * from './invites';
 export * from './members';
+export * from './accounts';
 export * from './holders';
 export * from './settings';

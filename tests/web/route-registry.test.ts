@@ -113,9 +113,9 @@ describe('static detection of Route Handlers', () => {
   });
 
   it('reports a new handler that is not in the registry (the CI failure this check exists for)', () => {
-    const withNewRoute = [...listHandlers(), { key: 'POST /api/v1/pools/:poolId/accounts' }];
+    const withNewRoute = [...listHandlers(), { key: 'POST /api/v1/pools/:poolId/goals' }];
     expect(compareWithRegistry(withNewRoute, registered)).toEqual({
-      unregistered: ['POST /api/v1/pools/:poolId/accounts'],
+      unregistered: ['POST /api/v1/pools/:poolId/goals'],
       stale: [],
     });
   });

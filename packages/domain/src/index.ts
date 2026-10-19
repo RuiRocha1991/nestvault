@@ -3,6 +3,7 @@ export const packageName = '@nestvault/domain';
 export * from './decimal';
 export * from './dates';
 export * from './fx';
+export * from './iban';
 export * from './parse-date';
 export * from './parse-number';
 export * from './account-balance';

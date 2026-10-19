@@ -1,7 +1,8 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, count, eq } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
+import { accountHolders, subAccounts } from '../schema/accounts';
 import { holders, type HolderRow } from '../schema/holders';
 
 export type { HolderRow };
@@ -104,12 +105,18 @@ export const holdersRepo = {
     return rows.length > 0;
   },
 
-  /**
-   * How many accounts and sub-accounts name this holder. Those tables arrive with NES-39, which
-   * replaces this with the real count; until then nothing references a holder.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the signature NES-39 fills in
-  countReferences(_tx: PoolTx, _ctx: PoolContext, _id: string): Promise<number> {
-    return Promise.resolve(0);
+  /** How many accounts own this holder plus how many sub-accounts name them. */
+  async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
+    const [owned, named] = await Promise.all([
+      tx
+        .select({ n: count() })
+        .from(accountHolders)
+        .where(and(eq(accountHolders.poolId, ctx.poolId), eq(accountHolders.holderId, id))),
+      tx
+        .select({ n: count() })
+        .from(subAccounts)
+        .where(and(eq(subAccounts.poolId, ctx.poolId), eq(subAccounts.holderId, id))),
+    ]);
+    return (owned[0]?.n ?? 0) + (named[0]?.n ?? 0);
   },
 };

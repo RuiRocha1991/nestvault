@@ -554,7 +554,8 @@
       "member": "Membros",
       "invite": "Convites",
       "holder": "Pessoas",
-      "settings": "Definições"
+      "settings": "Definições",
+      "account": "Contas"
     },
     "actions": {
       "auth": {
@@ -586,6 +587,14 @@
       },
       "settings": {
         "updated": "Definições alteradas"
+      },
+      "account": {
+        "created": "Conta criada",
+        "updated": "Conta alterada",
+        "deleted": "Conta eliminada",
+        "subAccountCreated": "Subconta criada",
+        "subAccountUpdated": "Subconta alterada",
+        "subAccountDeleted": "Subconta eliminada"
       }
     },
     "table": {

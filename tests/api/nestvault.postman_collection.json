@@ -1655,6 +1655,331 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "List accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts"
+              ]
+            },
+            "description": "Any member. balance is a decimal string in the account currency today, balanceEur the same value in EUR with the pool's rates."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has accounts', () => pm.expect(Object.keys(pm.response.json())).to.eql(['accounts']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create an account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts"
+              ]
+            },
+            "description": "Needs accounts.write (owner, admin). holderIds (at least one) must be people of this pool (GET holders). IBAN is normalized, mod-97 checked and unique in the pool (409). Term deposit is EUR only. subAccounts only for brokerage. Strict body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"brokerage\",\n  \"name\": \"Banco Invest Longo Prazo\",\n  \"institution\": \"Banco Invest\",\n  \"currency\": \"EUR\",\n  \"trackCash\": false,\n  \"holderIds\": [\n    \"{{holderId}}\"\n  ],\n  \"subAccounts\": [\n    {\n      \"name\": \"Rui\",\n      \"holderId\": \"{{holderId}}\"\n    }\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const a = pm.response.json();",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(a).sort()).to.eql(['balance','balanceEur','currency','groupName','holderIds','iban','id','institution','name','opening','openingDate','portfolioId','rate','subAccounts','trackCash','type','xtbAccountNo']));",
+                  "pm.collectionVariables.set('accountId', a.id);",
+                  "if (a.subAccounts[0]) pm.collectionVariables.set('subAccountId', a.subAccounts[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get an account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Any member. An account of another pool answers 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['balance','balanceEur','currency','groupName','holderIds','iban','id','institution','name','opening','openingDate','portfolioId','rate','subAccounts','trackCash','type','xtbAccountNo']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update an account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Needs accounts.write. Fields left out stay; holderIds replaces the owners. 409 for a duplicate IBAN, for dropping the person of a sub-account and for changing the type while sub-accounts exist.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Banco Invest PPR\",\n  \"opening\": \"1000.50\",\n  \"openingDate\": \"2026-01-01\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a sub-account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}/sub-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}",
+                "sub-accounts"
+              ]
+            },
+            "description": "Needs accounts.write. Brokerage accounts only; holderId must own the account; names unique in the account (409).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Liliana\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const s = pm.response.json();",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(s).sort()).to.eql(['accountId','holderId','id','name']));",
+                  "pm.collectionVariables.set('subAccountId', s.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a sub-account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}/sub-accounts/{{subAccountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}",
+                "sub-accounts",
+                "{{subAccountId}}"
+              ]
+            },
+            "description": "Needs accounts.write. Fields left out stay; holderId null clears the person.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Liliana G.\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove a sub-account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}/sub-accounts/{{subAccountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}",
+                "sub-accounts",
+                "{{subAccountId}}"
+              ]
+            },
+            "description": "Needs accounts.write. 409 while it has operations."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete an account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "description": "Needs accounts.write. Holder links and sub-accounts go with it; 409 while the account has movements."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [
