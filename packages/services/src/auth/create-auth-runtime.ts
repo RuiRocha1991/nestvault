@@ -4,6 +4,7 @@ import { createAccountService, type AccountService } from '../account';
 import { createAccountsService, type AccountsService } from '../accounts';
 import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
+import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
 import { createHoldersService, type HoldersService } from '../holders';
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
@@ -43,6 +44,8 @@ export interface AuthRuntime {
   accounts: AccountsService;
   /** Assets (unique ticker per pool) and their price history. */
   assets: AssetsService;
+  /** The global category catalogue plus the pool's own categories and settings. */
+  categories: CategoriesService;
   /** The people of the household (owners of accounts). */
   holders: HoldersService;
   /** Pool settings and the FX rates the pool uses. */
@@ -88,6 +91,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
+    categories: createCategoriesService({ auth, identity, ...hops }),
     holders: createHoldersService({ auth, identity, ...hops }),
     settings: createSettingsService({ auth, identity, ...hops }),
   };

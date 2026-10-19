@@ -13,6 +13,7 @@ import {
   createAccountService,
   createAccountsService,
   createAssetsService,
+  createCategoriesService,
   createAuditService,
   createAuth,
   createInvitesService,
@@ -28,6 +29,7 @@ import {
   type AccountService,
   type AccountsService,
   type AssetsService,
+  type CategoriesService,
   type AuditService,
   type HoldersService,
   type Auth,
@@ -39,7 +41,7 @@ import {
   type SettingsService,
 } from '@nestvault/services';
 
-import { openTestDatabase, type TestDatabase } from '../db/harness';
+import { allCategories, openTestDatabase, type TestDatabase } from '../db/harness';
 
 import {
   APP_URL,
@@ -89,6 +91,7 @@ export interface ApiWorld {
   audit: AuditService;
   accounts: AccountsService;
   assets: AssetsService;
+  categories: CategoriesService;
   holders: HoldersService;
   settings: SettingsService;
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
@@ -170,6 +173,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     assets: createAssetsService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    categories: createCategoriesService({
       auth,
       identity,
       run: database.withPool,
@@ -346,6 +355,12 @@ async function buildScenario(
               (await pool.query('select * from sub_accounts order by id')).rows,
               (await pool.query('select * from assets order by id')).rows,
               (await pool.query('select * from asset_prices order by asset_id, date')).rows,
+              await allCategories(pool),
+              (
+                await pool.query(
+                  'select * from pool_category_settings order by pool_id, category_id',
+                )
+              ).rows,
             ] as unknown[],
         ),
       ]);

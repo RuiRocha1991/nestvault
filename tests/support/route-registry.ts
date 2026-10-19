@@ -5,6 +5,8 @@ import {
   AcceptInviteDto,
   AccountDto,
   AccountListDto,
+  CategoryDto,
+  CategoryListDto,
   AssetDto,
   AssetListDto,
   BulkPricesDto,
@@ -233,6 +235,28 @@ const foreignAsset = async (s: Scenario): Promise<Foreign> => {
   };
 };
 
+/** A category of pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const categoryIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`category-${pool}`, async () =>
+    s.world.categories.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      { name: pool === 'A' ? 'Categoria Alfa' : 'Categoria Beta', kind: 'expense' },
+    ),
+  );
+
+/** The category of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignCategory = async (s: Scenario): Promise<Foreign> => {
+  const other = await categoryIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = (await s.world.categories.list(await s.as('outsider'), s.poolB)).categories;
+      expect(seen.find((category) => category.id === other.id)).toEqual(other);
+    },
+  };
+};
+
 export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   // ---------------------------------------------------------------- pool scope: members
   {
@@ -447,6 +471,76 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
         expect: 400,
       },
     ],
+  },
+
+  // ---------------------------------------------------------------- pool scope: categories
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/categories`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/categories/route')),
+    success: { status: 200, schema: CategoryListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s categories',
+    leaks: async (s) => {
+      await categoryIn(s, 'A');
+      const other = await categoryIn(s, 'B');
+      await s.world.categories.updateSettings(await s.as('outsider'), s.poolB, other.id, {
+        monthlyBudget: '777.77',
+      });
+      return [other.id, other.name ?? '', '777.77'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/categories`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/categories/route')),
+    body: () => ({ name: 'Nova categoria', kind: 'income', color: '#112233' }),
+    success: { status: 201, schema: CategoryDto },
+    noForeignBecause: 'creates a new row in the URL’s own pool; the pool never comes from the body',
+    negatives: [
+      {
+        name: 'a system key',
+        body: { name: 'x', kind: 'expense', systemKey: 'groceries' },
+        expect: 400,
+      },
+      { name: 'an unknown kind', body: { name: 'x', kind: 'gift' }, expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/categories/:id`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/categories/[id]/route')),
+    params: async (s) => ({ id: (await categoryIn(s, 'A')).id }),
+    body: () => ({ name: 'Categoria Omega' }),
+    success: { status: 200, schema: CategoryDto },
+    foreign: foreignCategory,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/categories/:id`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/categories/[id]/route')),
+    params: async (s) => ({ id: (await categoryIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignCategory,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/categories/:id/settings`,
+    permission: 'categories.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/categories/[id]/settings/route')),
+    params: async (s) => ({ id: (await categoryIn(s, 'A')).id }),
+    body: () => ({ monthlyBudget: '150', hidden: true, colorOverride: '#AABBCC' }),
+    success: { status: 200, schema: CategoryDto },
+    foreign: foreignCategory,
   },
 
   // ---------------------------------------------------------------- pool scope: accounts
