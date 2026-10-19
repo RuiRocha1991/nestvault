@@ -13,3 +13,4 @@ export * from './pools';
 export * from './invites';
 export * from './members';
 export * from './holders';
+export * from './settings';

@@ -9,6 +9,7 @@ import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
+import { createSettingsService, type SettingsService } from '../settings';
 
 import { createAuth, type Auth } from './create-auth';
 
@@ -38,6 +39,8 @@ export interface AuthRuntime {
   audit: AuditService;
   /** The people of the household (owners of accounts). */
   holders: HoldersService;
+  /** Pool settings and the FX rates the pool uses. */
+  settings: SettingsService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -78,5 +81,6 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
     holders: createHoldersService({ auth, identity, ...hops }),
+    settings: createSettingsService({ auth, identity, ...hops }),
   };
 }

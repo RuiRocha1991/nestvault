@@ -92,6 +92,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `where`, `WITH CHECK`, injection payloads in name and aliases, check constraints),
   `tests/services/holders.integration.test.ts` (guards in order, mass assignment, other pool's ids,
   audit entries) and the generated route cases for `/holders` in `tests/support/route-registry.ts`.
+- **Pool settings and FX rates (NES-46)**: `pool_settings` (one row per pool, unique on `pool_id`)
+  follows the same block (FORCE RLS, `pool_settings_pool_isolation`, repository on a `PoolContext`).
+  `fx_rates` is the global exception: no `pool_id`, no RLS, and the migration takes every write
+  privilege back from `app_rw` (`REVOKE ALL`, then `GRANT SELECT`); its only writer is the migration
+  (a worker role fills it later), so a pool cannot alter a rate another pool reads. Reads need
+  `pool.read`, writes `settings.write` (owner, admin), and a save is audited as `settings.updated`
+  (target = the pool, meta = number of fields; values never reach the log). The input is strict
+  (taxes 0–100, rates positive with at most 8 decimals, window 0–30 days, EUR has no rate) and
+  decimals stay strings. Verified by `tests/db/pool-settings.repo.integration.test.ts` (isolation,
+  RLS, constraints, injection payloads, and `app_rw` refused on insert, update and delete of
+  `fx_rates`), `tests/services/settings.integration.test.ts` (guards in order, validation, audit
+  without values, per-pool overrides) and the generated route cases for `/settings` and `/fx`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

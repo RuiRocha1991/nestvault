@@ -359,6 +359,9 @@ importers:
       '@nestvault/db':
         specifier: workspace:*
         version: link:../db
+      '@nestvault/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2

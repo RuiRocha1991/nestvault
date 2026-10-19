@@ -45,6 +45,7 @@ describe('small helpers', () => {
       'member',
       'pool',
       'session',
+      'settings',
     ]);
   });
 });

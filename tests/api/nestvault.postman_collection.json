@@ -1531,6 +1531,130 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "settings"
+              ]
+            },
+            "description": "Any member. Gives the defaults (window 3, taxes 28, EUR) while the pool never saved any."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['depositTax','displayCurrency','dividendTax','fxOverrides','transferWindowDays']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "settings"
+              ]
+            },
+            "description": "Needs settings.write (owner, admin). Partial and strict: fields left out stay; fxOverrides replaces the whole map ({} clears it). Taxes are decimal strings 0-100, rates EUR per unit, window 0-30 days. poolId or any other field answers 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"depositTax\": \"28\",\n  \"dividendTax\": \"28\",\n  \"transferWindowDays\": 3,\n  \"fxOverrides\": {\n    \"USD\": \"0.93\"\n  }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['depositTax','displayCurrency','dividendTax','fxOverrides','transferWindowDays']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "FX rates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/fx?asOf=2026-06-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "fx"
+              ],
+              "query": [
+                {
+                  "key": "asOf",
+                  "value": "2026-06-01"
+                }
+              ]
+            },
+            "description": "Any member. The EUR rate of each currency on a day (asOf optional, today by default): the pool override, else the newest market rate, else the seed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has asOf and rates', () => pm.expect(Object.keys(b).sort()).to.eql(['asOf','rates']));",
+                  "pm.test('each rate has exactly the DTO fields', () => b.rates.forEach(r => pm.expect(Object.keys(r).sort()).to.eql(['currency','date','marketRate','rate','source'])));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

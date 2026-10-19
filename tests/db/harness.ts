@@ -35,12 +35,13 @@ const DROP_EVERYTHING = `
   DROP SCHEMA IF EXISTS drizzle CASCADE;
 `;
 
+// `fx_rates` is global reference data seeded by a migration: tests read it and never reset it.
 const TRUNCATE_EVERYTHING = `
   DO $$
   DECLARE tables text;
   BEGIN
     SELECT string_agg(format('public.%I', tablename), ', ') INTO tables
-    FROM pg_tables WHERE schemaname = 'public';
+    FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'fx_rates';
     IF tables IS NOT NULL THEN
       EXECUTE 'TRUNCATE ' || tables || ' RESTART IDENTITY CASCADE';
     END IF;

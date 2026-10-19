@@ -15,6 +15,13 @@
       "when": 1792418993357,
       "tag": "0001_holders",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792438952438,
+      "tag": "0002_fx_rates_and_pool_settings",
+      "breakpoints": true
     }
   ]
 }

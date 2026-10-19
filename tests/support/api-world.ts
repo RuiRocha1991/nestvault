@@ -20,6 +20,7 @@ import {
   createMemoryEmailSender,
   createPoolsService,
   createRateLimiter,
+  createSettingsService,
   requireSession,
   UnauthorizedError,
   type AccountService,
@@ -31,6 +32,7 @@ import {
   type MemoryEmailSender,
   type PoolsService,
   type RateLimiter,
+  type SettingsService,
 } from '@nestvault/services';
 
 import { openTestDatabase, type TestDatabase } from '../db/harness';
@@ -82,6 +84,7 @@ export interface ApiWorld {
   account: AccountService;
   audit: AuditService;
   holders: HoldersService;
+  settings: SettingsService;
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
   newScenario(): Promise<Scenario>;
   close(): Promise<void>;
@@ -155,6 +158,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
     account: createAccountService({ auth, identity, pools, trustedProxyHops: 1 }),
     audit: createAuditService({ auth, identity }),
     holders: createHoldersService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    settings: createSettingsService({
       auth,
       identity,
       run: database.withPool,
@@ -309,7 +318,11 @@ async function buildScenario(
         rows(world.identity, sql`select count(*)::int as entries from audit_log`),
         // The app database is forced-RLS for `app_rw`: read it as the owner.
         world.database.asMigrator(
-          async (pool) => (await pool.query('select * from holders order by id')).rows as unknown[],
+          async (pool) =>
+            [
+              (await pool.query('select * from holders order by id')).rows,
+              (await pool.query('select * from pool_settings order by id')).rows,
+            ] as unknown[],
         ),
       ]);
       return JSON.stringify([...tables, world.mail.sent.length]);
