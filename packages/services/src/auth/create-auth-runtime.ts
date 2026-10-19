@@ -2,6 +2,7 @@ import { createIdentityDatabase } from '@nestvault/db';
 
 import { createAccountService, type AccountService } from '../account';
 import { createAccountsService, type AccountsService } from '../accounts';
+import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
 import type { EmailSender } from '../email';
 import { createHoldersService, type HoldersService } from '../holders';
@@ -40,6 +41,8 @@ export interface AuthRuntime {
   audit: AuditService;
   /** Bank, savings, deposit and brokerage accounts with their holders and sub-accounts. */
   accounts: AccountsService;
+  /** Assets (unique ticker per pool) and their price history. */
+  assets: AssetsService;
   /** The people of the household (owners of accounts). */
   holders: HoldersService;
   /** Pool settings and the FX rates the pool uses. */
@@ -84,6 +87,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
+    assets: createAssetsService({ auth, identity, ...hops }),
     holders: createHoldersService({ auth, identity, ...hops }),
     settings: createSettingsService({ auth, identity, ...hops }),
   };

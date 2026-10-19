@@ -23,6 +23,10 @@ export type {
 } from './app/repositories/accounts.repo';
 export { subAccountsRepo } from './app/repositories/sub-accounts.repo';
 export type { SubAccountRow, SubAccountValues } from './app/repositories/sub-accounts.repo';
+export { assetsRepo } from './app/repositories/assets.repo';
+export type { AssetRow, AssetValues } from './app/repositories/assets.repo';
+export { assetPricesRepo } from './app/repositories/asset-prices.repo';
+export type { AssetPriceRow, PriceRange, PriceValues } from './app/repositories/asset-prices.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';

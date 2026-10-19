@@ -29,6 +29,13 @@
       "when": 1792444567757,
       "tag": "0003_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792446271431,
+      "tag": "0004_assets_and_prices",
+      "breakpoints": true
     }
   ]
 }

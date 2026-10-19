@@ -12,6 +12,7 @@ import type { IdentityDatabase } from '@nestvault/db';
 import {
   createAccountService,
   createAccountsService,
+  createAssetsService,
   createAuditService,
   createAuth,
   createInvitesService,
@@ -26,6 +27,7 @@ import {
   UnauthorizedError,
   type AccountService,
   type AccountsService,
+  type AssetsService,
   type AuditService,
   type HoldersService,
   type Auth,
@@ -86,6 +88,7 @@ export interface ApiWorld {
   account: AccountService;
   audit: AuditService;
   accounts: AccountsService;
+  assets: AssetsService;
   holders: HoldersService;
   settings: SettingsService;
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
@@ -161,6 +164,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
     account: createAccountService({ auth, identity, pools, trustedProxyHops: 1 }),
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    assets: createAssetsService({
       auth,
       identity,
       run: database.withPool,
@@ -335,6 +344,8 @@ async function buildScenario(
               (await pool.query('select * from account_holders order by account_id, holder_id'))
                 .rows,
               (await pool.query('select * from sub_accounts order by id')).rows,
+              (await pool.query('select * from assets order by id')).rows,
+              (await pool.query('select * from asset_prices order by asset_id, date')).rows,
             ] as unknown[],
         ),
       ]);

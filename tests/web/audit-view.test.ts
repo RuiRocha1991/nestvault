@@ -40,6 +40,7 @@ describe('small helpers', () => {
   it('has a tone for every category the log groups by', () => {
     expect(Object.keys(CATEGORY_TONE).sort()).toEqual([
       'account',
+      'asset',
       'auth',
       'holder',
       'invite',

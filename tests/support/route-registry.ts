@@ -5,6 +5,11 @@ import {
   AcceptInviteDto,
   AccountDto,
   AccountListDto,
+  AssetDto,
+  AssetListDto,
+  BulkPricesDto,
+  PriceDto,
+  PriceHistoryDto,
   SubAccountDto,
   HolderDto,
   HolderListDto,
@@ -204,6 +209,30 @@ const foreignSubAccount = async (s: Scenario): Promise<Foreign> => {
   };
 };
 
+/** An asset in pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const assetIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`asset-${pool}`, async () =>
+    s.world.assets.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      pool === 'A'
+        ? { ticker: 'ALFAFUND', name: 'Alfa Fund', type: 'etf', currency: 'EUR' }
+        : { ticker: 'BETACORP', name: 'Beta Corp', type: 'stock', currency: 'USD' },
+    ),
+  );
+
+/** The asset of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignAsset = async (s: Scenario): Promise<Foreign> => {
+  const other = await assetIn(s, 'B');
+  return {
+    params: { id: other.id, date: '2026-01-02' },
+    unchanged: async () => {
+      const seen = await s.world.assets.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
 export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   // ---------------------------------------------------------------- pool scope: members
   {
@@ -286,6 +315,138 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
           expect(await s.roleOf(s.poolA, 'owner')).toBe('owner');
         },
       }),
+  },
+
+  // ---------------------------------------------------------------- pool scope: assets
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/assets`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/route')),
+    success: { status: 200, schema: AssetListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s assets',
+    leaks: async (s) => {
+      await assetIn(s, 'A');
+      const other = await assetIn(s, 'B');
+      return [other.id, other.ticker, other.name];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/assets`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/route')),
+    body: () => ({ ticker: 'nova', name: 'Nova', type: 'etf', currency: 'EUR', divMonths: [3, 9] }),
+    success: { status: 201, schema: AssetDto },
+    noForeignBecause: 'creates a new row; the ticker is checked inside the URL’s own pool',
+    negatives: [
+      {
+        name: 'a ticker with a space',
+        body: { ticker: 'A B', name: 'x', type: 'etf', currency: 'EUR' },
+        expect: 400,
+      },
+      {
+        name: 'an unknown type',
+        body: { ticker: 'X', name: 'x', type: 'nft', currency: 'EUR' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/assets/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id }),
+    success: { status: 200, schema: AssetDto },
+    foreign: foreignAsset,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/assets/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id }),
+    body: () => ({ name: 'Alfa Omega', dps: '1.5' }),
+    success: { status: 200, schema: AssetDto },
+    foreign: foreignAsset,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/assets/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignAsset,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/assets/:id/prices`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/prices/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id }),
+    success: { status: 200, schema: PriceHistoryDto },
+    foreign: foreignAsset,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/assets/:id/prices`,
+    permission: 'prices.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/prices/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id }),
+    body: () => ({ date: '2026-01-02', price: '101.25' }),
+    success: { status: 200, schema: PriceDto },
+    foreign: foreignAsset,
+    negatives: [{ name: 'a price of zero', body: { date: '2026-01-02', price: '0' }, expect: 400 }],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/assets/:id/prices/:date`,
+    permission: 'prices.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/assets/[id]/prices/[date]/route')),
+    params: async (s) => ({ id: (await assetIn(s, 'A')).id, date: '2026-01-02' }),
+    prepare: async (s) => {
+      const asset = await assetIn(s, 'A');
+      await s.world.assets.setPrice(await s.as('owner'), s.poolA, asset.id, {
+        date: '2026-01-02',
+        price: '10',
+      });
+    },
+    success: { status: 204 },
+    foreign: foreignAsset,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/asset-prices`,
+    permission: 'prices.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/asset-prices/route')),
+    prepare: async (s) => {
+      await assetIn(s, 'A');
+    },
+    body: () => ({ prices: [{ ticker: 'alfafund', date: '2026-01-02', price: '10.5' }] }),
+    success: { status: 200, schema: BulkPricesDto },
+    noForeignBecause:
+      'tickers are looked up inside the URL’s own pool; pool B’s ticker is a negative case',
+    negatives: [
+      {
+        name: 'a ticker that only exists in pool B',
+        body: { prices: [{ ticker: 'BETACORP', date: '2026-01-02', price: '1' }] },
+        expect: 400,
+      },
+    ],
   },
 
   // ---------------------------------------------------------------- pool scope: accounts

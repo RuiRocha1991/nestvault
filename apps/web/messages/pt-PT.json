@@ -555,7 +555,8 @@
       "invite": "Convites",
       "holder": "Pessoas",
       "settings": "Definições",
-      "account": "Contas"
+      "account": "Contas",
+      "asset": "Ativos"
     },
     "actions": {
       "auth": {
@@ -595,6 +596,14 @@
         "subAccountCreated": "Subconta criada",
         "subAccountUpdated": "Subconta alterada",
         "subAccountDeleted": "Subconta eliminada"
+      },
+      "asset": {
+        "created": "Ativo criado",
+        "updated": "Ativo alterado",
+        "deleted": "Ativo eliminado",
+        "priceSet": "Preço definido",
+        "priceDeleted": "Preço removido",
+        "pricesImported": "Preços atualizados em lote"
       }
     },
     "table": {
