@@ -15,6 +15,14 @@ export type { PoolRunner } from './app/with-pool';
 
 export { holdersRepo } from './app/repositories/holders.repo';
 export type { HolderRow, HolderValues } from './app/repositories/holders.repo';
+export { accountsRepo } from './app/repositories/accounts.repo';
+export type {
+  AccountHolderLink,
+  AccountRow,
+  AccountValues,
+} from './app/repositories/accounts.repo';
+export { subAccountsRepo } from './app/repositories/sub-accounts.repo';
+export type { SubAccountRow, SubAccountValues } from './app/repositories/sub-accounts.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';

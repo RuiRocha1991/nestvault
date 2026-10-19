@@ -3,6 +3,9 @@ import type { z } from 'zod';
 
 import {
   AcceptInviteDto,
+  AccountDto,
+  AccountListDto,
+  SubAccountDto,
   HolderDto,
   HolderListDto,
   InviteDto,
@@ -151,6 +154,56 @@ const foreignHolder = async (s: Scenario): Promise<Foreign> => {
   };
 };
 
+/** An account in pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const accountIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`account-${pool}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const headers = await s.as(pool === 'A' ? 'owner' : 'outsider');
+    const [holder] = (await s.world.holders.list(headers, poolId)).holders;
+    return s.world.accounts.create(headers, poolId, {
+      type: 'brokerage',
+      name: pool === 'A' ? 'Conta Alfa' : 'Conta Beta',
+      currency: 'EUR',
+      holderIds: [holder?.id ?? ''],
+    });
+  });
+
+/** A sub-account of the brokerage account in pool A or B, made once per scenario. */
+const subAccountIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`sub-account-${pool}`, async () => {
+    const account = await accountIn(s, pool);
+    return s.world.accounts.createSubAccount(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      account.id,
+      { name: pool === 'A' ? 'Sub Alfa' : 'Sub Beta' },
+    );
+  });
+
+/** The account of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignAccount = async (s: Scenario): Promise<Foreign> => {
+  const other = await accountIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.accounts.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** The sub-account of pool B under pool B's account, addressed through pool A's URL. */
+const foreignSubAccount = async (s: Scenario): Promise<Foreign> => {
+  const other = await subAccountIn(s, 'B');
+  return {
+    params: { id: other.accountId, subId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.accounts.get(await s.as('outsider'), s.poolB, other.accountId);
+      expect(seen.subAccounts).toContainEqual(other);
+    },
+  };
+};
+
 export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   // ---------------------------------------------------------------- pool scope: members
   {
@@ -233,6 +286,138 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
           expect(await s.roleOf(s.poolA, 'owner')).toBe('owner');
         },
       }),
+  },
+
+  // ---------------------------------------------------------------- pool scope: accounts
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/accounts`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/route')),
+    success: { status: 200, schema: AccountListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s accounts',
+    leaks: async (s) => {
+      await accountIn(s, 'A');
+      const other = await accountIn(s, 'B');
+      const sub = await subAccountIn(s, 'B');
+      return [other.id, other.name, sub.id, sub.name];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/accounts`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/route')),
+    body: async (s) => ({
+      type: 'checking',
+      name: 'Conta nova',
+      currency: 'EUR',
+      iban: 'PT50 0002 0123 1234 5678 9015 4',
+      holderIds: [(await s.world.holders.list(await s.as('owner'), s.poolA)).holders[0]?.id],
+    }),
+    success: { status: 201, schema: AccountDto },
+    noForeignBecause: 'creates a new row; a holder of another pool is a negative case',
+    negatives: [
+      {
+        name: 'names a person of another pool',
+        body: {
+          type: 'checking',
+          name: 'X',
+          currency: 'EUR',
+          holderIds: ['00000000-0000-7000-8000-000000000001'],
+        },
+        expect: 400,
+      },
+      {
+        name: 'an IBAN with a wrong check digit',
+        body: {
+          type: 'checking',
+          name: 'X',
+          currency: 'EUR',
+          iban: 'PT50000201231234567890155',
+          holderIds: ['00000000-0000-7000-8000-000000000001'],
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/accounts/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/route')),
+    params: async (s) => ({ id: (await accountIn(s, 'A')).id }),
+    success: { status: 200, schema: AccountDto },
+    foreign: foreignAccount,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/accounts/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/route')),
+    params: async (s) => ({ id: (await accountIn(s, 'A')).id }),
+    body: () => ({ name: 'Conta Omega', openingDate: '2026-01-01', opening: '10.5' }),
+    success: { status: 200, schema: AccountDto },
+    foreign: foreignAccount,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/accounts/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/route')),
+    params: async (s) => ({ id: (await accountIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignAccount,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/accounts/:id/sub-accounts`,
+    permission: 'accounts.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/sub-accounts/route')),
+    params: async (s) => ({ id: (await accountIn(s, 'A')).id }),
+    body: () => ({ name: 'Sub nova' }),
+    success: { status: 201, schema: SubAccountDto },
+    foreign: foreignAccount,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/accounts/:id/sub-accounts/:subId`,
+    permission: 'accounts.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/sub-accounts/[subId]/route'),
+      ),
+    params: async (s) => {
+      const sub = await subAccountIn(s, 'A');
+      return { id: sub.accountId, subId: sub.id };
+    },
+    body: () => ({ name: 'Sub Omega' }),
+    success: { status: 200, schema: SubAccountDto },
+    foreign: foreignSubAccount,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/accounts/:id/sub-accounts/:subId`,
+    permission: 'accounts.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/[id]/sub-accounts/[subId]/route'),
+      ),
+    params: async (s) => {
+      const sub = await subAccountIn(s, 'A');
+      return { id: sub.accountId, subId: sub.id };
+    },
+    success: { status: 204 },
+    foreign: foreignSubAccount,
   },
 
   // ---------------------------------------------------------------- pool scope: holders

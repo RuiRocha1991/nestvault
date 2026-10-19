@@ -38,6 +38,10 @@
       "description": "Roles, removal, leaving and ownership transfer of a pool’s members"
     },
     {
+      "name": "Accounts",
+      "description": "Bank, savings, deposit and brokerage accounts with their holders"
+    },
+    {
       "name": "Holders",
       "description": "The people of the household who own accounts"
     },
@@ -962,6 +966,1744 @@
                     "status"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/accounts": {
+      "get": {
+        "operationId": "listAccounts",
+        "summary": "Accounts of the pool",
+        "description": "Any member may list. `balance` is a decimal string in the account currency today, `balanceEur` the same value in EUR with the rates the pool uses (override, market, seed).",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The accounts of the pool",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "checking",
+                              "savings",
+                              "term_deposit",
+                              "brokerage"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "institution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "iban": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "opening": {
+                            "type": "string"
+                          },
+                          "openingDate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "trackCash": {
+                            "type": "boolean"
+                          },
+                          "groupName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "portfolioId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "rate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "xtbAccountNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "holderIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "subAccounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "accountId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "holderId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uuid"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "accountId",
+                                "name",
+                                "holderId"
+                              ]
+                            }
+                          },
+                          "balance": {
+                            "type": "string"
+                          },
+                          "balanceEur": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "name",
+                          "institution",
+                          "iban",
+                          "currency",
+                          "opening",
+                          "openingDate",
+                          "trackCash",
+                          "groupName",
+                          "portfolioId",
+                          "rate",
+                          "xtbAccountNo",
+                          "holderIds",
+                          "subAccounts",
+                          "balance",
+                          "balanceEur"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "accounts"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAccount",
+        "summary": "Create an account",
+        "description": "Needs `accounts.write`. `holderIds` (at least one) must be people of this pool. The IBAN is normalized (no spaces, upper case), checked with mod-97 and unique inside the pool (409); the same IBAN in another pool is fine. A term deposit is in EUR. `subAccounts` is only for a brokerage account and each holder must own the account. The body is strict: `poolId`, `id` or any other field answers 400.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "checking",
+                      "savings",
+                      "term_deposit",
+                      "brokerage"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "holderIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "institution": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "iban": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 48
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "EUR",
+                      "USD",
+                      "GBP",
+                      "CHF"
+                    ]
+                  },
+                  "opening": {
+                    "type": "string",
+                    "pattern": "^-?\\d{1,14}(\\.\\d{1,4})?$"
+                  },
+                  "openingDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "trackCash": {
+                    "type": "boolean"
+                  },
+                  "groupName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "portfolioId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "rate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "xtbAccountNo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 30,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "subAccounts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60,
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        },
+                        "holderId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 20
+                  }
+                },
+                "required": [
+                  "type",
+                  "name",
+                  "holderIds",
+                  "currency"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "checking",
+                        "savings",
+                        "term_deposit",
+                        "brokerage"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "iban": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "opening": {
+                      "type": "string"
+                    },
+                    "openingDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "trackCash": {
+                      "type": "boolean"
+                    },
+                    "groupName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "portfolioId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "xtbAccountNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "holderIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "subAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "holderId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "name",
+                          "holderId"
+                        ]
+                      }
+                    },
+                    "balance": {
+                      "type": "string"
+                    },
+                    "balanceEur": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "institution",
+                    "iban",
+                    "currency",
+                    "opening",
+                    "openingDate",
+                    "trackCash",
+                    "groupName",
+                    "portfolioId",
+                    "rate",
+                    "xtbAccountNo",
+                    "holderIds",
+                    "subAccounts",
+                    "balance",
+                    "balanceEur"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/accounts/{id}": {
+      "get": {
+        "operationId": "getAccount",
+        "summary": "One account",
+        "description": "Any member may read. An account of another pool answers 404.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "checking",
+                        "savings",
+                        "term_deposit",
+                        "brokerage"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "iban": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "opening": {
+                      "type": "string"
+                    },
+                    "openingDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "trackCash": {
+                      "type": "boolean"
+                    },
+                    "groupName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "portfolioId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "xtbAccountNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "holderIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "subAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "holderId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "name",
+                          "holderId"
+                        ]
+                      }
+                    },
+                    "balance": {
+                      "type": "string"
+                    },
+                    "balanceEur": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "institution",
+                    "iban",
+                    "currency",
+                    "opening",
+                    "openingDate",
+                    "trackCash",
+                    "groupName",
+                    "portfolioId",
+                    "rate",
+                    "xtbAccountNo",
+                    "holderIds",
+                    "subAccounts",
+                    "balance",
+                    "balanceEur"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAccount",
+        "summary": "Change an account",
+        "description": "Needs `accounts.write`. Fields left out stay; `holderIds` replaces the owners. 409 for a duplicate IBAN, for leaving a sub-account without its person and for turning an account with sub-accounts into another type.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "checking",
+                      "savings",
+                      "term_deposit",
+                      "brokerage"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "holderIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "institution": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "iban": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 48
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "EUR",
+                      "USD",
+                      "GBP",
+                      "CHF"
+                    ]
+                  },
+                  "opening": {
+                    "type": "string",
+                    "pattern": "^-?\\d{1,14}(\\.\\d{1,4})?$"
+                  },
+                  "openingDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "trackCash": {
+                    "type": "boolean"
+                  },
+                  "groupName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "portfolioId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "rate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "xtbAccountNo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 30,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "checking",
+                        "savings",
+                        "term_deposit",
+                        "brokerage"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "iban": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "opening": {
+                      "type": "string"
+                    },
+                    "openingDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "trackCash": {
+                      "type": "boolean"
+                    },
+                    "groupName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "portfolioId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "xtbAccountNo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "holderIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "subAccounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "holderId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "name",
+                          "holderId"
+                        ]
+                      }
+                    },
+                    "balance": {
+                      "type": "string"
+                    },
+                    "balanceEur": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "institution",
+                    "iban",
+                    "currency",
+                    "opening",
+                    "openingDate",
+                    "trackCash",
+                    "groupName",
+                    "portfolioId",
+                    "rate",
+                    "xtbAccountNo",
+                    "holderIds",
+                    "subAccounts",
+                    "balance",
+                    "balanceEur"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAccount",
+        "summary": "Delete an account",
+        "description": "Needs `accounts.write`. Its holder links and sub-accounts go with it. Answers 409 while the account has movements.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Account deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/accounts/{id}/sub-accounts": {
+      "post": {
+        "operationId": "createSubAccount",
+        "summary": "Add a sub-account",
+        "description": "Needs `accounts.write`. Only a brokerage account has sub-accounts (400 otherwise). `holderId` is optional and must be an owner of the account. Names are unique inside the account (409).",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "holderId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new sub-account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "holderId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "name",
+                    "holderId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/accounts/{id}/sub-accounts/{subId}": {
+      "patch": {
+        "operationId": "updateSubAccount",
+        "summary": "Change a sub-account",
+        "description": "Needs `accounts.write`. Fields left out stay; `holderId: null` clears the person.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "subId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "holderId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated sub-account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "holderId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "name",
+                    "holderId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSubAccount",
+        "summary": "Remove a sub-account",
+        "description": "Needs `accounts.write`. Answers 409 while the sub-account has operations.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "subId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sub-account removed"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

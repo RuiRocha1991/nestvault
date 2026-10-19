@@ -2,6 +2,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
 import './auth';
 import './health';
+import './accounts';
 import './holders';
 import './invites';
 import './me';
@@ -29,6 +30,10 @@ export function buildOpenApiDocument() {
       {
         name: 'Members',
         description: 'Roles, removal, leaving and ownership transfer of a pool’s members',
+      },
+      {
+        name: 'Accounts',
+        description: 'Bank, savings, deposit and brokerage accounts with their holders',
       },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },

@@ -33,6 +33,7 @@ vi.mock('@webapp/server/auth', () => ({
   getMembersService: () => Promise.resolve(holder.world.members),
   getAccountService: () => Promise.resolve(holder.world.account),
   getAuditService: () => Promise.resolve(holder.world.audit),
+  getAccountsService: () => Promise.resolve(holder.world.accounts),
   getHoldersService: () => Promise.resolve(holder.world.holders),
   getSettingsService: () => Promise.resolve(holder.world.settings),
 }));
@@ -159,7 +160,7 @@ function sharedCases(spec: Spec, scenario: () => Scenario, cases: Cases) {
   if (writes) {
     cases.add('answers 403 for a foreign Origin and for a missing one (CSRF)', async () => {
       const s = scenario();
-      const valid = spec.body?.(s);
+      const valid = await spec.body?.(s);
       await errorOf(await invoke(spec, s, { body: valid, origin: 'https://evil.example' }), 403);
       await errorOf(await invoke(spec, s, { body: valid, origin: null }), 403);
     });
@@ -199,7 +200,7 @@ function sharedCases(spec: Spec, scenario: () => Scenario, cases: Cases) {
       async () => {
         const s = scenario();
         const other = await foreign(s);
-        const body = other.body ?? makeBody?.(s);
+        const body = other.body ?? (await makeBody?.(s));
         await errorOf(await invoke(spec, s, { params: other.params ?? {}, body }), 404);
         await other.unchanged();
       },
@@ -228,14 +229,14 @@ function sharedCases(spec: Spec, scenario: () => Scenario, cases: Cases) {
   for (const negative of spec.negatives ?? []) {
     cases.add(`${negative.name} (${negative.expect})`, async () => {
       const s = scenario();
-      await errorOf(await invoke(spec, s, negativeCall(spec, s, negative)), negative.expect);
+      await errorOf(await invoke(spec, s, await negativeCall(spec, s, negative)), negative.expect);
     });
   }
 
   cases.addLast(`works for ${caller} and the body matches its output schema exactly`, async () => {
     const s = scenario();
     await spec.prepare?.(s);
-    const response = await invoke(spec, s, { body: spec.body?.(s) });
+    const response = await invoke(spec, s, { body: await spec.body?.(s) });
     expect(response.status).toBe(spec.success.status);
     expect(response.headers.get('cache-control')).toBe('no-store');
     const text = await response.text();
@@ -247,10 +248,10 @@ function sharedCases(spec: Spec, scenario: () => Scenario, cases: Cases) {
   });
 }
 
-function negativeCall(spec: Spec, s: Scenario, negative: Negative): Call {
+async function negativeCall(spec: Spec, s: Scenario, negative: Negative): Promise<Call> {
   return {
     as: negative.as ?? defaultCaller(spec),
-    body: negative.body ?? spec.body?.(s),
+    body: negative.body ?? (await spec.body?.(s)),
     ...(negative.query === undefined ? {} : { query: negative.query }),
   };
 }
@@ -281,7 +282,7 @@ describeRoutes(POOL_ROUTES, (spec, scenario, cases) => {
     'answers 404 to a non-member exactly as to a pool that does not exist or is not a uuid',
     async () => {
       const s = scenario();
-      const body = spec.body?.(s);
+      const body = await spec.body?.(s);
       const caller = defaultCaller(spec);
       const answers = [
         await invoke(spec, s, { as: 'outsider', body }), // a real user, a real pool, not a member
@@ -299,7 +300,7 @@ describeRoutes(POOL_ROUTES, (spec, scenario, cases) => {
   for (const role of PRIVILEGE_ORDER.filter((r) => !holders.includes(r))) {
     cases.add(`answers 403 to a ${role}: ${spec.permission} is missing`, async () => {
       const s = scenario();
-      await errorOf(await invoke(spec, s, { as: role, body: spec.body?.(s) }), 403);
+      await errorOf(await invoke(spec, s, { as: role, body: await spec.body?.(s) }), 403);
     });
   }
 });

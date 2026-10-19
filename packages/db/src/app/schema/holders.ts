@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { poolId } from '../../columns';
 
@@ -24,6 +33,8 @@ export const holders = pgTable(
   },
   (table) => [
     index('holders_pool_idx').on(table.poolId),
+    // Lets other tables point at `(pool_id, id)`, so a row cannot name another pool's person.
+    unique('holders_pool_id_uniq').on(table.poolId, table.id),
     // A member is at most one holder of the pool.
     uniqueIndex('holders_pool_user_uniq')
       .on(table.poolId, table.userId)
