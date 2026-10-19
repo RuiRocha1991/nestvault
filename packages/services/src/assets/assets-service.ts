@@ -267,7 +267,10 @@ export function createAssetsService(deps: AssetsServiceDeps): AssetsService {
       await run(ctx, async (tx) => {
         if (!(await assetPricesRepo.remove(tx, ctx, assetId, date))) throw new NotFoundError();
       });
-      await recordAudit(identity, ctx, 'asset.price_deleted', { target: assetId, ip: ipOf(headers) });
+      await recordAudit(identity, ctx, 'asset.price_deleted', {
+        target: assetId,
+        ip: ipOf(headers),
+      });
     },
 
     async bulkPrices(headers, poolId, input) {

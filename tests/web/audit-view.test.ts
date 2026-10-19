@@ -47,8 +47,10 @@ describe('small helpers', () => {
       'invite',
       'member',
       'pool',
+      'rule',
       'session',
       'settings',
+      'transaction',
     ]);
   });
 });

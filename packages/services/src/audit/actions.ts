@@ -36,6 +36,14 @@ export const POOL_AUDIT_ACTIONS = [
   'category.updated',
   'category.deleted',
   'category.settings_updated',
+  'transaction.created',
+  'transaction.updated',
+  'transaction.deleted',
+  'rule.created',
+  'rule.updated',
+  'rule.deleted',
+  'rule.reordered',
+  'rule.applied',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
@@ -56,6 +64,8 @@ export const AUDIT_CATEGORIES = [
   'account',
   'asset',
   'category',
+  'transaction',
+  'rule',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 

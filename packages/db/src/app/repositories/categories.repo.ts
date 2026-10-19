@@ -1,8 +1,9 @@
-import { and, asc, eq, or, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
 import { categories, type CategoryRow } from '../schema/categories';
+import { categoryRules, transactions } from '../schema/transactions';
 
 export type { CategoryRow };
 
@@ -78,17 +79,30 @@ export const categoriesRepo = {
     return rows.length > 0;
   },
 
-  /**
-   * How many transactions and rules use this category, and how many of them move to `to`. Those
-   * tables arrive with NES-44, which replaces these two with the real count and the reassignment;
-   * until then no category is in use.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the signature NES-44 fills in
-  countReferences(_tx: PoolTx, _ctx: PoolContext, _id: string): Promise<number> {
-    return Promise.resolve(0);
+  /** How many transactions and rules of this pool use the category. */
+  async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
+    const [moved, ruled] = await Promise.all([
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(transactions)
+        .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.categoryId, id))),
+      tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(categoryRules)
+        .where(and(eq(categoryRules.poolId, ctx.poolId), eq(categoryRules.categoryId, id))),
+    ]);
+    return (moved[0]?.n ?? 0) + (ruled[0]?.n ?? 0);
   },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the signature NES-44 fills in
-  reassign(_tx: PoolTx, _ctx: PoolContext, _from: string, _to: string): Promise<void> {
-    return Promise.resolve();
+
+  /** Moves the pool's transactions and rules from one category to another. */
+  async reassign(tx: PoolTx, ctx: PoolContext, from: string, to: string): Promise<void> {
+    await tx
+      .update(transactions)
+      .set({ categoryId: to })
+      .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.categoryId, from)));
+    await tx
+      .update(categoryRules)
+      .set({ categoryId: to })
+      .where(and(eq(categoryRules.poolId, ctx.poolId), eq(categoryRules.categoryId, from)));
   },
 };

@@ -36,6 +36,26 @@ export type {
 } from './app/repositories/category-settings.repo';
 export { GLOBAL_CATEGORIES, GLOBAL_CATEGORY_KINDS } from './app/global-categories';
 export type { GlobalCategoryKind, GlobalCategorySeed } from './app/global-categories';
+export {
+  escapeLike,
+  TRANSACTION_KINDS,
+  TRANSACTION_SORTS,
+  transactionsRepo,
+} from './app/repositories/transactions.repo';
+export type {
+  EngineChange,
+  EngineTransaction,
+  TransactionCursor,
+  TransactionFilter,
+  TransactionKind,
+  TransactionPage,
+  TransactionPatch,
+  TransactionRow,
+  TransactionSort,
+  TransactionValues,
+} from './app/repositories/transactions.repo';
+export { categoryRulesRepo } from './app/repositories/category-rules.repo';
+export type { CategoryRuleRow, RuleValues } from './app/repositories/category-rules.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';

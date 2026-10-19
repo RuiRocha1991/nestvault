@@ -5,6 +5,11 @@ import {
   AcceptInviteDto,
   AccountDto,
   AccountListDto,
+  ApplyRulesDto,
+  RuleDto,
+  RuleListDto,
+  TransactionDto,
+  TransactionPageDto,
   CategoryDto,
   CategoryListDto,
   AssetDto,
@@ -253,6 +258,71 @@ const foreignCategory = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = (await s.world.categories.list(await s.as('outsider'), s.poolB)).categories;
       expect(seen.find((category) => category.id === other.id)).toEqual(other);
+    },
+  };
+};
+
+/** An account in pool A or B (owned by their first person), made once per scenario. */
+const txAccountIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`tx-account-${pool}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const headers = await s.as(pool === 'A' ? 'owner' : 'outsider');
+    const [holder] = (await s.world.holders.list(headers, poolId)).holders;
+    return s.world.accounts.create(headers, poolId, {
+      type: 'checking',
+      name: pool === 'A' ? 'Conta Movimentos A' : 'Conta Movimentos B',
+      currency: 'EUR',
+      holderIds: [holder?.id ?? ''],
+    });
+  });
+
+/** A movement in pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const transactionIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`transaction-${pool}`, async () =>
+    s.world.transactions.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        accountId: (await txAccountIn(s, pool)).id,
+        date: '2026-03-10',
+        description: pool === 'A' ? 'Movimento Alfa Secreto' : 'Movimento Beta Secreto',
+        amount: pool === 'A' ? '-12.5' : '-98.76',
+      },
+    ),
+  );
+
+/** The movement of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignTransaction = async (s: Scenario): Promise<Foreign> => {
+  const other = await transactionIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.transactions.list(await s.as('outsider'), s.poolB);
+      expect(seen.transactions.find((entry) => entry.id === other.id)).toEqual(other);
+    },
+  };
+};
+
+/** A keyword rule in pool A or B (global category), made once per scenario. */
+const ruleIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`rule-${pool}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const headers = await s.as(pool === 'A' ? 'owner' : 'outsider');
+    const [category] = (await s.world.categories.list(headers, poolId)).categories;
+    return s.world.rules.create(headers, poolId, {
+      keyword: pool === 'A' ? 'REPSOL' : 'GALPENERGIA',
+      categoryId: category?.id ?? '',
+    });
+  });
+
+/** The rule of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignRule = async (s: Scenario): Promise<Foreign> => {
+  const other = await ruleIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.rules.list(await s.as('outsider'), s.poolB);
+      expect(seen.rules).toContainEqual(other);
     },
   };
 };
@@ -541,6 +611,171 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     body: () => ({ monthlyBudget: '150', hidden: true, colorOverride: '#AABBCC' }),
     success: { status: 200, schema: CategoryDto },
     foreign: foreignCategory,
+  },
+
+  // ---------------------------------------------------------------- pool scope: transactions
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/transactions`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/transactions/route')),
+    success: { status: 200, schema: TransactionPageDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s movements',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.description];
+    },
+    negatives: [
+      { name: 'a sort outside the allow-list', query: '?sort=amount;drop table', expect: 400 },
+      { name: 'an unknown filter', query: '?accountId=1&poolId=2', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/transactions`,
+    permission: 'transactions.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/transactions/route')),
+    body: async (s) => ({
+      accountId: (await txAccountIn(s, 'A')).id,
+      date: '2026-03-11',
+      description: 'COMPRA REPSOL LISBOA',
+      amount: '-40',
+    }),
+    success: { status: 201, schema: TransactionDto },
+    noForeignBecause: 'creates a new row; an account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'an account of another pool',
+        body: {
+          accountId: '0192f3a1-0000-7000-8000-000000000001',
+          date: '2026-03-11',
+          description: 'x',
+          amount: '-1',
+        },
+        expect: 400,
+      },
+      {
+        name: 'an amount of zero',
+        body: {
+          accountId: '0192f3a1-0000-7000-8000-000000000001',
+          date: '2026-03-11',
+          description: 'x',
+          amount: '0',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/transactions/:id`,
+    permission: 'transactions.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/transactions/[id]/route')),
+    params: async (s) => ({ id: (await transactionIn(s, 'A')).id }),
+    body: () => ({ transfer: true }),
+    success: { status: 200, schema: TransactionDto },
+    foreign: foreignTransaction,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/transactions/:id`,
+    permission: 'transactions.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/transactions/[id]/route')),
+    params: async (s) => ({ id: (await transactionIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignTransaction,
+  },
+
+  // ---------------------------------------------------------------- pool scope: rules
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/rules`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/route')),
+    success: { status: 200, schema: RuleListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s rules',
+    leaks: async (s) => {
+      await ruleIn(s, 'A');
+      const other = await ruleIn(s, 'B');
+      return [other.id, other.keyword];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/rules`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/route')),
+    body: async (s) => ({
+      keyword: 'CONTINENTE',
+      categoryId: (await s.world.categories.list(await s.as('owner'), s.poolA)).categories[0]?.id,
+    }),
+    success: { status: 201, schema: RuleDto },
+    noForeignBecause: 'creates a new row; a category or account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a category of another pool',
+        body: { keyword: 'XX', categoryId: '0192f3a1-0000-7000-8000-000000000001' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/rules/:id`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/[id]/route')),
+    params: async (s) => ({ id: (await ruleIn(s, 'A')).id }),
+    body: () => ({ keyword: 'GALP' }),
+    success: { status: 200, schema: RuleDto },
+    foreign: foreignRule,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/rules/:id`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/[id]/route')),
+    params: async (s) => ({ id: (await ruleIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignRule,
+  },
+  {
+    scope: 'pool',
+    method: 'PUT',
+    path: `${POOL}/rules/order`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/order/route')),
+    body: async (s) => ({ ids: [(await ruleIn(s, 'A')).id] }),
+    success: { status: 200, schema: RuleListDto },
+    noForeignBecause:
+      'the ids are checked against the URL’s own pool; pool B’s rule is a negative case',
+    negatives: [
+      {
+        name: 'a rule of another pool',
+        body: { ids: ['0192f3a1-0000-7000-8000-000000000001'] },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/rules/apply`,
+    permission: 'categories.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/rules/apply/route')),
+    body: () => ({ confirm: false }),
+    success: { status: 200, schema: ApplyRulesDto },
+    noForeignBecause: 'works on the URL’s own pool; there is no id in the path',
   },
 
   // ---------------------------------------------------------------- pool scope: accounts

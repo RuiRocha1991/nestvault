@@ -23,6 +23,8 @@ import {
   createMemoryEmailSender,
   createPoolsService,
   createRateLimiter,
+  createRulesService,
+  createTransactionsService,
   createSettingsService,
   requireSession,
   UnauthorizedError,
@@ -38,6 +40,8 @@ import {
   type MemoryEmailSender,
   type PoolsService,
   type RateLimiter,
+  type RulesService,
+  type TransactionsService,
   type SettingsService,
 } from '@nestvault/services';
 
@@ -90,6 +94,8 @@ export interface ApiWorld {
   account: AccountService;
   audit: AuditService;
   accounts: AccountsService;
+  transactions: TransactionsService;
+  rules: RulesService;
   assets: AssetsService;
   categories: CategoriesService;
   holders: HoldersService;
@@ -179,6 +185,18 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     categories: createCategoriesService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    transactions: createTransactionsService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    rules: createRulesService({
       auth,
       identity,
       run: database.withPool,
@@ -353,6 +371,8 @@ async function buildScenario(
               (await pool.query('select * from account_holders order by account_id, holder_id'))
                 .rows,
               (await pool.query('select * from sub_accounts order by id')).rows,
+              (await pool.query('select * from transactions order by id')).rows,
+              (await pool.query('select * from category_rules order by id')).rows,
               (await pool.query('select * from assets order by id')).rows,
               (await pool.query('select * from asset_prices order by asset_id, date')).rows,
               await allCategories(pool),

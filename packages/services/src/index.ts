@@ -16,4 +16,6 @@ export * from './accounts';
 export * from './assets';
 export * from './categories';
 export * from './holders';
+export * from './rules';
+export * from './transactions';
 export * from './settings';

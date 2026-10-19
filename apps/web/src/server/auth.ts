@@ -5,6 +5,8 @@ import {
   type AccountService,
   type AuditService,
   type AccountsService,
+  type RulesService,
+  type TransactionsService,
   type AssetsService,
   type CategoriesService,
   type HoldersService,
@@ -92,6 +94,14 @@ export async function getAssetsService(): Promise<AssetsService> {
 
 export async function getCategoriesService(): Promise<CategoriesService> {
   return (await getRuntime()).categories;
+}
+
+export async function getTransactionsService(): Promise<TransactionsService> {
+  return (await getRuntime()).transactions;
+}
+
+export async function getRulesService(): Promise<RulesService> {
+  return (await getRuntime()).rules;
 }
 
 export async function getHoldersService(): Promise<HoldersService> {

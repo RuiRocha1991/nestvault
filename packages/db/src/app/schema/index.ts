@@ -12,3 +12,5 @@ export { assetPrices, assets } from './assets';
 export type { AssetPriceRow, AssetRow } from './assets';
 export { categories, poolCategorySettings } from './categories';
 export type { CategoryRow, CategorySettingsRow } from './categories';
+export { categoryRules, transactions } from './transactions';
+export type { CategoryRuleRow, TransactionRow } from './transactions';
