@@ -16,6 +16,9 @@ export const POOL_AUDIT_ACTIONS = [
   'invite.created',
   'invite.cancelled',
   'invite.accepted',
+  'holder.created',
+  'holder.updated',
+  'holder.deleted',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
@@ -25,7 +28,7 @@ export type PoolAuditAction = (typeof POOL_AUDIT_ACTIONS)[number];
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /** The groups the audit screen filters by; an action belongs to the group of its prefix. */
-export const AUDIT_CATEGORIES = ['auth', 'session', 'pool', 'member', 'invite'] as const;
+export const AUDIT_CATEGORIES = ['auth', 'session', 'pool', 'member', 'invite', 'holder'] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 
 export const actionsOfCategory = (category: AuditCategory): readonly AuditAction[] =>

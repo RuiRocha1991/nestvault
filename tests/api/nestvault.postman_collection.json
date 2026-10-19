@@ -48,6 +48,10 @@
     {
       "key": "memberId",
       "value": ""
+    },
+    {
+      "key": "holderId",
+      "value": ""
     }
   ],
   "item": [
@@ -1359,6 +1363,168 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('the caller is an admin now', () => pm.expect(pm.response.json().role).to.eql('admin'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Holders",
+      "item": [
+        {
+          "name": "List the people of the household",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders"
+              ]
+            },
+            "description": "Any member. Oldest first."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers a holders array', () => pm.expect(pm.response.json().holders).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a person",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders"
+              ]
+            },
+            "description": "Needs accounts.write (owner, admin). Aliases are stored upper case without accents (max 10, 3–60 chars). Without a color the next unused palette colour is used. userId must be a member of this pool. Strict body: poolId, id or any other field answers 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana\",\n  \"aliases\": [\n    \"ana silva\"\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const h = pm.response.json();",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(h).sort()).to.eql(['aliases','color','id','name','userId']));",
+                  "pm.collectionVariables.set('holderId', h.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a person",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders/{{holderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders",
+                "{{holderId}}"
+              ]
+            },
+            "description": "Needs accounts.write. Fields left out stay; userId: null unlinks the member.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Maria\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the new name', () => pm.expect(pm.response.json().name).to.eql('Ana Maria'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove a person",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders/{{holderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders",
+                "{{holderId}}"
+              ]
+            },
+            "description": "Needs accounts.write. 409 while accounts or sub-accounts still name the person."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }

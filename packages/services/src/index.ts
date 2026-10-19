@@ -12,3 +12,4 @@ export * from './audit';
 export * from './pools';
 export * from './invites';
 export * from './members';
+export * from './holders';

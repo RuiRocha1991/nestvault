@@ -3,6 +3,7 @@ import { createIdentityDatabase } from '@nestvault/db';
 import { createAccountService, type AccountService } from '../account';
 import { createAuditService, type AuditService } from '../audit';
 import type { EmailSender } from '../email';
+import { createHoldersService, type HoldersService } from '../holders';
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
 import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
@@ -35,6 +36,8 @@ export interface AuthRuntime {
   members: MembersService;
   /** The pool's audit log for its owner. */
   audit: AuditService;
+  /** The people of the household (owners of accounts). */
+  holders: HoldersService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -74,5 +77,6 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     }),
     members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
+    holders: createHoldersService({ auth, identity, ...hops }),
   };
 }

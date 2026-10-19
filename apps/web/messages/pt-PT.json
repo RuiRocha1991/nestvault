@@ -552,7 +552,8 @@
       "session": "Sessões",
       "pool": "Agregado",
       "member": "Membros",
-      "invite": "Convites"
+      "invite": "Convites",
+      "holder": "Pessoas"
     },
     "actions": {
       "auth": {
@@ -576,6 +577,11 @@
         "created": "Convite criado",
         "cancelled": "Convite cancelado",
         "accepted": "Convite aceite"
+      },
+      "holder": {
+        "created": "Pessoa criada",
+        "updated": "Pessoa alterada",
+        "deleted": "Pessoa removida"
       }
     },
     "table": {
@@ -637,5 +643,49 @@
       "retry": "Tentar novamente"
     },
     "readOnly": "Registo <b>só de leitura</b>: as entradas não podem ser alteradas nem apagadas, nem por proprietários. Só o proprietário vê esta página. Nunca guardamos valores, IBANs, notas nem tokens, só quem fez o quê e quando."
+  },
+  "holders": {
+    "title": "Agregado familiar",
+    "lead": "Quem se regista no agregado aparece aqui automaticamente. Adiciona também quem não tem conta, como as crianças.",
+    "transfersNote": "Movimentos entre contas do agregado (mesmo valor, sinal oposto, até {days} dias) são marcados como transferências internas e não contam como despesa.",
+    "member": "Membro",
+    "add": "Pessoa",
+    "empty": "Ainda não há pessoas no agregado. Adiciona quem é titular de contas.",
+    "edit": "Editar {name}",
+    "remove": "Remover {name}",
+    "toast": {
+      "saved": "Pessoa guardada.",
+      "deleted": "Pessoa removida."
+    },
+    "dialog": {
+      "title": "Adicionar pessoa ao agregado",
+      "editTitle": "Editar pessoa",
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "submit": "Guardar",
+      "name": "Nome",
+      "nameRequired": "Indica o nome.",
+      "color": "Cor",
+      "aliases": "Como aparece nos extratos",
+      "aliasesPlaceholder": "Ex.: RUI GUILHERME, R G ROCHA",
+      "aliasesHint": "Separa por vírgulas. Transferências para contas destas pessoas que não estão na app contam como despesa; as que chegam dessas contas contam como reembolso. Entre contas da app (pelo IBAN ou pelo par de movimentos) são internas.",
+      "aliasesInvalid": "Usa até 10 nomes, cada um com 3 a 60 caracteres.",
+      "errorTitle": "Não foi possível guardar",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "lockedTitle": "Pedidos a mais",
+      "lockedText": "Tenta novamente dentro de <time></time>."
+    },
+    "delete": {
+      "title": "Remover {name}?",
+      "text": "A pessoa deixa de poder ser escolhida como titular. Esta ação fica registada.",
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "submit": "Remover",
+      "errorTitle": "Não foi possível remover",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "inUse": "Esta pessoa ainda é titular de contas. Muda ou remove essas contas primeiro.",
+      "lockedTitle": "Pedidos a mais",
+      "lockedText": "Tenta novamente dentro de <time></time>."
+    }
   }
 }

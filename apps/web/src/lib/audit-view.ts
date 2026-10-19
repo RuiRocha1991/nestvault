@@ -21,6 +21,7 @@ export const CATEGORY_TONE: Readonly<Record<string, 'default' | 'accent' | 'pos'
   pool: 'accent',
   member: 'warn',
   invite: 'pos',
+  holder: 'default',
 };
 
 export const FAILED_SIGN_IN = 'auth.signin_failed';

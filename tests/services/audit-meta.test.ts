@@ -47,7 +47,7 @@ describe('sanitizeAuditMeta', () => {
     expect(ALLOWED_META_KEYS.join(' ')).not.toMatch(/amount|iban|note|token|email|password/i);
   });
 
-  it('lists the twelve phase 1 actions', () => {
-    expect(AUDIT_ACTIONS).toHaveLength(12);
+  it('lists the fifteen actions (twelve of phase 1 and three about holders)', () => {
+    expect(AUDIT_ACTIONS).toHaveLength(15);
   });
 });

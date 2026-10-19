@@ -19,7 +19,9 @@ export function SettingsTabs({ poolId, active, permissions }: SettingsTabsProps)
   const tabs = SETTINGS_TABS.filter((tab) => !tab.requires || permissions.includes(tab.requires));
 
   return (
-    <nav aria-label={t('tabsLabel')} className="mb-5 overflow-x-auto border-b border-line">
+    // `pb-px` holds the 1px the active tab's underline (`-mb-px`) sticks out: without it the bar
+    // overflows vertically and `overflow-x-auto` shows a scrollbar.
+    <nav aria-label={t('tabsLabel')} className="mb-5 overflow-x-auto border-b border-line pb-px">
       <ul className="m-0 flex list-none gap-5 p-0">
         {tabs.map((tab) => (
           <li key={tab.key}>
