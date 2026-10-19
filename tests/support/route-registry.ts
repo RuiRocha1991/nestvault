@@ -3,6 +3,8 @@ import type { z } from 'zod';
 
 import {
   AcceptInviteDto,
+  HolderDto,
+  HolderListDto,
   InviteDto,
   InviteListDto,
   MemberListDto,
@@ -123,6 +125,30 @@ const foreignMember = (s: Scenario): Promise<Foreign> =>
     },
   });
 
+/** A holder in pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const holderIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`holder-${pool}`, async () =>
+    s.world.holders.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      pool === 'A'
+        ? { name: 'Ana Alfa', aliases: ['ana alfa'] }
+        : { name: 'Bruno Beta', aliases: ['bruno beta'] },
+    ),
+  );
+
+/** The holder of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignHolder = async (s: Scenario): Promise<Foreign> => {
+  const other = await holderIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.holders.list(await s.as('outsider'), s.poolB);
+      expect(seen.holders.find((holder) => holder.id === other.id)).toEqual(other);
+    },
+  };
+};
+
 export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   // ---------------------------------------------------------------- pool scope: members
   {
@@ -205,6 +231,60 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
           expect(await s.roleOf(s.poolA, 'owner')).toBe('owner');
         },
       }),
+  },
+
+  // ---------------------------------------------------------------- pool scope: holders
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/holders`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/route')),
+    success: { status: 200, schema: HolderListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s people',
+    leaks: async (s) => {
+      await holderIn(s, 'A');
+      const other = await holderIn(s, 'B');
+      return [other.id, other.name, ...other.aliases];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/holders`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/route')),
+    body: () => ({ name: 'Carla', aliases: ['carla gama'] }),
+    success: { status: 201, schema: HolderDto },
+    noForeignBecause: 'creates a new row; linking to a user of another pool is a negative case',
+    negatives: [
+      {
+        name: 'links a user who is not a member of the pool',
+        body: { name: 'Carla', userId: '00000000-0000-7000-8000-000000000001' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/holders/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/[id]/route')),
+    params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
+    body: () => ({ name: 'Ana Omega' }),
+    success: { status: 200, schema: HolderDto },
+    foreign: foreignHolder,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/holders/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/[id]/route')),
+    params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignHolder,
   },
 
   // ---------------------------------------------------------------- pool scope: invites

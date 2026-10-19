@@ -13,6 +13,9 @@ export {
 export { applyPoolSetting, createWithPool, lazyOnce, withPool } from './app/with-pool';
 export type { PoolRunner } from './app/with-pool';
 
+export { holdersRepo } from './app/repositories/holders.repo';
+export type { HolderRow, HolderValues } from './app/repositories/holders.repo';
+
 export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase, IdentityExecutor } from './identity/client';
 export { auditLogRepo } from './identity/repositories/audit-log.repo';

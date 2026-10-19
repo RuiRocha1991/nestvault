@@ -4,6 +4,7 @@ import {
   logger,
   type AccountService,
   type AuditService,
+  type HoldersService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -75,4 +76,8 @@ export async function getMembersService(): Promise<MembersService> {
 
 export async function getAuditService(): Promise<AuditService> {
   return (await getRuntime()).audit;
+}
+
+export async function getHoldersService(): Promise<HoldersService> {
+  return (await getRuntime()).holders;
 }

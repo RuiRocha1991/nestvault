@@ -15,6 +15,7 @@ const buttonStyles = cva(
         default: 'border-line-2 bg-panel-2 text-fg hover:border-accent-2',
         primary: 'border-accent bg-accent text-on-accent hover:border-accent-2 hover:bg-accent-2',
         ghost: 'border-transparent bg-transparent text-fg-2 hover:bg-panel-2 hover:text-fg',
+        destructive: 'border-neg bg-neg text-white hover:opacity-90 disabled:hover:opacity-100',
         danger:
           'border-transparent bg-transparent text-neg hover:bg-panel-2 disabled:hover:bg-transparent',
       },

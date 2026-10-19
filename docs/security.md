@@ -77,6 +77,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   repository (read and write of another pool's row must fail, with RLS and, on an RLS-less twin
   table, with the repository's own `where` alone). The same tests were mutation-checked: breaking
   the policy function, the predicate or the repository filter makes them fail.
+- **Holders (NES-38)** are the first `nestvault_app` table: `holders` follows the block above
+  (`pool_id`, FORCE RLS, `holders_pool_isolation`, grants to `app_rw`) and its repository takes a
+  `PoolContext` for every function. The link to a user (`user_id`) is an id only, because the two
+  databases are never joined: `HoldersService` checks in the identity database that the user is a
+  member of the same pool before writing (400 otherwise; a member is at most one holder, 409).
+  Every member of the pool is a holder: listing or writing first runs `ensureMemberHolders`, which
+  reads the membership in the identity database and inserts the missing holders (idempotent,
+  `ON CONFLICT DO NOTHING` on the unique `(pool_id, user_id)`), so a request never sees another
+  pool's people; a holder outlives its member, and the holder of a current member cannot be
+  removed (409). Writes need `accounts.write` and are audited (`holder.created`, `holder.updated`,
+  `holder.deleted`, target id only; names and aliases never reach the log). Verified by
+  `tests/db/holders.repo.integration.test.ts` (`expectIsolated` for every function, RLS without a
+  `where`, `WITH CHECK`, injection payloads in name and aliases, check constraints),
+  `tests/services/holders.integration.test.ts` (guards in order, mass assignment, other pool's ids,
+  audit entries) and the generated route cases for `/holders` in `tests/support/route-registry.ts`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

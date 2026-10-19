@@ -15,6 +15,7 @@ import {
   createAuth,
   createInvitesService,
   createInviteVerifier,
+  createHoldersService,
   createMembersService,
   createMemoryEmailSender,
   createPoolsService,
@@ -23,6 +24,7 @@ import {
   UnauthorizedError,
   type AccountService,
   type AuditService,
+  type HoldersService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -79,6 +81,7 @@ export interface ApiWorld {
   invites: InvitesService;
   account: AccountService;
   audit: AuditService;
+  holders: HoldersService;
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
   newScenario(): Promise<Scenario>;
   close(): Promise<void>;
@@ -151,6 +154,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
     }),
     account: createAccountService({ auth, identity, pools, trustedProxyHops: 1 }),
     audit: createAuditService({ auth, identity }),
+    holders: createHoldersService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
     async newScenario() {
       return buildScenario(world, accounts, clock);
     },
@@ -224,6 +233,9 @@ async function buildScenario(
     });
     return poolId;
   };
+  // Earlier scenarios' pools would pile up on `owner` and reach the cap of owned pools (409 on
+  // `POST /api/v1/pools`): the previous A and B are dropped first (members and invites cascade).
+  await rows(world.identity, sql`delete from pools where name in ('Pool A', 'Pool B')`);
   const [poolA, poolB] = await Promise.all([
     makePool('Pool A', 'owner'),
     makePool('Pool B', 'outsider'),
@@ -295,6 +307,10 @@ async function buildScenario(
         rows(world.identity, sql`select * from invites order by id`),
         rows(world.identity, sql`select id, name, email from "user" order by id`),
         rows(world.identity, sql`select count(*)::int as entries from audit_log`),
+        // The app database is forced-RLS for `app_rw`: read it as the owner.
+        world.database.asMigrator(
+          async (pool) => (await pool.query('select * from holders order by id')).rows as unknown[],
+        ),
       ]);
       return JSON.stringify([...tables, world.mail.sent.length]);
     },

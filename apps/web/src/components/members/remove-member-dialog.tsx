@@ -39,7 +39,7 @@ export function RemoveMemberDialog({ poolId, member, onClose, onDone }: RemoveMe
           </Button>
           <Button
             disabled={action.busy}
-            className="border-neg bg-neg text-white hover:border-neg hover:bg-neg"
+            variant="destructive"
             onClick={() => {
               void action.run(() =>
                 sendJson(
