@@ -8,3 +8,5 @@ export { poolSettings } from './pool-settings';
 export type { PoolSettingsRow } from './pool-settings';
 export { accountHolders, accounts, subAccounts } from './accounts';
 export type { AccountHolderRow, AccountRow, SubAccountRow } from './accounts';
+export { assetPrices, assets } from './assets';
+export type { AssetPriceRow, AssetRow } from './assets';

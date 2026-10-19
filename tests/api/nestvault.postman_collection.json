@@ -1980,6 +1980,359 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Assets",
+      "item": [
+        {
+          "name": "List assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets"
+              ]
+            },
+            "description": "Any member. price is the newest price dated on or before ?asOf (today by default)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Define an asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets"
+              ]
+            },
+            "description": "Needs portfolios.write (owner, admin). Ticker is upper-cased and unique in the pool (409). Strict body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"VWCE\",\n  \"symbol\": \"VWCE.DE\",\n  \"name\": \"Vanguard FTSE All-World\",\n  \"type\": \"etf\",\n  \"currency\": \"EUR\",\n  \"region\": \"World\",\n  \"dps\": \"1.5\",\n  \"divMonths\": [\n    3,\n    6,\n    9,\n    12\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const a = pm.response.json();",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(a).sort()).to.eql(['currency','divMonths','dps','id','name','price','priceDate','region','sector','symbol','ticker','type']));",
+                  "pm.collectionVariables.set('assetId', a.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get an asset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}"
+              ]
+            },
+            "description": "Any member. An asset of another pool answers 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update an asset",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}"
+              ]
+            },
+            "description": "Needs portfolios.write. Fields left out stay.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vanguard FTSE All-World UCITS ETF\",\n  \"dps\": \"1.6\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set the price of a day",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}/prices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}",
+                "prices"
+              ]
+            },
+            "description": "Needs prices.write (owner, admin, member). Adds the price of the day or replaces it; a future date answers 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-10-19\",\n  \"price\": \"123.45\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the DTO fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['date','price','source']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Price history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}/prices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}",
+                "prices"
+              ]
+            },
+            "description": "Any member. Newest first; ?from, ?to and ?limit are optional."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk price update",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/asset-prices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "asset-prices"
+              ]
+            },
+            "description": "Needs prices.write. By ticker, 1-500 entries, one transaction: an unknown ticker or any invalid entry rejects the whole batch (400).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prices\": [\n    {\n      \"ticker\": \"VWCE\",\n      \"date\": \"2026-10-19\",\n      \"price\": \"124.10\"\n    }\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has updated', () => pm.expect(Object.keys(pm.response.json())).to.eql(['updated']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove the price of a day",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}/prices/2026-10-19",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}",
+                "prices",
+                "2026-10-19"
+              ]
+            },
+            "description": "Needs prices.write."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete an asset",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/assets/{{assetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "assets",
+                "{{assetId}}"
+              ]
+            },
+            "description": "Needs portfolios.write. Its prices go with it; 409 while operations use it."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

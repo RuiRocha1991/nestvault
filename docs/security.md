@@ -118,6 +118,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/services/accounts.integration.test.ts` (guards in order, IBAN rules, Banco Invest case,
   mass assignment, other pool's ids, audit without values) and the generated route cases for
   `/accounts` and `/sub-accounts` in `tests/support/route-registry.ts`.
+- **Assets and prices (NES-41)**: `assets` and `asset_prices` follow the block above (`pool_id`,
+  FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`); a price points at
+  `(pool_id, asset_id)` through a composite foreign key, so it cannot name another pool's asset even
+  without RLS. The ticker is unique per pool and validated against an allow-list pattern; prices
+  are decimal strings (`numeric(18,6)`, positive) and a bulk update is one `INSERT … ON CONFLICT`
+  inside one `withPool` transaction after every entry has been validated (tickers resolved in the
+  URL's own pool only), so a bad entry stores nothing. Assets need `portfolios.write` (owner,
+  admin), prices `prices.write` (members too), reads `pool.read`; writes are audited (`asset.*`,
+  target id and a count only, never names or prices). Verified by
+  `tests/db/assets.repo.integration.test.ts` (`expectIsolated` for every function, RLS without a
+  `where`, composite foreign key, injection payloads, constraints),
+  `tests/services/assets.integration.test.ts` (guards in order, atomic bulk, other pool's ids, audit
+  without values) and the generated route cases for `/assets` and `/asset-prices`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with
