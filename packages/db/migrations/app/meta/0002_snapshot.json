@@ -1,0 +1,299 @@
+{
+  "id": "b177b3a3-4a5b-4605-b0b9-0dc5437aeea1",
+  "prevId": "9fb4c82a-beb6-448f-afbf-548dcafa3950",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.fx_rates": {
+      "name": "fx_rates",
+      "schema": "",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ccy": {
+          "name": "ccy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eur_rate": {
+          "name": "eur_rate",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "fx_rates_date_ccy_pk": {
+          "name": "fx_rates_date_ccy_pk",
+          "columns": ["date", "ccy"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fx_rates_ccy_format": {
+          "name": "fx_rates_ccy_format",
+          "value": "\"fx_rates\".\"ccy\" ~ '^[A-Z]{3}$' and \"fx_rates\".\"ccy\" <> 'EUR'"
+        },
+        "fx_rates_rate_positive": {
+          "name": "fx_rates_rate_positive",
+          "value": "\"fx_rates\".\"eur_rate\" > 0"
+        },
+        "fx_rates_source": {
+          "name": "fx_rates_source",
+          "value": "\"fx_rates\".\"source\" in ('seed', 'ecb', 'manual')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.holders": {
+      "name": "holders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aliases": {
+          "name": "aliases",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "holders_pool_idx": {
+          "name": "holders_pool_idx",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "holders_pool_user_uniq": {
+          "name": "holders_pool_user_uniq",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"holders\".\"user_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "holders_name_len": {
+          "name": "holders_name_len",
+          "value": "char_length(\"holders\".\"name\") between 1 and 60"
+        },
+        "holders_color_hex": {
+          "name": "holders_color_hex",
+          "value": "\"holders\".\"color\" ~ '^#[0-9A-Fa-f]{6}$'"
+        },
+        "holders_aliases_max": {
+          "name": "holders_aliases_max",
+          "value": "cardinality(\"holders\".\"aliases\") <= 10"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pool_settings": {
+      "name": "pool_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pool_id": {
+          "name": "pool_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transfer_window_days": {
+          "name": "transfer_window_days",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "deposit_tax": {
+          "name": "deposit_tax",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'28'"
+        },
+        "dividend_tax": {
+          "name": "dividend_tax",
+          "type": "numeric(9, 6)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'28'"
+        },
+        "display_currency": {
+          "name": "display_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EUR'"
+        },
+        "fx_overrides": {
+          "name": "fx_overrides",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pool_settings_pool_uniq": {
+          "name": "pool_settings_pool_uniq",
+          "columns": [
+            {
+              "expression": "pool_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pool_settings_window": {
+          "name": "pool_settings_window",
+          "value": "\"pool_settings\".\"transfer_window_days\" between 0 and 30"
+        },
+        "pool_settings_deposit_tax": {
+          "name": "pool_settings_deposit_tax",
+          "value": "\"pool_settings\".\"deposit_tax\" between 0 and 100"
+        },
+        "pool_settings_dividend_tax": {
+          "name": "pool_settings_dividend_tax",
+          "value": "\"pool_settings\".\"dividend_tax\" between 0 and 100"
+        },
+        "pool_settings_currency": {
+          "name": "pool_settings_currency",
+          "value": "\"pool_settings\".\"display_currency\" ~ '^[A-Z]{3}$'"
+        },
+        "pool_settings_overrides_object": {
+          "name": "pool_settings_overrides_object",
+          "value": "jsonb_typeof(\"pool_settings\".\"fx_overrides\") = 'object'"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

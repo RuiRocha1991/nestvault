@@ -553,7 +553,8 @@
       "pool": "Agregado",
       "member": "Membros",
       "invite": "Convites",
-      "holder": "Pessoas"
+      "holder": "Pessoas",
+      "settings": "Definições"
     },
     "actions": {
       "auth": {
@@ -582,6 +583,9 @@
         "created": "Pessoa criada",
         "updated": "Pessoa alterada",
         "deleted": "Pessoa removida"
+      },
+      "settings": {
+        "updated": "Definições alteradas"
       }
     },
     "table": {
@@ -643,6 +647,23 @@
       "retry": "Tentar novamente"
     },
     "readOnly": "Registo <b>só de leitura</b>: as entradas não podem ser alteradas nem apagadas, nem por proprietários. Só o proprietário vê esta página. Nunca guardamos valores, IBANs, notas nem tokens, só quem fez o quê e quando."
+  },
+  "parameters": {
+    "title": "Parâmetros",
+    "rate": "1 {currency} em EUR",
+    "depositTax": "Imposto sobre juros (%)",
+    "depositTaxHint": "Em Portugal, 28% sobre juros de depósitos.",
+    "dividendTax": "Imposto sobre dividendos (%)",
+    "transferWindow": "Janela para transferências (dias)",
+    "ratesHint": "As taxas de câmbio seguem o mercado. Se indicares um valor diferente, este agregado passa a usá-lo.",
+    "save": "Guardar parâmetros",
+    "saved": "Parâmetros guardados.",
+    "invalidTitle": "Valores inválidos",
+    "invalidText": "Usa números positivos: impostos entre 0 e 100, janela de 0 a 30 dias.",
+    "errorTitle": "Não foi possível guardar",
+    "errorText": "Tenta novamente dentro de instantes.",
+    "lockedTitle": "Pedidos a mais",
+    "lockedText": "Tenta novamente dentro de <time></time>."
   },
   "holders": {
     "title": "Agregado familiar",

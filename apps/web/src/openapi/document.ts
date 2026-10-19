@@ -7,6 +7,7 @@ import './invites';
 import './me';
 import './members';
 import './pools';
+import './settings';
 import { registry } from './registry';
 
 /** The OpenAPI 3.1 document of every `/api/v1` endpoint. Import new endpoint modules above. */
@@ -30,6 +31,7 @@ export function buildOpenApiDocument() {
         description: 'Roles, removal, leaving and ownership transfer of a pool’s members',
       },
       { name: 'Holders', description: 'The people of the household who own accounts' },
+      { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },
     ],
   });

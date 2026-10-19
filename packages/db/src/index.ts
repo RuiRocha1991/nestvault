@@ -15,6 +15,10 @@ export type { PoolRunner } from './app/with-pool';
 
 export { holdersRepo } from './app/repositories/holders.repo';
 export type { HolderRow, HolderValues } from './app/repositories/holders.repo';
+export { fxRatesRepo } from './app/repositories/fx-rates.repo';
+export type { MarketRate } from './app/repositories/fx-rates.repo';
+export { poolSettingsRepo } from './app/repositories/pool-settings.repo';
+export type { PoolSettingsRow, PoolSettingsValues } from './app/repositories/pool-settings.repo';
 
 export { createIdentityDatabase } from './identity/client';
 export type { IdentityDatabase, IdentityExecutor } from './identity/client';

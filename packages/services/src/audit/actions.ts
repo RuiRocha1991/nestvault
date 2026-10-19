@@ -19,6 +19,7 @@ export const POOL_AUDIT_ACTIONS = [
   'holder.created',
   'holder.updated',
   'holder.deleted',
+  'settings.updated',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
@@ -28,7 +29,15 @@ export type PoolAuditAction = (typeof POOL_AUDIT_ACTIONS)[number];
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /** The groups the audit screen filters by; an action belongs to the group of its prefix. */
-export const AUDIT_CATEGORIES = ['auth', 'session', 'pool', 'member', 'invite', 'holder'] as const;
+export const AUDIT_CATEGORIES = [
+  'auth',
+  'session',
+  'pool',
+  'member',
+  'invite',
+  'holder',
+  'settings',
+] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 
 export const actionsOfCategory = (category: AuditCategory): readonly AuditAction[] =>

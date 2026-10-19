@@ -12,8 +12,10 @@ import {
   MeDto,
   MeWithPoolsDto,
   PoolSummaryDto,
+  FxDto,
   RevokedSessionsDto,
   SessionListDto,
+  SettingsDto,
   TransferOwnershipDto,
   type Permission,
 } from '@nestvault/services';
@@ -285,6 +287,53 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
     success: { status: 204 },
     foreign: foreignHolder,
+  },
+
+  // ---------------------------------------------------------------- pool scope: settings
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/settings`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/settings/route')),
+    success: { status: 200, schema: SettingsDto },
+    noForeignBecause: 'reads the URL’s own pool; there is no id in the path',
+    leaks: async (s) => {
+      await s.world.settings.update(await s.as('outsider'), s.poolB, {
+        fxOverrides: { USD: '0.8123' },
+      });
+      return ['0.8123'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/settings`,
+    permission: 'settings.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/settings/route')),
+    body: () => ({ depositTax: '25', transferWindowDays: 5 }),
+    success: { status: 200, schema: SettingsDto },
+    noForeignBecause: 'one row per pool, chosen by the URL’s pool; no id in the path',
+    negatives: [
+      { name: 'a negative tax', body: { depositTax: '-1' }, expect: 400 },
+      { name: 'a rate for EUR', body: { fxOverrides: { EUR: '1' } }, expect: 400 },
+      { name: 'a window beyond 30 days', body: { transferWindowDays: 31 }, expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/fx`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/fx/route')),
+    success: { status: 200, schema: FxDto },
+    noForeignBecause: 'reads the URL’s own pool; the leak probe covers pool B’s overrides',
+    leaks: async (s) => {
+      await s.world.settings.update(await s.as('outsider'), s.poolB, {
+        fxOverrides: { USD: '0.7771' },
+      });
+      return ['0.7771'];
+    },
   },
 
   // ---------------------------------------------------------------- pool scope: invites

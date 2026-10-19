@@ -9,6 +9,7 @@ import {
   type InvitesService,
   type MembersService,
   type PoolsService,
+  type SettingsService,
   type AuthRuntime,
   type RateLimiter,
 } from '@nestvault/services';
@@ -80,4 +81,8 @@ export async function getAuditService(): Promise<AuditService> {
 
 export async function getHoldersService(): Promise<HoldersService> {
   return (await getRuntime()).holders;
+}
+
+export async function getSettingsService(): Promise<SettingsService> {
+  return (await getRuntime()).settings;
 }
