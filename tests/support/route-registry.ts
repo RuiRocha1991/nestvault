@@ -1882,7 +1882,7 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     load: () =>
       load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/[id]/schedule/route')),
     params: async (s) => ({ id: (await depositIn(s, 'A')).id }),
-    query: 'asOf=2026-12-31',
+    query: '?asOf=2026-12-31',
     success: { status: 200, schema: DepositScheduleDto },
     foreign: foreignDeposit,
   },
