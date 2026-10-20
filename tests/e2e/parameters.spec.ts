@@ -79,3 +79,35 @@ test('a viewer sees the parameters but has no way to save them', async ({ page }
   await expect(page.getByLabel(p.depositTax)).not.toBeEditable();
   await expect(page.getByRole('button', { name: p.save })).toHaveCount(0);
 });
+
+test.describe('layout', () => {
+  async function boxes(page: Page) {
+    const cells = page.getByTestId('settings-grid').locator('> *');
+    await expect(cells).toHaveCount(2);
+    const a = await cells.nth(0).boundingBox();
+    const b = await cells.nth(1).boundingBox();
+    if (!a || !b) throw new Error('the settings cards have no layout box');
+    return { a, b };
+  }
+
+  test('desktop: the household and parameters cards sit side by side', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openSettings(page, world.owner);
+    const { a, b } = await boxes(page);
+    expect(b.x).toBeGreaterThan(a.x + a.width - 1);
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+    expect(Math.abs(a.width - b.width)).toBeLessThan(4);
+  });
+
+  test('phone: the cards stack and the page does not scroll sideways', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSettings(page, world.owner);
+    const { a, b } = await boxes(page);
+    expect(b.y).toBeGreaterThan(a.y + a.height - 1);
+    expect(Math.abs(a.x - b.x)).toBeLessThan(2);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
