@@ -47,7 +47,7 @@ describe('sanitizeAuditMeta', () => {
     expect(ALLOWED_META_KEYS.join(' ')).not.toMatch(/amount|iban|note|token|email|password/i);
   });
 
-  it('lists the forty actions (twelve of phase 1, then holders, settings, accounts, assets, categories, transactions and rules)', () => {
-    expect(AUDIT_ACTIONS).toHaveLength(40);
+  it('lists the fifty actions (twelve of phase 1, then holders, settings, accounts, assets, categories, transactions, rules, portfolios, operations and plans)', () => {
+    expect(AUDIT_ACTIONS).toHaveLength(50);
   });
 });

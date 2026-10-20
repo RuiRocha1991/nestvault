@@ -164,6 +164,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   under 150 ms), `tests/services/transactions.integration.test.ts`,
   `tests/services/rules.integration.test.ts` and the generated route cases for `/transactions` and
   `/rules`.
+- **Portfolios, operations and plans (NES-42)**: `portfolios`, `investment_ops` and `plans` follow
+  the block above (`pool_id`, FORCE RLS, repositories on a `PoolContext`). Every reference is a
+  composite foreign key `(pool_id, …)`, and a sub-account must belong to the operation's account
+  `(pool_id, account_id, sub_account_id)`, so a row cannot name another pool's portfolio, asset,
+  account or sub-account even by raw SQL; the service checks the same first and answers 400. The
+  per-type rules (quantity above zero, price, dividend amount) are check constraints as well as zod
+  rules. `(pool_id, account_id, ext_id)` and `(pool_id, plan_id, plan_period)` are unique, so an
+  import cannot duplicate an operation and a plan cannot register two buys in a month, even when two
+  runs race. Deleting a portfolio with operations answers 409 unless they are moved or deleted;
+  `extId`, `planId` and the pool never come from the request. Portfolios and plans need
+  `portfolios.write`, operations and plan runs `ops.write`; writes are audited (`portfolio.*`,
+  `op.*`, `plan.*`, target id only, never amounts or notes). Verified by
+  `tests/db/investments.repo.integration.test.ts` (`expectIsolated` for every function, composite
+  keys, checks, injection payloads), `tests/services/investments.integration.test.ts` and the
+  generated route cases for `/portfolios`, `/ops` and `/plans`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

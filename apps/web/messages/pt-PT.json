@@ -559,7 +559,10 @@
       "asset": "Ativos",
       "category": "Categorias",
       "transaction": "Movimentos",
-      "rule": "Regras"
+      "rule": "Regras",
+      "portfolio": "Carteiras",
+      "op": "Operações",
+      "plan": "Planos"
     },
     "actions": {
       "auth": {
@@ -625,6 +628,22 @@
         "deleted": "Regra eliminada",
         "reordered": "Regras reordenadas",
         "applied": "Regras aplicadas aos movimentos"
+      },
+      "portfolio": {
+        "created": "Carteira criada",
+        "updated": "Carteira alterada",
+        "deleted": "Carteira eliminada"
+      },
+      "op": {
+        "created": "Operação registada",
+        "updated": "Operação alterada",
+        "deleted": "Operação eliminada"
+      },
+      "plan": {
+        "created": "Plano criado",
+        "updated": "Plano alterado",
+        "deleted": "Plano eliminado",
+        "run": "Plano executado"
       }
     },
     "table": {

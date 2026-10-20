@@ -4,6 +4,9 @@ import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
 import { assets, type AssetRow } from '../schema/assets';
 
+import { investmentOpsRepo } from './investment-ops.repo';
+import { plansRepo } from './plans.repo';
+
 export type { AssetRow };
 
 export interface AssetValues {
@@ -92,12 +95,12 @@ export const assetsRepo = {
     return rows.length > 0;
   },
 
-  /**
-   * How many investment operations and plans use this asset. Those tables arrive with NES-42,
-   * which replaces this with the real count; until then deleting is never blocked.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the signature NES-42 fills in
-  countReferences(_tx: PoolTx, _ctx: PoolContext, _id: string): Promise<number> {
-    return Promise.resolve(0);
+  /** How many operations and plans use this asset (the service refuses to delete it while any). */
+  async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
+    const [ops, planCount] = await Promise.all([
+      investmentOpsRepo.countByAsset(tx, ctx, id),
+      plansRepo.countByAsset(tx, ctx, id),
+    ]);
+    return ops + planCount;
   },
 };
