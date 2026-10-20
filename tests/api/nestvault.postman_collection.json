@@ -1829,6 +1829,41 @@
           ]
         },
         {
+          "name": "Accounts screen (cards)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/accounts/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "accounts",
+                "overview"
+              ]
+            },
+            "description": "Any member. Every account with balance (account currency and EUR), interest and effective rate, the term-deposit schedule, brokerage figures (gross dividends, taxes, refunds, net) and EUR totals per type."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has the screen fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['accounts','asOf','totalsEur']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Create an account",
           "request": {
             "method": "POST",

@@ -1,23 +1,28 @@
 import {
   accountsRepo,
+  assetPricesRepo,
+  assetsRepo,
+  depositsRepo,
+  interestEntriesRepo,
+  poolSettingsRepo,
+  portfolioCashMovesRepo,
+  transactionsRepo,
   holdersRepo,
   investmentOpsRepo,
   isUuid,
   newId,
   plansRepo,
-  poolSettingsRepo,
   portfoliosRepo,
   subAccountsRepo,
-  transactionsRepo,
   withPool,
-  type AccountRow,
   type AccountValues,
   type IdentityDatabase,
   type PoolContext,
   type PoolRunner,
   type PoolTx,
 } from '@nestvault/db';
-import { accountBalances, dec, toFxRates, toEur } from '@nestvault/domain';
+
+import { toFxRates } from '@nestvault/domain';
 
 import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
@@ -26,12 +31,15 @@ import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { CASH_ACCOUNT_TYPES } from '../investments/checks';
+import { toCashMove, toInvestmentOp } from '../investments/domain';
 import { clientIpResolver } from '../rate-limit/client-ip';
-import { loadSavingsLedger } from '../savings/domain';
+import { toManualInterest } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 import { toEngineTransaction } from '../transactions/engine';
 
-import { toLedgerAccount } from './ledger';
+import { readAccounts } from './read';
+import { AccountsScreenDto } from './screen-schemas';
+import { buildAccountsScreen } from './screen';
 import {
   AccountDto,
   AccountListDto,
@@ -47,6 +55,8 @@ import {
 export interface AccountsService {
   /** Every account of the pool with its balance today (any member). */
   list(headers: Headers, poolId: string): Promise<AccountListDto>;
+  /** The Contas e poupanças cards: balances, interest, deposit schedules, investments (any member). */
+  screen(headers: Headers, poolId: string): Promise<AccountsScreenDto>;
   /** One account (any member). */
   get(headers: Headers, poolId: string, id: string): Promise<AccountDto>;
   /** Creates an account with its holders and, for a brokerage account, its sub-accounts (`accounts.write`). */
@@ -95,48 +105,8 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
   };
 
   /** Accounts as DTOs, with the balance today and its EUR value (the pool's rates). */
-  async function read(tx: PoolTx, ctx: PoolContext, only?: string): Promise<AccountDto[]> {
-    const today = now().toISOString().slice(0, 10);
-    const rows = only
-      ? [await accountsRepo.find(tx, ctx, only)].filter((row): row is AccountRow => !!row)
-      : await accountsRepo.list(tx, ctx);
-    const ids = rows.map((row) => row.id);
-    const [links, subs, resolved, settings, savings, txRows] = await Promise.all([
-      accountsRepo.listHolders(tx, ctx, ids),
-      subAccountsRepo.list(tx, ctx),
-      loadFxRates(tx, ctx, today),
-      poolSettingsRepo.find(tx, ctx),
-      loadSavingsLedger(tx, ctx),
-      transactionsRepo.listForEngine(tx, ctx),
-    ]);
-    const rates = toFxRates(resolved);
-    // Movements, deposits and manual interest feed the balance; operations join them as their
-    // module is wired in (the same domain function reads them all).
-    const balances = accountBalances(
-      {
-        accounts: rows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
-        transactions: txRows.map(toEngineTransaction),
-        interestEntries: savings.interestEntries,
-        ops: [],
-        assets: [],
-        moves: [],
-        categories: [],
-        rates,
-        defaultTax: settings?.depositTax ?? '28',
-      },
-      today,
-    );
-    return rows.map((row) => {
-      const balance = balances.get(row.id) ?? dec(0);
-      return toAccountDto(
-        row,
-        links.filter((link) => link.accountId === row.id).map((link) => link.holderId),
-        subs.filter((sub) => sub.accountId === row.id),
-        balance,
-        toEur(balance, row.currency, rates),
-      );
-    });
-  }
+  const read = (tx: PoolTx, ctx: PoolContext, only?: string) =>
+    readAccounts(tx, ctx, now().toISOString().slice(0, 10), only);
 
   /** The holders must be people of this pool. */
   async function assertHolders(tx: PoolTx, ctx: PoolContext, ids: readonly string[]) {
@@ -183,6 +153,57 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
       return AccountListDto.parse({ accounts: await run(ctx, (tx) => read(tx, ctx)) });
+    },
+
+    async screen(headers, poolId) {
+      const session = await requireSession(auth, headers);
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'pool.read');
+      const today = now().toISOString().slice(0, 10);
+      const screen = await run(ctx, async (tx) => {
+        const [
+          accounts,
+          depositRows,
+          entryRows,
+          txRows,
+          opRows,
+          assetRows,
+          moveRows,
+          resolved,
+          settings,
+        ] = await Promise.all([
+          readAccounts(tx, ctx, today),
+          depositsRepo.list(tx, ctx),
+          interestEntriesRepo.list(tx, ctx),
+          transactionsRepo.listForEngine(tx, ctx),
+          investmentOpsRepo.list(tx, ctx),
+          assetsRepo.list(tx, ctx),
+          portfolioCashMovesRepo.list(tx, ctx),
+          loadFxRates(tx, ctx, today),
+          poolSettingsRepo.find(tx, ctx),
+        ]);
+        const prices = await assetPricesRepo.latestAsOf(tx, ctx, today);
+        const latest = new Map(prices.map((price) => [price.assetId, price.price]));
+        return buildAccountsScreen({
+          today,
+          accounts,
+          depositRows,
+          transactions: txRows.map(toEngineTransaction),
+          interestEntries: entryRows.map(toManualInterest),
+          ops: opRows.map(toInvestmentOp),
+          assets: assetRows.map((row) => ({
+            id: row.id,
+            currency: row.currency,
+            price: latest.get(row.id) ?? '0',
+            dps: row.dps,
+            divMonths: row.divMonths,
+          })),
+          moves: moveRows.map(toCashMove),
+          rates: toFxRates(resolved),
+          defaultTax: settings?.depositTax ?? '28',
+        });
+      });
+      return AccountsScreenDto.parse(screen);
     },
 
     async get(headers, poolId, id) {

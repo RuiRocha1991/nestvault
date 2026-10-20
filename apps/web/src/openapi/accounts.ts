@@ -1,6 +1,7 @@
 import {
   AccountDto,
   AccountListDto,
+  AccountsScreenDto,
   CreateAccountInput,
   SubAccountDto,
   SubAccountInput,
@@ -50,6 +51,21 @@ registry.registerPath({
   responses: {
     201: { description: 'The new account', ...json(AccountDto) },
     ...errorResponses(400, 401, 403, 404, 409, 413, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/accounts/overview',
+  operationId: 'accountsOverview',
+  summary: 'Cards of the accounts screen',
+  description:
+    'Any member may read. Every account with its balance (account currency and EUR) plus, by type: interest received and effective rate, the term-deposit schedule (next payment, maturity, progress), brokerage figures (positions, sub-accounts, gross dividends, taxes, refunds, net) and EUR totals per type.',
+  tags: ['Accounts'],
+  request: { params: z.object({ poolId: PoolId }) },
+  responses: {
+    200: { description: 'The accounts screen', ...json(AccountsScreenDto) },
+    ...errorResponses(401, 404, 429, 500),
   },
 });
 
