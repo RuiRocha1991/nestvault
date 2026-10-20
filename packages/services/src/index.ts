@@ -20,4 +20,5 @@ export * from './rules';
 export * from './transactions';
 export * from './investments';
 export * from './savings';
+export * from './notes';
 export * from './settings';

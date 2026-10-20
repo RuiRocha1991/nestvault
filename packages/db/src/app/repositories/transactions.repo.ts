@@ -48,6 +48,8 @@ export interface TransactionFilter {
   /** Text to find in the description, matched literally (case-insensitive). */
   text?: string;
   withNotes?: boolean;
+  /** Text to find in the note, matched literally (case-insensitive). */
+  noteText?: string;
 }
 
 export interface TransactionCursor {
@@ -146,6 +148,7 @@ export const transactionsRepo = {
       filter.kind ? sql`${kind} = ${filter.kind}` : undefined,
       filter.text ? ilike(transactions.description, `%${escapeLike(filter.text)}%`) : undefined,
       filter.withNotes ? sql`coalesce(${transactions.note}, '') <> ''` : undefined,
+      filter.noteText ? ilike(transactions.note, `%${escapeLike(filter.noteText)}%`) : undefined,
       cursor
         ? sort.descending
           ? sql`(${column}, ${transactions.id}) < (${cursor.value}, ${cursor.id})`
@@ -203,6 +206,39 @@ export const transactionsRepo = {
       .returning();
     if (!row) throw new Error('insert returned no row');
     return row;
+  },
+
+  /**
+   * Inserts a movement an import found, or does nothing when the account already has its hash
+   * (`ON CONFLICT DO NOTHING`). A repeated import therefore never touches the stored row: its
+   * note, category and flags stay as the household left them. Returns whether a row was added.
+   */
+  async insertIgnoringDuplicate(
+    tx: PoolTx,
+    ctx: PoolContext,
+    id: string,
+    data: TransactionValues,
+  ): Promise<boolean> {
+    const rows = await tx
+      .insert(transactions)
+      .values({
+        id,
+        poolId: ctx.poolId,
+        accountId: data.accountId,
+        date: data.date,
+        description: data.description,
+        amount: data.amount,
+        categoryId: data.categoryId,
+        transfer: data.transfer,
+        transferLocked: data.transferLocked,
+        manualCategory: data.manualCategory,
+        hash: data.hash,
+      })
+      .onConflictDoNothing({
+        target: [transactions.poolId, transactions.accountId, transactions.hash],
+      })
+      .returning({ id: transactions.id });
+    return rows.length > 0;
   },
 
   /** Changes the given fields only. Returns `undefined` when the movement is not in this pool. */

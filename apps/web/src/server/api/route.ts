@@ -1,4 +1,5 @@
 import {
+  ConflictError,
   HttpError,
   logger,
   RateLimitError,
@@ -68,7 +69,12 @@ function toErrorResponse(error: unknown, requestId: string): NextResponse {
   if (error instanceof HttpError) {
     const headers: Record<string, string> = {};
     if (error instanceof RateLimitError) headers['Retry-After'] = String(error.retryAfterSeconds);
-    const extra = error instanceof ValidationError ? { issues: error.issues } : {};
+    const extra =
+      error instanceof ValidationError
+        ? { issues: error.issues }
+        : error instanceof ConflictError && error.current !== undefined
+          ? { current: error.current }
+          : {};
     return NextResponse.json(errorBody(error.code, error.message, requestId, extra), {
       status: error.status,
       headers,

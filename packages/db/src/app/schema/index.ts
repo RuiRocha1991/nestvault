@@ -18,5 +18,7 @@ export { portfolios } from './portfolios';
 export type { PortfolioRow } from './portfolios';
 export { investmentOps, plans } from './investments';
 export type { InvestmentOpRow, PlanRow } from './investments';
+export { monthNotes } from './notes';
+export type { MonthNoteRow } from './notes';
 export { deposits, interestEntries, savingsProducts } from './savings';
 export type { DepositRow, InterestEntryRow, SavingsProductRow } from './savings';

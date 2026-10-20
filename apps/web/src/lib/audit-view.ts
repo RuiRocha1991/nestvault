@@ -33,6 +33,7 @@ export const CATEGORY_TONE: Readonly<Record<string, 'default' | 'accent' | 'pos'
   product: 'default',
   deposit: 'default',
   interest: 'default',
+  note: 'default',
   settings: 'default',
 };
 

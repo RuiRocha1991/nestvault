@@ -25,6 +25,10 @@ export const ErrorResponse = registry.register(
         .array(z.object({ path: z.string(), message: z.string() }))
         .optional()
         .openapi({ description: 'Only on 400: which fields are invalid.' }),
+      current: z.unknown().optional().openapi({
+        description:
+          'Only on a 409 from an optimistic lock (month notes): the version that won, in the same shape as the resource.',
+      }),
     }),
     requestId: z.string().openapi({ example: '5b1f0f6e-3c1d-4c53-9a6b-0f2d3a7c9e11' }),
   }),

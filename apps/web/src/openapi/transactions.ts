@@ -30,7 +30,7 @@ registry.registerPath({
   operationId: 'listTransactions',
   summary: 'Movements of the pool',
   description:
-    'Any member may list. Filters: `month` (yyyy-mm), `accountId`, `categoryId` (or `none`), `kind`, `q` (text in the description, matched literally: `%`, `_` and quotes are data) and `withNotes`. `sort` is one of `date`, `amount`, `description` (anything else answers 400), `order` `asc` or `desc`. Pagination is by cursor: pass `nextCursor` back as `cursor` (a cursor of another sort answers 400).',
+    'Any member may list. Filters: `month` (yyyy-mm), `accountId`, `categoryId` (or `none`), `kind`, `q` (text in the description, matched literally: `%`, `_` and quotes are data) `withNotes` and `noteQ` (text in the note, matched literally like `q`). `sort` is one of `date`, `amount`, `description` (anything else answers 400), `order` `asc` or `desc`. Pagination is by cursor: pass `nextCursor` back as `cursor` (a cursor of another sort answers 400).',
   tags: ['Transactions'],
   request: {
     params: z.object({ poolId: PoolId }),
@@ -44,6 +44,7 @@ registry.registerPath({
       kind: z.enum(['expense', 'income', 'refund', 'transfer', 'invest']).optional(),
       q: z.string().min(1).max(100).optional(),
       withNotes: z.enum(['true', 'false']).optional(),
+      noteQ: z.string().min(1).max(100).optional(),
       sort: z.enum(['date', 'amount', 'description']).optional(),
       order: z.enum(['asc', 'desc']).optional(),
       cursor: z.string().max(600).optional(),

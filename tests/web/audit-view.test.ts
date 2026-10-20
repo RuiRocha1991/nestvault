@@ -48,6 +48,7 @@ describe('small helpers', () => {
       'interest',
       'invite',
       'member',
+      'note',
       'op',
       'plan',
       'pool',

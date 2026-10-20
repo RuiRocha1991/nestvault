@@ -69,6 +69,8 @@ export type {
 } from './app/repositories/savings-products.repo';
 export { depositsRepo } from './app/repositories/deposits.repo';
 export type { DepositRow, DepositValues } from './app/repositories/deposits.repo';
+export { monthNotesRepo, notesRepo } from './app/repositories/notes.repo';
+export type { MonthNoteRow, NoteState } from './app/repositories/notes.repo';
 export { interestEntriesRepo } from './app/repositories/interest-entries.repo';
 export type {
   InterestEntryRow,
