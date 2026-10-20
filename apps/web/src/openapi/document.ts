@@ -5,6 +5,7 @@ import './health';
 import './accounts';
 import './transactions';
 import './investments';
+import './savings';
 import './assets';
 import './categories';
 import './holders';
@@ -48,6 +49,9 @@ export function buildOpenApiDocument() {
       { name: 'Portfolios', description: 'Portfolios with their summary' },
       { name: 'Operations', description: 'Buys, sells and dividends of the portfolios' },
       { name: 'Plans', description: 'Regular investment plans and their monthly runs' },
+      { name: 'Products', description: 'Savings products (rate, period, term, tax)' },
+      { name: 'Deposits', description: 'Term deposits with their schedule and maturity' },
+      { name: 'Interest', description: 'Interest received by savings accounts, entered by hand' },
       { name: 'Rules', description: 'Keyword rules that categorize movements' },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },

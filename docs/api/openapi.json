@@ -66,6 +66,18 @@
       "description": "Regular investment plans and their monthly runs"
     },
     {
+      "name": "Products",
+      "description": "Savings products (rate, period, term, tax)"
+    },
+    {
+      "name": "Deposits",
+      "description": "Term deposits with their schedule and maturity"
+    },
+    {
+      "name": "Interest",
+      "description": "Interest received by savings accounts, entered by hand"
+    },
+    {
       "name": "Rules",
       "description": "Keyword rules that categorize movements"
     },
@@ -7939,6 +7951,2847 @@
           },
           "413": {
             "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/products": {
+      "get": {
+        "operationId": "listProducts",
+        "summary": "Savings products with their deposits’ capital and weighted rate",
+        "description": "Any member may list. Each product carries `depositsCount`, the total `capital` of its deposits and the `averageRate` weighted by capital (null without deposits).",
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "institution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "rate": {
+                            "type": "string"
+                          },
+                          "payN": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "payU": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "m",
+                              "d",
+                              null
+                            ]
+                          },
+                          "termN": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "termU": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "m",
+                              "d",
+                              null
+                            ]
+                          },
+                          "tax": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payToAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "fundFromAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "depositsCount": {
+                            "type": "integer"
+                          },
+                          "capital": {
+                            "type": "string"
+                          },
+                          "averageRate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "institution",
+                          "rate",
+                          "payN",
+                          "payU",
+                          "termN",
+                          "termU",
+                          "tax",
+                          "payToAccountId",
+                          "fundFromAccountId",
+                          "depositsCount",
+                          "capital",
+                          "averageRate"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "products"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProduct",
+        "summary": "Create",
+        "description": "Needs `accounts.write`. The name is unique inside the pool (409). `payN`/`payU` and `termN`/`termU` come as a number with its unit (`m` months, `d` days) or not at all; without `tax` the pool’s default applies. `payToAccountId` receives the interest (none: it capitalizes), `fundFromAccountId` funds the deposit; neither can be a term-deposit account.",
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "rate": {
+                    "type": "string"
+                  },
+                  "institution": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "payN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "payU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "termN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "termU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "tax": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "payToAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "fundFromAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "name",
+                  "rate"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "depositsCount": {
+                      "type": "integer"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "averageRate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "institution",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "depositsCount",
+                    "capital",
+                    "averageRate"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/products/{id}": {
+      "get": {
+        "operationId": "getProduct",
+        "summary": "One",
+        "description": "Any member may read.",
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "depositsCount": {
+                      "type": "integer"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "averageRate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "institution",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "depositsCount",
+                    "capital",
+                    "averageRate"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProduct",
+        "summary": "Change",
+        "description": "Needs `accounts.write`. Fields left out stay. Deposits already made keep the terms they were created with.",
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "institution": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "rate": {
+                    "type": "string"
+                  },
+                  "payN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "payU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "termN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "termU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "tax": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "payToAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "fundFromAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "institution": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "depositsCount": {
+                      "type": "integer"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "averageRate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "institution",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "depositsCount",
+                    "capital",
+                    "averageRate"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProduct",
+        "summary": "Delete",
+        "description": "Needs `accounts.write`. 409 while a deposit was made with the product.",
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/deposits": {
+      "get": {
+        "operationId": "listDeposits",
+        "summary": "Term deposits of the pool",
+        "description": "Any member may list.",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deposits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "productId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "capital": {
+                            "type": "string"
+                          },
+                          "start": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "rate": {
+                            "type": "string"
+                          },
+                          "payN": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "payU": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "m",
+                              "d",
+                              null
+                            ]
+                          },
+                          "termN": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "termU": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "m",
+                              "d",
+                              null
+                            ]
+                          },
+                          "capitalize": {
+                            "type": "boolean"
+                          },
+                          "tax": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payToAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "fundFromAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "maturity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "productId",
+                          "capital",
+                          "start",
+                          "rate",
+                          "payN",
+                          "payU",
+                          "termN",
+                          "termU",
+                          "capitalize",
+                          "tax",
+                          "payToAccountId",
+                          "fundFromAccountId",
+                          "maturity"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "deposits"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createDeposit",
+        "summary": "Create the deposit of a term-deposit account",
+        "description": "Needs `accounts.write`. One deposit per account (409). With `productId`, every field left out (`rate`, periods, `tax`, accounts) is filled from the product and what is sent overrides it (`null` means none); without a product `rate` is required. The terms are stored on the deposit, so later changes to the product do not touch it.",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "capital": {
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "productId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "rate": {
+                    "type": "string"
+                  },
+                  "payN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "payU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "termN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "termU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "capitalize": {
+                    "type": "boolean"
+                  },
+                  "tax": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "payToAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "fundFromAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "capital",
+                  "start"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "productId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "capitalize": {
+                      "type": "boolean"
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "maturity": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "productId",
+                    "capital",
+                    "start",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "capitalize",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "maturity"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/deposits/{id}": {
+      "get": {
+        "operationId": "getDeposit",
+        "summary": "One",
+        "description": "Any member may read.",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "productId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "capitalize": {
+                      "type": "boolean"
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "maturity": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "productId",
+                    "capital",
+                    "start",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "capitalize",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "maturity"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateDeposit",
+        "summary": "Change",
+        "description": "Needs `accounts.write`. Fields left out stay; the account cannot change.",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "capital": {
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "rate": {
+                    "type": "string"
+                  },
+                  "payN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "payU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "termN": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  },
+                  "termU": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "m",
+                      "d",
+                      null
+                    ]
+                  },
+                  "capitalize": {
+                    "type": "boolean"
+                  },
+                  "tax": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "payToAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "fundFromAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "productId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "rate": {
+                      "type": "string"
+                    },
+                    "payN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "payU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "termN": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "termU": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "m",
+                        "d",
+                        null
+                      ]
+                    },
+                    "capitalize": {
+                      "type": "boolean"
+                    },
+                    "tax": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "payToAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "fundFromAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "maturity": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "productId",
+                    "capital",
+                    "start",
+                    "rate",
+                    "payN",
+                    "payU",
+                    "termN",
+                    "termU",
+                    "capitalize",
+                    "tax",
+                    "payToAccountId",
+                    "fundFromAccountId",
+                    "maturity"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDeposit",
+        "summary": "Delete",
+        "description": "Needs `accounts.write`. The account stays.",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/deposits/{id}/schedule": {
+      "get": {
+        "operationId": "getDepositSchedule",
+        "summary": "Schedule, next payment, maturity and value",
+        "description": "Any member may read. `periods` are the interest payments (base × rate × days / 365, rounded to cents, net of tax), computed by the domain’s `depositSchedule`; `value` is the domain’s `depositValue` on `asOf` (today by default).",
+        "tags": [
+          "Deposits"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "asOf",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The schedule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "depositId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "asOf": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "defaultTax": {
+                      "type": "string"
+                    },
+                    "periods": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "k": {
+                            "type": "integer"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "days": {
+                            "type": "integer"
+                          },
+                          "base": {
+                            "type": "string"
+                          },
+                          "gross": {
+                            "type": "string"
+                          },
+                          "net": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "k",
+                          "date",
+                          "days",
+                          "base",
+                          "gross",
+                          "net"
+                        ]
+                      }
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "capital": {
+                          "type": "string"
+                        },
+                        "gross": {
+                          "type": "string"
+                        },
+                        "net": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "paid": {
+                          "type": "string"
+                        },
+                        "accrued": {
+                          "type": "string"
+                        },
+                        "maturity": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "next": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "k": {
+                              "type": "integer"
+                            },
+                            "date": {
+                              "type": "string",
+                              "format": "date"
+                            },
+                            "days": {
+                              "type": "integer"
+                            },
+                            "base": {
+                              "type": "string"
+                            },
+                            "gross": {
+                              "type": "string"
+                            },
+                            "net": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "k",
+                            "date",
+                            "days",
+                            "base",
+                            "gross",
+                            "net"
+                          ]
+                        },
+                        "matured": {
+                          "type": "boolean"
+                        },
+                        "returned": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "capital",
+                        "gross",
+                        "net",
+                        "value",
+                        "paid",
+                        "accrued",
+                        "maturity",
+                        "next",
+                        "matured",
+                        "returned"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "depositId",
+                    "asOf",
+                    "defaultTax",
+                    "periods",
+                    "value"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/interest": {
+      "get": {
+        "operationId": "listInterest",
+        "summary": "Manual interest entries, newest first",
+        "description": "Any member may list; `accountId` narrows to one account.",
+        "tags": [
+          "Interest"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "date",
+                          "amount",
+                          "note"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createInterest",
+        "summary": "Record interest received",
+        "description": "Needs `accounts.write`. `amount` is the net interest, above zero, in the account’s currency. Only savings accounts and term deposits without a payment schedule take entries (a scheduled deposit answers 409).",
+        "tags": [
+          "Interest"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]*$"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "date",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "date",
+                    "amount",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/interest/{id}": {
+      "delete": {
+        "operationId": "deleteInterest",
+        "summary": "Delete",
+        "description": "Needs `accounts.write`.",
+        "tags": [
+          "Interest"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
             "content": {
               "application/json": {
                 "schema": {

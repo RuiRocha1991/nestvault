@@ -562,7 +562,10 @@
       "rule": "Regras",
       "portfolio": "Carteiras",
       "op": "Operações",
-      "plan": "Planos"
+      "plan": "Planos",
+      "product": "Produtos de poupança",
+      "deposit": "Depósitos",
+      "interest": "Juros"
     },
     "actions": {
       "auth": {
@@ -644,6 +647,20 @@
         "updated": "Plano alterado",
         "deleted": "Plano eliminado",
         "run": "Plano executado"
+      },
+      "product": {
+        "created": "Produto de poupança criado",
+        "updated": "Produto de poupança alterado",
+        "deleted": "Produto de poupança eliminado"
+      },
+      "deposit": {
+        "created": "Depósito criado",
+        "updated": "Depósito alterado",
+        "deleted": "Depósito eliminado"
+      },
+      "interest": {
+        "created": "Juros registados",
+        "deleted": "Juros eliminados"
       }
     },
     "table": {

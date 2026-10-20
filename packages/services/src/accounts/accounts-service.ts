@@ -26,6 +26,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { CASH_ACCOUNT_TYPES } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
+import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 
 import { toLedgerAccount } from './ledger';
@@ -98,20 +99,21 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
       ? [await accountsRepo.find(tx, ctx, only)].filter((row): row is AccountRow => !!row)
       : await accountsRepo.list(tx, ctx);
     const ids = rows.map((row) => row.id);
-    const [links, subs, resolved, settings] = await Promise.all([
+    const [links, subs, resolved, settings, savings] = await Promise.all([
       accountsRepo.listHolders(tx, ctx, ids),
       subAccountsRepo.list(tx, ctx),
       loadFxRates(tx, ctx, today),
       poolSettingsRepo.find(tx, ctx),
+      loadSavingsLedger(tx, ctx),
     ]);
     const rates = toFxRates(resolved);
-    // No movements exist yet (NES-44/42/40 add them): the balance is the opening balance, read
-    // through the same domain function those tasks will feed.
+    // Deposits and manual interest feed the balance; movements and operations join them as their
+    // modules are wired in (the same domain function reads them all).
     const balances = accountBalances(
       {
-        accounts: rows.map(toLedgerAccount),
+        accounts: rows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
         transactions: [],
-        interestEntries: [],
+        interestEntries: savings.interestEntries,
         ops: [],
         assets: [],
         moves: [],

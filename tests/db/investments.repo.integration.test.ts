@@ -491,6 +491,8 @@ describe('isolation between pools (repository filter and RLS)', () => {
     check((tx, ctxA, s) => portfoliosRepo.remove(tx, ctxA, s.portfolioId)));
   it('portfolios: countOps counts nothing of pool B', () =>
     check((tx, ctxA, s) => portfoliosRepo.countOps(tx, ctxA, s.portfolioId)));
+  it('portfolios: countPlans counts nothing of pool B', () =>
+    check((tx, ctxA, s) => portfoliosRepo.countPlans(tx, ctxA, s.portfolioId)));
 
   it('plans: list finds nothing of pool B', () => check((tx, ctxA) => plansRepo.list(tx, ctxA)));
   it('plans: find finds nothing of pool B', () =>
@@ -501,6 +503,16 @@ describe('isolation between pools (repository filter and RLS)', () => {
     ));
   it('plans: remove deletes nothing of pool B', () =>
     check((tx, ctxA, s) => plansRepo.remove(tx, ctxA, s.planId)));
+  it('plans: moveAll moves nothing of pool B', () =>
+    check((tx, ctxA, s) => plansRepo.moveAll(tx, ctxA, s.portfolioId, newId())));
+  it('plans: removeAll deletes nothing of pool B', () =>
+    check((tx, ctxA, s) => plansRepo.removeAll(tx, ctxA, s.portfolioId)));
+  it('plans: the counts find nothing of pool B', async () => {
+    await check((tx, ctxA, s) => plansRepo.countByPortfolio(tx, ctxA, s.portfolioId));
+    await check((tx, ctxA, s) => plansRepo.countByAsset(tx, ctxA, s.assetId));
+    await check((tx, ctxA) => plansRepo.countByAccount(tx, ctxA, newId()));
+    await check((tx, ctxA) => plansRepo.countBySubAccount(tx, ctxA, newId()));
+  });
 
   it('ops: list finds nothing of pool B', () =>
     check((tx, ctxA) => investmentOpsRepo.list(tx, ctxA)));
@@ -516,6 +528,8 @@ describe('isolation between pools (repository filter and RLS)', () => {
     check((tx, ctxA, s) => investmentOpsRepo.remove(tx, ctxA, s.opId)));
   it('ops: moveAll moves nothing of pool B', () =>
     check((tx, ctxA, s) => investmentOpsRepo.moveAll(tx, ctxA, s.portfolioId, newId())));
+  it('ops: countBySubAccount counts nothing of pool B', () =>
+    check((tx, ctxA) => investmentOpsRepo.countBySubAccount(tx, ctxA, newId())));
   it('ops: removeAll deletes nothing of pool B', () =>
     check((tx, ctxA, s) => investmentOpsRepo.removeAll(tx, ctxA, s.portfolioId)));
   it('ops: countByAsset counts nothing of pool B', () =>

@@ -21,6 +21,14 @@ import { createMembersService, type MembersService } from '../members';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
 import { createRulesService, type RulesService } from '../rules';
+import {
+  createDepositsService,
+  createInterestService,
+  createProductsService,
+  type DepositsService,
+  type InterestService,
+  type ProductsService,
+} from '../savings';
 import { createSettingsService, type SettingsService } from '../settings';
 import { createTransactionsService, type TransactionsService } from '../transactions';
 
@@ -57,6 +65,10 @@ export interface AuthRuntime {
   portfolios: PortfoliosService;
   ops: OpsService;
   plans: PlansService;
+  /** Savings products, term deposits and manual interest entries. */
+  products: ProductsService;
+  deposits: DepositsService;
+  interest: InterestService;
   /** Keyword rules that categorize movements. */
   rules: RulesService;
   /** Assets (unique ticker per pool) and their price history. */
@@ -111,6 +123,9 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     portfolios: createPortfoliosService({ auth, identity, ...hops }),
     ops: createOpsService({ auth, identity, ...hops }),
     plans: createPlansService({ auth, identity, ...hops }),
+    products: createProductsService({ auth, identity, ...hops }),
+    deposits: createDepositsService({ auth, identity, ...hops }),
+    interest: createInterestService({ auth, identity, ...hops }),
     rules: createRulesService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
     categories: createCategoriesService({ auth, identity, ...hops }),
