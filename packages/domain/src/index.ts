@@ -23,3 +23,4 @@ export * from './text';
 export * from './goals';
 export * from './transactions';
 export * from './transfers';
+export * from './transaction-hash';

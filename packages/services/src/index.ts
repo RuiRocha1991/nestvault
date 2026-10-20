@@ -22,3 +22,4 @@ export * from './investments';
 export * from './savings';
 export * from './notes';
 export * from './settings';
+export * from './prototype-import';

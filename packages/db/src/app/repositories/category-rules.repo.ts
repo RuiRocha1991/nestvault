@@ -58,6 +58,34 @@ export const categoryRulesRepo = {
     return row;
   },
 
+  /**
+   * Adds rules in the given order after the existing ones (prototype import), in chunks of 500.
+   * The pool is `ctx`'s; ids come from the importer.
+   */
+  async insertMany(
+    tx: PoolTx,
+    ctx: PoolContext,
+    rules: readonly (RuleValues & { id: string })[],
+  ): Promise<void> {
+    const [last] = await tx
+      .select({ position: sql<number>`coalesce(max(${categoryRules.position}), 0)::int` })
+      .from(categoryRules)
+      .where(eq(categoryRules.poolId, ctx.poolId));
+    const base = last?.position ?? 0;
+    for (let at = 0; at < rules.length; at += 500) {
+      await tx.insert(categoryRules).values(
+        rules.slice(at, at + 500).map((rule, index) => ({
+          id: rule.id,
+          poolId: ctx.poolId,
+          keyword: rule.keyword,
+          categoryId: rule.categoryId,
+          accountId: rule.accountId,
+          position: base + at + index + 1,
+        })),
+      );
+    }
+  },
+
   async update(
     tx: PoolTx,
     ctx: PoolContext,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hashText, normalizeText, parseDate } from '@nestvault/domain';
+import { hashText, normalizeText, parseDate, transactionHash } from '@nestvault/domain';
 
 describe('parseDate', () => {
   it.each([
@@ -53,6 +53,36 @@ describe('normalizeText', () => {
   it('treats null and undefined as empty', () => {
     expect(normalizeText(null)).toBe('');
     expect(normalizeText(undefined)).toBe('');
+  });
+});
+
+describe('transactionHash (NES-47)', () => {
+  const line = {
+    accountId: 'acc-1',
+    date: '2026-01-15',
+    description: 'Café  Pátio',
+    amount: '-1.20',
+  };
+
+  it('hashes account + date + normalized description + plain amount + # occurrence with SHA-256', () => {
+    expect(transactionHash(line, 1)).toBe(hashText('acc-12026-01-15CAFE PATIO-1.2#1'));
+    expect(transactionHash(line, 1)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('counts identical lines apart and ignores how the amount was written', () => {
+    expect(transactionHash(line, 2)).not.toBe(transactionHash(line, 1));
+    expect(transactionHash({ ...line, amount: '-1.2000' }, 1)).toBe(transactionHash(line, 1));
+    expect(transactionHash({ ...line, amount: '-45' }, 1)).toBe(
+      transactionHash({ ...line, amount: '-45.00' }, 1),
+    );
+  });
+
+  it('differs by account, date, description and sign', () => {
+    const base = transactionHash(line, 1);
+    expect(transactionHash({ ...line, accountId: 'acc-2' }, 1)).not.toBe(base);
+    expect(transactionHash({ ...line, date: '2026-01-16' }, 1)).not.toBe(base);
+    expect(transactionHash({ ...line, description: 'Café' }, 1)).not.toBe(base);
+    expect(transactionHash({ ...line, amount: '1.20' }, 1)).not.toBe(base);
   });
 });
 

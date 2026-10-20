@@ -33,6 +33,8 @@ const PRD_MATRIX: Record<Permission, readonly [boolean, boolean, boolean, boolea
   'pool.delete': [true, false, false, false],
   'pool.transfer': [true, false, false, false],
   'pool.export': [true, false, false, false],
+  // Not in the PRD table: loading the prototype's backup writes a whole pool at once (NES-47).
+  'pool.import': [true, false, false, false],
   // Not in the PRD table: pool settings are a management action, so owner and admin.
   'settings.write': [true, true, false, false],
   // Not in the PRD table: the audit log shows who did what, so only the owner reads it (NES-29).

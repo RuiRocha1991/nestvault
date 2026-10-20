@@ -1,0 +1,1068 @@
+{
+ "v": 6,
+ "demo": false,
+ "members": [
+  {
+   "id": "m1",
+   "name": "Ana",
+   "color": "#F2913D",
+   "aliases": "ANA SILVA, A SILVA"
+  },
+  {
+   "id": "m2",
+   "name": "Rui",
+   "color": "#6C5CFF",
+   "aliases": ""
+  },
+  {
+   "id": "m3",
+   "name": "Filho",
+   "color": "#2BC6B4",
+   "aliases": ""
+  }
+ ],
+ "accounts": [
+  {
+   "id": "a1",
+   "name": "Conta Ana",
+   "type": "ordem",
+   "bank": "BPI",
+   "members": [
+    "m1"
+   ],
+   "member": "m1",
+   "opening": 1000,
+   "openingDate": "2025-01-01",
+   "rate": 0,
+   "ccy": "EUR",
+   "iban": "PT50 0002 0123 1234 5678 9015 4",
+   "subs": [],
+   "group": "",
+   "pf": "",
+   "trackCash": true
+  },
+  {
+   "id": "a2",
+   "name": "Conta Rui",
+   "type": "ordem",
+   "bank": "Millennium bcp",
+   "members": [
+    "m2"
+   ],
+   "member": "m2",
+   "opening": 2000,
+   "openingDate": "2025-01-01",
+   "rate": 0,
+   "ccy": "EUR",
+   "iban": "PT00 NOT AN IBAN",
+   "subs": [],
+   "group": "",
+   "pf": "",
+   "trackCash": true
+  },
+  {
+   "id": "a3",
+   "name": "Poupança Casa",
+   "type": "remunerada",
+   "bank": "Openbank",
+   "members": [
+    "m1",
+    "m2"
+   ],
+   "member": "m1",
+   "opening": 5000,
+   "openingDate": "2025-01-01",
+   "rate": 2,
+   "ccy": "EUR",
+   "subs": [],
+   "group": "Poupança",
+   "pf": "",
+   "trackCash": true
+  },
+  {
+   "id": "a4",
+   "name": "Depósito 12M",
+   "type": "prazo",
+   "bank": "BPI",
+   "members": [
+    "m2"
+   ],
+   "member": "m2",
+   "opening": 0,
+   "openingDate": "2025-06-01",
+   "rate": 2.5,
+   "ccy": "EUR",
+   "capital": 10000,
+   "start": "2025-06-01",
+   "termMonths": 12,
+   "termN": 12,
+   "termU": "m",
+   "payN": 3,
+   "payU": "m",
+   "payTo": "a3",
+   "fundFrom": "a2",
+   "tax": 28,
+   "capitalize": false,
+   "product": "pr1",
+   "subs": [],
+   "trackCash": true
+  },
+  {
+   "id": "a5",
+   "name": "Corretora X",
+   "type": "corretora",
+   "bank": "XTB",
+   "members": [
+    "m1"
+   ],
+   "member": "m1",
+   "opening": 800,
+   "openingDate": "2025-01-01",
+   "rate": 0,
+   "ccy": "EUR",
+   "xtb": "12345678",
+   "trackCash": true,
+   "group": "",
+   "pf": "",
+   "subs": [
+    {
+     "id": "s1",
+     "name": "Ana PPR",
+     "member": "m1"
+    },
+    {
+     "id": "s2",
+     "name": "Filho PPR",
+     "member": "m3"
+    }
+   ]
+  },
+  {
+   "id": "a6",
+   "name": "Fundo de emergência",
+   "type": "ordem",
+   "bank": "Banco CTT",
+   "member": "m2",
+   "opening": 3000,
+   "openingDate": "2025-01-01",
+   "rate": 0,
+   "ccy": "EUR",
+   "subs": [],
+   "group": "",
+   "pf": "p2",
+   "trackCash": true
+  }
+ ],
+ "categories": [
+  {
+   "id": "c01",
+   "name": "Habitação",
+   "kind": "expense",
+   "color": "#112233",
+   "budget": 700
+  },
+  {
+   "id": "c02",
+   "name": "Supermercado",
+   "kind": "expense",
+   "color": "#F2913D",
+   "budget": 450
+  },
+  {
+   "id": "c03",
+   "name": "Restauração",
+   "kind": "expense",
+   "color": "#E356A8",
+   "budget": 120
+  },
+  {
+   "id": "c04",
+   "name": "Transportes",
+   "kind": "expense",
+   "color": "#3BA7F2",
+   "budget": 0
+  },
+  {
+   "id": "c05",
+   "name": "Combustível",
+   "kind": "expense",
+   "color": "#5B8DEF",
+   "budget": 0
+  },
+  {
+   "id": "c06",
+   "name": "Utilidades (luz, água, gás)",
+   "kind": "expense",
+   "color": "#F2C43D",
+   "budget": 0
+  },
+  {
+   "id": "c07",
+   "name": "Telecomunicações",
+   "kind": "expense",
+   "color": "#2BC6B4",
+   "budget": 0
+  },
+  {
+   "id": "c08",
+   "name": "Subscrições",
+   "kind": "expense",
+   "color": "#9D6BFF",
+   "budget": 0
+  },
+  {
+   "id": "c09",
+   "name": "Saúde",
+   "kind": "expense",
+   "color": "#3CCB7F",
+   "budget": 0
+  },
+  {
+   "id": "c10",
+   "name": "Educação",
+   "kind": "expense",
+   "color": "#FF7A59",
+   "budget": 0
+  },
+  {
+   "id": "c11",
+   "name": "Seguros",
+   "kind": "expense",
+   "color": "#8C8FB8",
+   "budget": 0
+  },
+  {
+   "id": "c12",
+   "name": "Compras",
+   "kind": "expense",
+   "color": "#E5424D",
+   "budget": 0
+  },
+  {
+   "id": "c13",
+   "name": "Lazer e viagens",
+   "kind": "expense",
+   "color": "#F2913D",
+   "budget": 0
+  },
+  {
+   "id": "c14",
+   "name": "Desporto e ginásio",
+   "kind": "expense",
+   "color": "#3CCB7F",
+   "budget": 0
+  },
+  {
+   "id": "c15",
+   "name": "Impostos",
+   "kind": "expense",
+   "color": "#8C8FB8",
+   "budget": 0
+  },
+  {
+   "id": "c16",
+   "name": "Levantamentos (numerário)",
+   "kind": "expense",
+   "color": "#C9A227",
+   "budget": 0
+  },
+  {
+   "id": "c17",
+   "name": "Comissões bancárias",
+   "kind": "expense",
+   "color": "#7779A6",
+   "budget": 0
+  },
+  {
+   "id": "c18",
+   "name": "Outras despesas",
+   "kind": "expense",
+   "color": "#8C8FB8",
+   "budget": 0
+  },
+  {
+   "id": "c19",
+   "name": "Salário",
+   "kind": "income",
+   "color": "#3CCB7F",
+   "budget": 0
+  },
+  {
+   "id": "c20",
+   "name": "Juros e dividendos",
+   "kind": "income",
+   "color": "#2BC6B4",
+   "budget": 0
+  },
+  {
+   "id": "c21",
+   "name": "Outros rendimentos",
+   "kind": "income",
+   "color": "#3BA7F2",
+   "budget": 0
+  },
+  {
+   "id": "c22",
+   "name": "Envios para contas próprias fora da app",
+   "kind": "expense",
+   "color": "#C9A227",
+   "budget": 0
+  },
+  {
+   "id": "c23",
+   "name": "Reembolsos",
+   "kind": "refund",
+   "color": "#2BC6B4",
+   "budget": 0
+  },
+  {
+   "id": "c24",
+   "name": "Transferência interna",
+   "kind": "transfer",
+   "color": "#7779A6",
+   "budget": 0
+  },
+  {
+   "id": "c25",
+   "name": "Investimento",
+   "kind": "invest",
+   "color": "#9D6BFF",
+   "budget": 0
+  },
+  {
+   "id": "cx1",
+   "name": "Cantina",
+   "kind": "expense",
+   "color": "#AA33BB",
+   "budget": 40
+  },
+  {
+   "id": "cx2",
+   "name": "Mesada",
+   "kind": "income",
+   "color": "#33AA55",
+   "budget": 0
+  }
+ ],
+ "rules": [
+  {
+   "id": "r01",
+   "kw": "GALP",
+   "cat": "c05",
+   "acc": ""
+  },
+  {
+   "id": "r02",
+   "kw": "CONTINENTE",
+   "cat": "c02",
+   "acc": ""
+  },
+  {
+   "id": "r03",
+   "kw": "BP ",
+   "cat": "c05",
+   "acc": ""
+  },
+  {
+   "id": "r04",
+   "kw": "EDP",
+   "cat": "c06",
+   "acc": ""
+  },
+  {
+   "id": "r05",
+   "kw": "CANTINA",
+   "cat": "cx1",
+   "acc": "a1"
+  },
+  {
+   "id": "r06",
+   "kw": "X",
+   "cat": "c05",
+   "acc": ""
+  },
+  {
+   "id": "r07",
+   "kw": "FANTASMA",
+   "cat": "gone",
+   "acc": ""
+  },
+  {
+   "id": "r08",
+   "kw": "ESCOLA",
+   "cat": "c10",
+   "acc": "gone"
+  }
+ ],
+ "tx": [
+  {
+   "id": "t01",
+   "acc": "a1",
+   "date": "2026-01-03",
+   "desc": "COMPRA CONTINENTE",
+   "amount": -85.37,
+   "cat": "c02",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t01"
+  },
+  {
+   "id": "t02",
+   "acc": "a1",
+   "date": "2026-01-05",
+   "desc": "PRESTACAO CREDITO HAB",
+   "amount": -620,
+   "cat": "c01",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t02"
+  },
+  {
+   "id": "t03",
+   "acc": "a1",
+   "date": "2026-01-10",
+   "desc": "EDP COMERCIAL",
+   "amount": -62.1,
+   "cat": "c06",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t03"
+  },
+  {
+   "id": "t04",
+   "acc": "a1",
+   "date": "2026-01-25",
+   "desc": "VENCIMENTO EMPRESA",
+   "amount": 2050,
+   "cat": "c19",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t04"
+  },
+  {
+   "id": "t05",
+   "acc": "a1",
+   "date": "2026-01-27",
+   "desc": "TRF P/ POUPANCA",
+   "amount": -200,
+   "cat": "c24",
+   "transfer": true,
+   "pair": "t06",
+   "hash": "old-t05"
+  },
+  {
+   "id": "t06",
+   "acc": "a3",
+   "date": "2026-01-27",
+   "desc": "TRF DE CONTA ANA",
+   "amount": 200,
+   "cat": "c24",
+   "transfer": true,
+   "pair": "t05",
+   "hash": "old-t06"
+  },
+  {
+   "id": "t07",
+   "acc": "a1",
+   "date": "2026-01-14",
+   "desc": "COMPRA GALP",
+   "amount": -45,
+   "cat": "cx1",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t07",
+   "manualCat": true
+  },
+  {
+   "id": "t08",
+   "acc": "a1",
+   "date": "2026-01-15",
+   "desc": "CAFE",
+   "amount": -1.2,
+   "cat": null,
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t08"
+  },
+  {
+   "id": "t09",
+   "acc": "a1",
+   "date": "2026-01-15",
+   "desc": "CAFE",
+   "amount": -1.2,
+   "cat": null,
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t09"
+  },
+  {
+   "id": "t10",
+   "acc": "a1",
+   "date": "2026-02-02",
+   "desc": "'); DROP TABLE accounts; -- <script>alert(1)</script>",
+   "amount": -9.99,
+   "cat": null,
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t10"
+  },
+  {
+   "id": "t11",
+   "acc": "a2",
+   "date": "2026-01-24",
+   "desc": "ORDENADO SERVICOS",
+   "amount": 1650,
+   "cat": "c19",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t11"
+  },
+  {
+   "id": "t12",
+   "acc": "a2",
+   "date": "2026-01-12",
+   "desc": "LIDL",
+   "amount": -40.5,
+   "cat": "c02",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t12"
+  },
+  {
+   "id": "t13",
+   "acc": "a2",
+   "date": "2026-01-20",
+   "desc": "FARMACIA",
+   "amount": -12,
+   "cat": "c09",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t13"
+  },
+  {
+   "id": "t14",
+   "acc": "a2",
+   "date": "2026-02-05",
+   "desc": "REEMBOLSO",
+   "amount": 30,
+   "cat": "c23",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t14"
+  },
+  {
+   "id": "t15",
+   "acc": "a2",
+   "date": "2026-03-01",
+   "desc": "APLICACAO DEPOSITO",
+   "amount": -10000,
+   "cat": "c24",
+   "transfer": true,
+   "pair": null,
+   "hash": "old-t15",
+   "tlock": true
+  },
+  {
+   "id": "t16",
+   "acc": "a3",
+   "date": "2026-02-02",
+   "desc": "JURO DEPOSITO",
+   "amount": 71.67,
+   "cat": "c20",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t16",
+   "depLink": "d1:2025-09-01:juro"
+  },
+  {
+   "id": "t17",
+   "acc": "a5",
+   "date": "2026-01-06",
+   "desc": "TRF DE ANA",
+   "amount": 530,
+   "cat": "c24",
+   "transfer": true,
+   "pair": "t18",
+   "hash": "old-t17"
+  },
+  {
+   "id": "t18",
+   "acc": "a1",
+   "date": "2026-01-06",
+   "desc": "TRF P/ CORRETORA X",
+   "amount": -530,
+   "cat": "c24",
+   "transfer": true,
+   "pair": "t17",
+   "hash": "old-t18"
+  },
+  {
+   "id": "t19",
+   "acc": "a2",
+   "date": "2026-02-10",
+   "desc": "TRF P/ OUTRA CONTA",
+   "amount": -100,
+   "cat": "c24",
+   "transfer": true,
+   "pair": "ghost",
+   "hash": "old-t19"
+  },
+  {
+   "id": "t20",
+   "acc": "gone",
+   "date": "2026-02-11",
+   "desc": "CONTA APAGADA",
+   "amount": -1,
+   "cat": null,
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t20"
+  },
+  {
+   "id": "t21",
+   "acc": "a5",
+   "date": "2026-01-07",
+   "desc": "Depósito XTB",
+   "amount": 100,
+   "cat": "c25",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t21",
+   "manualCat": true,
+   "tlock": true,
+   "note": "comentário da corretora",
+   "ext": "dep-1"
+  },
+  {
+   "id": "t22",
+   "acc": "a2",
+   "date": "2026-02-12",
+   "desc": "MISC",
+   "amount": -5,
+   "cat": "zzz",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t22"
+  },
+  {
+   "id": "t23",
+   "acc": "a1",
+   "date": "2026-02-25",
+   "desc": "Liquidez vinda de portfolio Longo prazo · venda",
+   "amount": 100,
+   "cat": "c24",
+   "transfer": true,
+   "pair": null,
+   "hash": "old-t23",
+   "manualCat": true,
+   "tlock": true
+  },
+  {
+   "id": "t24",
+   "acc": "a1",
+   "date": "2026-02-18",
+   "desc": "COMPRA CONTINENTE",
+   "amount": -120.4,
+   "cat": "c02",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t24"
+  },
+  {
+   "id": "t25",
+   "acc": "a1",
+   "date": "2026-02-22",
+   "desc": "RESTAURANTE O PATEO",
+   "amount": -38,
+   "cat": "c03",
+   "transfer": false,
+   "pair": null,
+   "hash": "old-t25"
+  }
+ ],
+ "assets": [
+  {
+   "id": "as1",
+   "ticker": "VWCE",
+   "name": "Vanguard FTSE All-World UCITS ETF",
+   "type": "ETF",
+   "ccy": "EUR",
+   "price": 130,
+   "priceDate": "2026-03-01",
+   "prices": [
+    {
+     "d": "2026-01-02",
+     "p": 120
+    },
+    {
+     "d": "2026-02-02",
+     "p": 125
+    },
+    {
+     "d": "2026-03-01",
+     "p": 130
+    }
+   ],
+   "sector": "Diversificado",
+   "country": "Global",
+   "dps": 0,
+   "divMonths": []
+  },
+  {
+   "id": "as2",
+   "ticker": "AAPL",
+   "name": "Apple Inc.",
+   "type": "Ação",
+   "ccy": "USD",
+   "price": 200,
+   "priceDate": "2026-03-01",
+   "prices": [],
+   "sector": "Tecnologia",
+   "country": "EUA",
+   "dps": 1.04,
+   "divMonths": [
+    2,
+    5,
+    8,
+    11
+   ]
+  },
+  {
+   "id": "as3",
+   "ticker": "PPR-AC",
+   "name": "PPR Ações Global",
+   "type": "PPR",
+   "ccy": "EUR",
+   "price": 15.5,
+   "priceDate": "2026-03-01",
+   "prices": [
+    {
+     "d": "2026-01-02",
+     "p": 14
+    },
+    {
+     "d": "not a date",
+     "p": 1
+    }
+   ],
+   "sector": "Diversificado",
+   "country": "Global",
+   "dps": 0,
+   "divMonths": []
+  },
+  {
+   "id": "as4",
+   "ticker": "ibm corp!",
+   "name": "IBM",
+   "type": "Ação",
+   "ccy": "USD",
+   "price": "",
+   "priceDate": "",
+   "prices": [],
+   "sector": "Diversificado",
+   "country": "Global",
+   "dps": 0,
+   "divMonths": []
+  }
+ ],
+ "ops": [
+  {
+   "id": "o01",
+   "asset": "as1",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-01-08",
+   "qty": 5,
+   "price": 120,
+   "amount": 0,
+   "fee": 0,
+   "cash": "a5",
+   "plan": "pl1",
+   "sub": "s1",
+   "fromCash": true
+  },
+  {
+   "id": "o02",
+   "asset": "as1",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-02-08",
+   "qty": 5,
+   "price": 125,
+   "amount": 0,
+   "fee": 0,
+   "cash": "a5",
+   "plan": "pl1",
+   "sub": "s1",
+   "fromCash": true
+  },
+  {
+   "id": "o03",
+   "asset": "as2",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-01-09",
+   "qty": 3,
+   "price": 190,
+   "amount": 0,
+   "fee": 1,
+   "cash": "a5",
+   "plan": "",
+   "fromCash": true,
+   "ext": "x1"
+  },
+  {
+   "id": "o04",
+   "asset": "as2",
+   "pf": "p1",
+   "type": "sell",
+   "date": "2026-02-20",
+   "qty": 1,
+   "price": 210,
+   "amount": 0,
+   "fee": 1,
+   "cash": "a5",
+   "plan": "",
+   "ext": "x1"
+  },
+  {
+   "id": "o05",
+   "asset": "as2",
+   "pf": "p1",
+   "type": "div",
+   "date": "2026-02-15",
+   "qty": 0,
+   "price": 0,
+   "amount": 0.62,
+   "fee": 0,
+   "cash": "a5",
+   "plan": "",
+   "gross": 0.87,
+   "tax": 0.25
+  },
+  {
+   "id": "o06",
+   "asset": "as3",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-01-15",
+   "qty": 10,
+   "price": 14,
+   "amount": 0,
+   "fee": 0,
+   "cash": "",
+   "plan": ""
+  },
+  {
+   "id": "o07",
+   "asset": "as1",
+   "pf": "p1",
+   "type": "foo",
+   "date": "2026-01-16",
+   "qty": 0,
+   "price": 0,
+   "amount": 0,
+   "fee": 0,
+   "cash": "",
+   "plan": ""
+  },
+  {
+   "id": "o08",
+   "asset": "as1",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-01-20",
+   "qty": 1,
+   "price": 121,
+   "amount": 0,
+   "fee": 0,
+   "cash": "a5",
+   "plan": "pl1",
+   "sub": "s1"
+  },
+  {
+   "id": "o09",
+   "asset": "as1",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-02-21",
+   "qty": 1,
+   "price": 126,
+   "amount": 0,
+   "fee": -1,
+   "cash": "a1",
+   "plan": ""
+  },
+  {
+   "id": "o10",
+   "asset": "as3",
+   "pf": "p1",
+   "type": "buy",
+   "date": "2026-02-22",
+   "qty": 2,
+   "price": 15,
+   "amount": 0,
+   "fee": 0,
+   "cash": "a4",
+   "plan": ""
+  }
+ ],
+ "plans": [
+  {
+   "id": "pl1",
+   "asset": "as1",
+   "pf": "p1",
+   "amount": 200,
+   "day": 8,
+   "cash": "a5",
+   "sub": "s1",
+   "active": true
+  },
+  {
+   "id": "pl2",
+   "asset": "ghost",
+   "pf": "p1",
+   "amount": 50,
+   "day": 9,
+   "cash": "",
+   "active": true
+  }
+ ],
+ "portfolios": [
+  {
+   "id": "p1",
+   "name": "Longo prazo",
+   "color": "#9D6BFF",
+   "ccy": "EUR",
+   "note": "ETF + PPR, investimento mensal",
+   "targets": {
+    "as1": 75,
+    "as3": 25,
+    "ghost": 10
+   }
+  },
+  {
+   "id": "p2",
+   "name": "Reserva",
+   "color": "#2BC6B4",
+   "ccy": "EUR",
+   "note": "",
+   "targets": {}
+  }
+ ],
+ "interest": [
+  {
+   "id": "i1",
+   "acc": "a3",
+   "date": "2026-01-31",
+   "amount": 8.5,
+   "rate": 2
+  },
+  {
+   "id": "i2",
+   "acc": "a3",
+   "date": "2026-02-28",
+   "amount": 8.6,
+   "rate": 2
+  },
+  {
+   "id": "i3",
+   "acc": "a5",
+   "date": "2026-02-28",
+   "amount": -0.2,
+   "rate": null,
+   "ext": "xtb:int-1",
+   "note": "Juros sobre liquidez (líquidos)"
+  }
+ ],
+ "goals": [
+  {
+   "id": "g1",
+   "name": "Independência financeira",
+   "type": "value",
+   "target": 300000,
+   "deadline": "2046-01-01",
+   "pfs": [
+    "p1"
+   ],
+   "rate": 6,
+   "monthly": 450,
+   "color": "#9D6BFF",
+   "savings": false,
+   "yield": 0
+  },
+  {
+   "id": "g2",
+   "name": "Investir 6000 € este ano",
+   "type": "contrib",
+   "target": 6000,
+   "deadline": "2026-12-31",
+   "pfs": [],
+   "accs": [
+    "a5",
+    "a5|s1"
+   ],
+   "rate": 0,
+   "monthly": 0,
+   "color": "#3BA7F2",
+   "savings": false,
+   "yield": 0,
+   "when": "date"
+  }
+ ],
+ "pfMoves": [
+  {
+   "id": "mv1",
+   "pf": "p1",
+   "date": "2026-02-25",
+   "amount": -100,
+   "acc": "a1",
+   "note": "venda",
+   "txId": "t23"
+  },
+  {
+   "id": "mv2",
+   "pf": "p1",
+   "date": "2026-02-26",
+   "amount": 50,
+   "acc": "a1",
+   "note": "",
+   "txId": ""
+  },
+  {
+   "id": "mv3",
+   "pf": "p1",
+   "date": "2026-02-27",
+   "amount": 10,
+   "acc": "gone",
+   "note": "",
+   "txId": ""
+  }
+ ],
+ "products": [
+  {
+   "id": "pr1",
+   "name": "Depósito 12M",
+   "bank": "BPI",
+   "rate": 2.5,
+   "payN": 3,
+   "payU": "m",
+   "termN": 12,
+   "termU": "m",
+   "payTo": "a3",
+   "fundFrom": "a2",
+   "tax": 28
+  }
+ ],
+ "settings": {
+  "fx": {
+   "USD": 0.92,
+   "GBP": 1.17,
+   "CHF": 1.06
+  },
+  "tax": 28,
+  "tdays": 3,
+  "divTax": 28
+ },
+ "exportedAt": "2026-03-01T10:00:00.000Z"
+}

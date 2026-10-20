@@ -2,6 +2,7 @@ import { nextHolderColor } from '@nestvault/services';
 import { notFound } from 'next/navigation';
 
 import { HoldersCard } from '@webapp/components/holders/holders-card';
+import { ImportPrototypeCard } from '@webapp/components/settings/import-prototype-card';
 import { ParametersCard } from '@webapp/components/settings/parameters-card';
 import { SettingsHeader } from '@webapp/components/settings/settings-header';
 import { FX_CURRENCIES, type FxCurrency } from '@webapp/lib/parameters-form';
@@ -54,6 +55,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ poolI
           canWrite={permissions.includes('settings.write')}
         />
       </div>
+      {/* Second row, full width as in mockup 69; outside the grid so it keeps its two cells. */}
+      {permissions.includes('pool.import') && (
+        <div className="mt-4">
+          <ImportPrototypeCard poolId={poolId} />
+        </div>
+      )}
     </>
   );
 }

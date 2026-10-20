@@ -40,6 +40,7 @@ import {
   SubAccountDto,
   HolderDto,
   HolderListDto,
+  ImportResultDto,
   MergePreviewDto,
   InviteDto,
   InviteListDto,
@@ -1034,6 +1035,27 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     body: () => ({ confirm: false }),
     success: { status: 200, schema: ApplyRulesDto },
     noForeignBecause: 'works on the URL’s own pool; there is no id in the path',
+  },
+
+  // ---------------------------------------------------------------- pool scope: prototype import
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/import-prototype`,
+    permission: 'pool.import',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/import-prototype/route')),
+    // A dry run, so the case can repeat in the same pool; the service tests cover the commit.
+    body: () => ({ dryRun: true, export: { v: 6 } }),
+    success: { status: 200, schema: ImportResultDto },
+    noForeignBecause: 'works on the URL’s own pool; there is no id in the path',
+    negatives: [
+      {
+        name: 'an export with an unknown field',
+        body: { dryRun: true, export: { surprise: 1 } },
+        expect: 400,
+      },
+      { name: 'a body that is not an object', body: 'nope', expect: 400 },
+    ],
   },
 
   // ---------------------------------------------------------------- pool scope: accounts
