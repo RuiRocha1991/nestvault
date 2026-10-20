@@ -33,7 +33,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ poolI
   return (
     <>
       <SettingsHeader poolId={poolId} active="params" />
-      <div className="flex flex-col gap-4">
+      {/* Two columns on desktop as in mockup 69; one column up to 860 px (the drawer breakpoint). */}
+      <div
+        data-testid="settings-grid"
+        className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-4 drawer:grid-cols-[minmax(0,1fr)]"
+      >
         <HoldersCard
           poolId={poolId}
           holders={holders}
