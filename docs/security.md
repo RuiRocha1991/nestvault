@@ -192,6 +192,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/savings.repo.integration.test.ts` (`expectIsolated` for every function, composite keys,
   checks, injection payloads), `tests/services/savings.integration.test.ts` and the generated route
   cases for `/products`, `/deposits` and `/interest`.
+- **Notes (NES-45)**: `month_notes` follows the block above (`pool_id`, FORCE RLS, unique
+  `(pool_id, month)`, `month` must be a first day, body 1-10 000 characters). The note columns of
+  `transactions` and `investment_ops` (2 000 characters) are written only by `notesRepo`, and the
+  import insert is `ON CONFLICT DO NOTHING`, so a re-import never touches a note. A note is user
+  content: zod trims it, rejects control characters and unknown fields (author and time come from
+  the session), and it is searched with an escaped `ILIKE` (`%`, `_` are data). Writes need
+  `notes.write` (viewers get 403); a month note uses optimistic locking, and the 409 body carries
+  the current version, which the caller may read anyway. The audit entry (`note.updated`) holds
+  the row id only, and the logger redacts `note` and `body`. Verified by
+  `tests/db/notes.repo.integration.test.ts` (`expectIsolated` for every function, checks, injection
+  payloads, re-import keeps the note), `tests/services/notes.integration.test.ts` (roles,
+  lengths, 409, audit without text) and the generated route cases for `/note` and `/months`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

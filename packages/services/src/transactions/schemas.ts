@@ -52,6 +52,8 @@ export const ListTransactionsQuery = z
     kind: z.enum(TRANSACTION_KINDS).optional(),
     q: z.string().trim().min(1).max(100).regex(NO_CONTROL).optional(),
     withNotes: Flag.optional(),
+    /** Text to find in the notes, matched literally. */
+    noteQ: z.string().trim().min(1).max(100).regex(NO_CONTROL).optional(),
     sort: z.enum(TRANSACTION_SORTS).default('date'),
     order: z.enum(['asc', 'desc']).default('desc'),
     cursor: z.string().max(600).optional(),

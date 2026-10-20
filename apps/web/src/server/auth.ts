@@ -10,6 +10,7 @@ import {
   type ProductsService,
   type DepositsService,
   type InterestService,
+  type NotesService,
   type PortfoliosService,
   type RulesService,
   type TransactionsService,
@@ -136,6 +137,10 @@ export async function getProductsService(): Promise<ProductsService> {
 
 export async function getDepositsService(): Promise<DepositsService> {
   return (await getRuntime()).deposits;
+}
+
+export async function getNotesService(): Promise<NotesService> {
+  return (await getRuntime()).notes;
 }
 
 export async function getInterestService(): Promise<InterestService> {

@@ -18,6 +18,9 @@ import {
   DepositScheduleDto,
   InterestEntryDto,
   InterestListDto,
+  MonthNoteDto,
+  MonthNoteListDto,
+  NoteDto,
   PortfolioDto,
   PortfolioListDto,
   PortfolioSummaryDto,
@@ -524,6 +527,15 @@ const foreignInterest = async (s: Scenario): Promise<Foreign> => {
     },
   };
 };
+
+/** A note on the month 2026-03 of pool B, made once per scenario. */
+const monthNoteB = (s: Scenario) =>
+  s.memo('month-note-B', async () =>
+    s.world.notes.putMonthNote(await s.as('outsider'), s.poolB, '2026-03', {
+      body: 'Nota do mês Beta Secreta',
+      expectedUpdatedAt: null,
+    }),
+  );
 
 export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   // ---------------------------------------------------------------- pool scope: members
@@ -1922,6 +1934,89 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await interestIn(s, 'A')).id }),
     success: { status: 204 },
     foreign: foreignInterest,
+  },
+
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/transactions/:id/note`,
+    permission: 'notes.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/transactions/[id]/note/route')),
+    params: async (s) => ({ id: (await transactionIn(s, 'A')).id }),
+    body: () => ({ note: 'Paguei com o cartão do João' }),
+    success: { status: 200, schema: NoteDto },
+    foreign: foreignTransaction,
+    negatives: [
+      { name: 'a note of 2 001 characters', body: { note: 'x'.repeat(2001) }, expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/ops/:id/note`,
+    permission: 'notes.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/[id]/note/route')),
+    params: async (s) => ({ id: (await opIn(s, 'A')).id }),
+    body: () => ({ note: 'Reforço mensal' }),
+    success: { status: 200, schema: NoteDto },
+    foreign: foreignOp,
+    negatives: [
+      { name: 'a note of 2 001 characters', body: { note: 'x'.repeat(2001) }, expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/months`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/months/route')),
+    query: '?from=2026-01&to=2026-12',
+    success: { status: 200, schema: MonthNoteListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s month note',
+    leaks: async (s) => {
+      await monthNoteB(s);
+      return ['Nota do mês Beta Secreta'];
+    },
+    negatives: [
+      { name: 'an invalid month (2026-13)', query: '?from=2026-01&to=2026-13', expect: 400 },
+      { name: 'a reversed range', query: '?from=2026-05&to=2026-01', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/months/:month/note`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/months/[month]/note/route')),
+    params: () => Promise.resolve({ month: '2026-03' }),
+    success: { status: 200, schema: MonthNoteDto },
+    noForeignBecause: 'the month names no resource; the leak probe covers pool B’s note',
+    leaks: async (s) => {
+      await monthNoteB(s);
+      return ['Nota do mês Beta Secreta'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'PUT',
+    path: `${POOL}/months/:month/note`,
+    permission: 'notes.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/months/[month]/note/route')),
+    params: () => Promise.resolve({ month: '2026-03' }),
+    body: () => ({ body: 'Mês de férias', expectedUpdatedAt: null }),
+    success: { status: 200, schema: MonthNoteDto },
+    noForeignBecause: 'the month names no resource; pool B’s note of the same month is untouched',
+    negatives: [
+      {
+        name: 'a note of 10 001 characters',
+        body: { body: 'x'.repeat(10_001), expectedUpdatedAt: null },
+        expect: 400,
+      },
+      { name: 'no version sent', body: { body: 'sem versão' }, expect: 400 },
+    ],
   },
 
   // ---------------------------------------------------------------- exempt, with the reason

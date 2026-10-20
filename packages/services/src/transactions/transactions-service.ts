@@ -131,6 +131,7 @@ export function createTransactionsService(deps: TransactionsServiceDeps): Transa
             ...(q.kind ? { kind: q.kind } : {}),
             ...(q.q ? { text: q.q } : {}),
             ...(q.withNotes ? { withNotes: true } : {}),
+            ...(q.noteQ ? { noteText: q.noteQ } : {}),
           },
           { by: q.sort, descending: q.order === 'desc' },
           cursor,

@@ -28,6 +28,7 @@ import {
   createProductsService,
   createDepositsService,
   createInterestService,
+  createNotesService,
   createPortfoliosService,
   createRulesService,
   createTransactionsService,
@@ -51,6 +52,7 @@ import {
   type ProductsService,
   type DepositsService,
   type InterestService,
+  type NotesService,
   type PortfoliosService,
   type RulesService,
   type TransactionsService,
@@ -114,6 +116,7 @@ export interface ApiWorld {
   products: ProductsService;
   deposits: DepositsService;
   interest: InterestService;
+  notes: NotesService;
   assets: AssetsService;
   categories: CategoriesService;
   holders: HoldersService;
@@ -251,6 +254,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     interest: createInterestService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    notes: createNotesService({
       auth,
       identity,
       run: database.withPool,
@@ -433,6 +442,7 @@ async function buildScenario(
               (await pool.query('select * from savings_products order by id')).rows,
               (await pool.query('select * from deposits order by id')).rows,
               (await pool.query('select * from interest_entries order by id')).rows,
+              (await pool.query('select * from month_notes order by id')).rows,
               (await pool.query('select * from assets order by id')).rows,
               (await pool.query('select * from asset_prices order by asset_id, date')).rows,
               await allCategories(pool),

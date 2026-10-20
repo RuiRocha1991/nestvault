@@ -88,6 +88,10 @@
     {
       "key": "savingsAccountId",
       "value": ""
+    },
+    {
+      "key": "monthNoteUpdatedAt",
+      "value": ""
     }
   ],
   "item": [
@@ -4394,6 +4398,267 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "Set the note of a movement",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/transactions/{{transactionId}}/note",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "transactions",
+                "{{transactionId}}",
+                "note"
+              ]
+            },
+            "description": "Needs notes.write (viewers get 403). At most 2000 characters (400 beyond); null or an empty text clears the note.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Jantar de anos da Maria\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clear the note of a movement",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/transactions/{{transactionId}}/note",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "transactions",
+                "{{transactionId}}",
+                "note"
+              ]
+            },
+            "description": "null clears the note.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": null\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set the note of an operation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/ops/{{opId}}/note",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "ops",
+                "{{opId}}",
+                "note"
+              ]
+            },
+            "description": "Same rules as the note of a movement.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Reforço mensal\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get the note of a month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/months/2026-03/note",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "months",
+                "2026-03",
+                "note"
+              ]
+            },
+            "description": "Any member. A month without a note answers 200 with body and updatedAt null; 2026-13 answers 400."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('monthNoteUpdatedAt', pm.response.json().updatedAt || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write the note of a month",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/months/2026-03/note",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "months",
+                "2026-03",
+                "note"
+              ]
+            },
+            "description": "Needs notes.write. expectedUpdatedAt is the updatedAt you loaded (null when the month had no note). If somebody saved first the answer is 409 and error.current is the version that won. An empty body clears the note. At most 10000 characters.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Mês de férias e obras na casa de banho\",\n  \"expectedUpdatedAt\": null\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 or 409 (the month already has a note: set expectedUpdatedAt)', () => pm.expect([200, 409]).to.include(pm.response.code));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('monthNoteUpdatedAt', pm.response.json().updatedAt);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Month notes of a range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/months?from=2026-01&to=2026-12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "months"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12"
+                }
+              ]
+            },
+            "description": "Any member. from and to are yyyy-mm, at most 120 months. Only months with a note are returned."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }

@@ -565,7 +565,8 @@
       "plan": "Planos",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
-      "interest": "Juros"
+      "interest": "Juros",
+      "note": "Notas"
     },
     "actions": {
       "auth": {
@@ -662,6 +663,9 @@
       "interest": {
         "created": "Juros registados",
         "deleted": "Juros eliminados"
+      },
+      "note": {
+        "updated": "Nota alterada"
       }
     },
     "table": {

@@ -46,6 +46,9 @@ export const transactions = pgTable(
     importBatchId: uuid('import_batch_id'),
     /** Free text about the movement; user content, written through NES-45's endpoint. */
     note: text('note'),
+    /** Who last wrote the note and when. */
+    noteUpdatedBy: uuid('note_updated_by'),
+    noteUpdatedAt: timestamp('note_updated_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

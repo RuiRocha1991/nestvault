@@ -60,7 +60,14 @@ export class ConflictError extends HttpError {
   readonly status = 409;
   readonly code = 'conflict';
 
-  constructor(message = 'The request conflicts with the current state.') {
+  /**
+   * `current` is the version the caller lost against (optimistic locking). It is data the caller
+   * may read anyway, built from an output schema, and is sent as `error.current`.
+   */
+  constructor(
+    message = 'The request conflicts with the current state.',
+    readonly current?: unknown,
+  ) {
     super(message);
   }
 }

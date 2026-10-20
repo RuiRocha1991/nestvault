@@ -97,6 +97,8 @@ export const investmentOps = pgTable(
     planPeriod: text('plan_period'),
     extId: text('ext_id'),
     note: text('note'),
+    noteUpdatedBy: uuid('note_updated_by'),
+    noteUpdatedAt: timestamp('note_updated_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
