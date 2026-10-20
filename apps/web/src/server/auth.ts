@@ -16,6 +16,7 @@ import {
   type PrototypeImportService,
   type RulesService,
   type TransactionsService,
+  type ExpensesService,
   type AssetsService,
   type CategoriesService,
   type HoldersService,
@@ -107,6 +108,10 @@ export async function getCategoriesService(): Promise<CategoriesService> {
 
 export async function getTransactionsService(): Promise<TransactionsService> {
   return (await getRuntime()).transactions;
+}
+
+export async function getExpensesService(): Promise<ExpensesService> {
+  return (await getRuntime()).expenses;
 }
 
 export async function getRulesService(): Promise<RulesService> {

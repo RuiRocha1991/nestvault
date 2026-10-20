@@ -34,6 +34,7 @@ import {
   createPrototypeImportService,
   createRulesService,
   createTransactionsService,
+  createExpensesService,
   createSettingsService,
   requireSession,
   UnauthorizedError,
@@ -41,6 +42,7 @@ import {
   type AccountsService,
   type AssetsService,
   type CategoriesService,
+  type ExpensesService,
   type AuditService,
   type HoldersService,
   type Auth,
@@ -113,6 +115,7 @@ export interface ApiWorld {
   audit: AuditService;
   accounts: AccountsService;
   transactions: TransactionsService;
+  expenses: ExpensesService;
   rules: RulesService;
   portfolios: PortfoliosService;
   ops: OpsService;
@@ -222,6 +225,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
       identity,
       run: database.withPool,
       trustedProxyHops: 1,
+    }),
+    expenses: createExpensesService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+      now: clock.now,
     }),
     rules: createRulesService({
       auth,
