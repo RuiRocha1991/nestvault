@@ -13,6 +13,8 @@ export type { ModalProps } from './components/modal';
 export { ProgressBar, ProgressRing } from './components/progress';
 export { Segmented } from './components/segmented';
 export type { SegmentedOption } from './components/segmented';
+export { Sheet } from './components/sheet';
+export type { SheetProps } from './components/sheet';
 export { Table, Td, Th } from './components/table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/tabs';
 export { ToastProvider, useToast } from './components/toast';
