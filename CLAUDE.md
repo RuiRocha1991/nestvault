@@ -201,6 +201,11 @@ dependencies. The essentials:
     `NES-12: <summary of the whole task>`, then `git push --force-with-lease`; only ever on the task
     branch), wait for the checks, merge with `gh pr merge --squash`, delete the task branch and set
     the Jira task to `Concluído`. `dev` therefore keeps exactly one commit per task.
+- **Save CI minutes** (GitHub Actions has a monthly quota; a full run takes ~15 min): run
+  `pnpm lint && pnpm typecheck && pnpm test` locally and fix failures **before every push**; batch
+  related changes into one push instead of pushing each commit; do not push only to "see if CI
+  passes". A new push cancels the previous run of the same PR, docs-only PRs skip the heavy jobs,
+  and Playwright only runs for PRs to `master` or PRs that touch the web app (`docs/testing.md` → CI).
 - **Keep the Jira status in sync, always** (statuses: `A fazer`, `Em Progresso`, `Concluído`):
   - starting a task → `Em Progresso`;
   - PR open and waiting for the user → stays `Em Progresso`;
