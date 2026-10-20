@@ -5,7 +5,7 @@ import { HoldersCard } from '@webapp/components/holders/holders-card';
 import { ImportPrototypeCard } from '@webapp/components/settings/import-prototype-card';
 import { ParametersCard } from '@webapp/components/settings/parameters-card';
 import { SettingsHeader } from '@webapp/components/settings/settings-header';
-import { FX_CURRENCIES, type FxCurrency } from '@webapp/lib/parameters-form';
+import { FX_CURRENCIES, type FxCurrency, type FxRateView } from '@webapp/lib/parameters-form';
 import { isPoolSegment } from '@webapp/lib/pool';
 import { getHolders } from '@webapp/server/holders';
 import { getPoolPermissions } from '@webapp/server/pool';
@@ -27,9 +27,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ poolI
   const rates = Object.fromEntries(
     FX_CURRENCIES.map((currency) => {
       const found = fx.rates.find((entry) => entry.currency === currency);
-      return [currency, { rate: found?.rate ?? '1', marketRate: found?.marketRate ?? '1' }];
+      return [
+        currency,
+        {
+          rate: found?.rate ?? '1',
+          marketRate: found?.marketRate ?? '1',
+          source: found?.source ?? 'default',
+          date: found?.date ?? null,
+        },
+      ];
     }),
-  ) as Record<FxCurrency, { rate: string; marketRate: string }>;
+  ) as Record<FxCurrency, FxRateView>;
 
   return (
     <>

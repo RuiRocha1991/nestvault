@@ -2,6 +2,17 @@
 export const FX_CURRENCIES = ['USD', 'GBP', 'CHF'] as const;
 export type FxCurrency = (typeof FX_CURRENCIES)[number];
 
+/** Where the rate in force comes from, as the FX API reports it. */
+export type FxSource = 'pool' | 'seed' | 'ecb' | 'manual' | 'default';
+
+export interface FxRateView {
+  rate: string;
+  marketRate: string;
+  source: FxSource;
+  /** `yyyy-mm-dd` of the rate, null for a default. */
+  date: string | null;
+}
+
 export interface ParametersForm {
   rates: Record<FxCurrency, string>;
   depositTax: string;
