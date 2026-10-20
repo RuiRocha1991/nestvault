@@ -19,6 +19,7 @@ export const POOL_AUDIT_ACTIONS = [
   'holder.created',
   'holder.updated',
   'holder.deleted',
+  'holder.merged',
   'settings.updated',
   'account.created',
   'account.updated',

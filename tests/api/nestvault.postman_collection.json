@@ -54,6 +54,10 @@
       "value": ""
     },
     {
+      "key": "targetHolderId",
+      "value": ""
+    },
+    {
       "key": "portfolioId",
       "value": ""
     },
@@ -1523,6 +1527,93 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('answers the new name', () => pm.expect(pm.response.json().name).to.eql('Ana Maria'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview joining two people",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders/{{holderId}}/merge?intoId={{targetHolderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders",
+                "{{holderId}}",
+                "merge"
+              ],
+              "query": [
+                {
+                  "key": "intoId",
+                  "value": "{{targetHolderId}}"
+                }
+              ]
+            },
+            "description": "Needs accounts.write. Set targetHolderId to the person to keep (usually the member). Counts what would move; changes nothing."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has the preview fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['accounts','addedAliases','subAccounts','tooManyAliases']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Join a person into another one",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/holders/{{holderId}}/merge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "holders",
+                "{{holderId}}",
+                "merge"
+              ]
+            },
+            "description": "Needs accounts.write. Moves accounts, sub-accounts and aliases of holderId to targetHolderId in one transaction and deletes holderId; the target keeps its name. 409 for a member person or more than 10 aliases. Strict body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intoId\": \"{{targetHolderId}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the target', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('targetHolderId')));"
                 ]
               }
             }

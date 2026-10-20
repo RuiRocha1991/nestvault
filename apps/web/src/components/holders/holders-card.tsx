@@ -1,15 +1,20 @@
 'use client';
 
 import { Button, Card, Chip, useToast } from '@nestvault/ui';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Merge, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { DeleteHolderDialog } from './delete-holder-dialog';
 import { HolderDialog, type HolderView } from './holder-dialog';
+import { MergeHolderDialog } from './merge-holder-dialog';
+import { suggestedMergeTarget } from './merge-suggestion';
 
-type Dialog = { kind: 'form'; holder?: HolderView } | { kind: 'delete'; holder: HolderView };
+type Dialog =
+  | { kind: 'form'; holder?: HolderView }
+  | { kind: 'delete'; holder: HolderView }
+  | { kind: 'merge'; holder: HolderView; targetId: string };
 
 export interface HoldersCardProps {
   poolId: string;
@@ -34,7 +39,7 @@ export function HoldersCard({
   const toast = useToast();
   const [dialog, setDialog] = useState<Dialog | null>(null);
 
-  function finish(message: 'saved' | 'deleted') {
+  function finish(message: 'saved' | 'deleted' | 'merged') {
     setDialog(null);
     toast.show(t(`toast.${message}`));
     router.refresh();
@@ -81,6 +86,13 @@ export function HoldersCard({
                   <span className="break-words">{holder.name}</span>
                   {holder.member && <Chip tone="accent">{t('member')}</Chip>}
                 </div>
+                {canWrite && !!suggestedMergeTarget(holder, holders) && (
+                  <p className="m-0 pt-1 text-sm text-fg-3">
+                    {t('merge.suggestion', {
+                      name: suggestedMergeTarget(holder, holders)?.name ?? '',
+                    })}
+                  </p>
+                )}
                 {holder.aliases.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {holder.aliases.map((alias) => (
@@ -89,6 +101,23 @@ export function HoldersCard({
                   </div>
                 )}
               </div>
+              {canWrite && !holder.member && holders.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon
+                  aria-label={t('merge.open', { name: holder.name })}
+                  onClick={() => {
+                    setDialog({
+                      kind: 'merge',
+                      holder,
+                      targetId: suggestedMergeTarget(holder, holders)?.id ?? '',
+                    });
+                  }}
+                >
+                  <Merge aria-hidden />
+                </Button>
+              )}
               {canWrite && (
                 <>
                   <Button
@@ -140,6 +169,18 @@ export function HoldersCard({
           onClose={close}
           onDone={() => {
             finish('deleted');
+          }}
+        />
+      )}
+      {dialog?.kind === 'merge' && (
+        <MergeHolderDialog
+          poolId={poolId}
+          holder={dialog.holder}
+          targets={holders.filter((one) => one.id !== dialog.holder.id)}
+          initialTargetId={dialog.targetId}
+          onClose={close}
+          onDone={() => {
+            finish('merged');
           }}
         />
       )}

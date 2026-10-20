@@ -35,6 +35,7 @@ import {
   SubAccountDto,
   HolderDto,
   HolderListDto,
+  MergePreviewDto,
   InviteDto,
   InviteListDto,
   MemberListDto,
@@ -102,7 +103,8 @@ interface Exercised {
   params?: (s: Scenario) => Promise<Record<string, string>>;
   /** A valid body. Its presence means the route reads a body, so extra fields must answer 400. */
   body?: (s: Scenario) => unknown;
-  query?: string;
+  /** A fixed query string, or one built from the scenario (when it names an id). */
+  query?: string | ((s: Scenario) => Promise<string>);
   /** Sets up what the success case needs beyond the scenario (runs right before it). */
   prepare?: (s: Scenario) => Promise<void>;
   success: {
@@ -168,6 +170,14 @@ const holderIn = (s: Scenario, pool: 'A' | 'B') =>
         : { name: 'Bruno Beta', aliases: ['bruno beta'] },
     ),
   );
+
+/** The person of the pool A member `member`: the usual target of a merge. */
+const memberHolderOf = async (s: Scenario) => {
+  const { holders } = await s.world.holders.list(await s.as('owner'), s.poolA);
+  const found = holders.find((holder) => holder.userId === s.ids.member);
+  if (!found) throw new Error('the member has no person');
+  return found;
+};
 
 /** The holder of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
 const foreignHolder = async (s: Scenario): Promise<Foreign> => {
@@ -1150,6 +1160,54 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
     success: { status: 204 },
     foreign: foreignHolder,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/holders/:id/merge`,
+    permission: 'accounts.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/[id]/merge/route')),
+    params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
+    query: async (s) => `?intoId=${(await memberHolderOf(s)).id}`,
+    success: { status: 200, schema: MergePreviewDto },
+    foreign: foreignHolder,
+    negatives: [
+      {
+        name: 'a target that is not in the pool',
+        query: '?intoId=00000000-0000-7000-8000-000000000001',
+        expect: 404,
+      },
+      { name: 'no target', query: '', expect: 400 },
+      { name: 'an extra query field', query: '?intoId=x&poolId=y', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/holders/:id/merge`,
+    permission: 'accounts.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/holders/[id]/merge/route')),
+    params: async (s) => ({ id: (await holderIn(s, 'A')).id }),
+    body: async (s) => ({ intoId: (await memberHolderOf(s)).id }),
+    success: {
+      status: 200,
+      schema: HolderDto,
+      check: async (s, body) => {
+        expect(HolderDto.parse(body).aliases).toContain('ANA ALFA');
+        const seen = (await s.world.holders.list(await s.as('owner'), s.poolA)).holders;
+        expect(seen.some((holder) => holder.name === 'Ana Alfa')).toBe(false);
+      },
+    },
+    foreign: foreignHolder,
+    negatives: [
+      {
+        name: 'a target that is not in the pool',
+        body: { intoId: '00000000-0000-7000-8000-000000000001' },
+        expect: 404,
+      },
+    ],
   },
 
   // ---------------------------------------------------------------- pool scope: settings

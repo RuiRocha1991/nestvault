@@ -97,7 +97,8 @@ async function invoke(spec: Spec, s: Scenario, call: Call = {}): Promise<Respons
   if (origin !== null) headers.set('origin', origin);
   if (call.body !== undefined) headers.set('content-type', 'application/json');
 
-  const request = new Request(`${APP_URL}${path}${call.query ?? spec.query ?? ''}`, {
+  const specQuery = typeof spec.query === 'function' ? await spec.query(s) : spec.query;
+  const request = new Request(`${APP_URL}${path}${call.query ?? specQuery ?? ''}`, {
     method: spec.method,
     headers,
     ...(call.body === undefined ? {} : { body: JSON.stringify(call.body) }),

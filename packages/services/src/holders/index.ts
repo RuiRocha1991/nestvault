@@ -6,6 +6,8 @@ export {
   CreateHolderInput,
   HolderDto,
   HolderListDto,
+  MergeHolderInput,
+  MergePreviewDto,
   normalizeAlias,
   UpdateHolderInput,
 } from './schemas';

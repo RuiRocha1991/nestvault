@@ -77,3 +77,19 @@ export const toHolderDto = (row: HolderRow, memberIds: ReadonlySet<string>): Hol
   userId: row.userId,
   member: row.userId !== null && memberIds.has(row.userId),
 });
+
+/** Merge a person added by hand into another one (usually the member): only the target is sent. */
+export const MergeHolderInput = z.object({ intoId: z.uuid() }).strict();
+export type MergeHolderInput = z.input<typeof MergeHolderInput>;
+
+/** What a merge would do, shown before confirming. */
+export const MergePreviewDto = z.object({
+  /** Accounts the person owns: the target would own them. */
+  accounts: z.number().int().nonnegative(),
+  subAccounts: z.number().int().nonnegative(),
+  /** Aliases of the person that the target does not have yet. */
+  addedAliases: z.array(z.string()),
+  /** True when the target would end with more than 10 aliases: the merge would answer 409. */
+  tooManyAliases: z.boolean(),
+});
+export type MergePreviewDto = z.infer<typeof MergePreviewDto>;
