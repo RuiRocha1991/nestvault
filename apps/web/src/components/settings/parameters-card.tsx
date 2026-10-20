@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, Input, useToast } from '@nestvault/ui';
+import { Button, Card, formatDate, Input, useToast } from '@nestvault/ui';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Fragment, useId, useState, type SyntheticEvent } from 'react';
@@ -11,6 +11,7 @@ import {
   FX_CURRENCIES,
   toText,
   type FxCurrency,
+  type FxRateView,
   type ParametersForm,
 } from '@webapp/lib/parameters-form';
 import { sendJson } from '@webapp/lib/post-json';
@@ -25,7 +26,7 @@ export interface ParametersCardProps {
     fxOverrides: Readonly<Record<string, string>>;
   };
   /** The rate in force and the market rate of each currency (EUR per unit), as decimal strings. */
-  rates: Readonly<Record<FxCurrency, { rate: string; marketRate: string }>>;
+  rates: Readonly<Record<FxCurrency, FxRateView>>;
   /** Hiding is cosmetic: the service checks `settings.write` again. */
   canWrite: boolean;
 }
@@ -115,9 +116,19 @@ export function ParametersCard({ poolId, settings, rates, canWrite }: Parameters
         <div className="grid gap-4 sm:grid-cols-2">
           {FX_CURRENCIES.map((ccy) => (
             <Fragment key={ccy}>
-              {field(ids[ccy], t('rate', { currency: ccy }), form.rates[ccy], (value) => {
-                change((current) => ({ ...current, rates: { ...current.rates, [ccy]: value } }));
-              })}
+              <div className="flex flex-col gap-1.5">
+                {field(ids[ccy], t('rate', { currency: ccy }), form.rates[ccy], (value) => {
+                  change((current) => ({ ...current, rates: { ...current.rates, [ccy]: value } }));
+                })}
+                <p className="m-0 text-xs text-fg-3">
+                  {rates[ccy].date === null
+                    ? t(`fxSource.${rates[ccy].source}`)
+                    : t('fxSourceDate', {
+                        source: t(`fxSource.${rates[ccy].source}`),
+                        date: formatDate(rates[ccy].date),
+                      })}
+                </p>
+              </div>
             </Fragment>
           ))}
           <div className="flex flex-col gap-1.5">

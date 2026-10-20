@@ -737,6 +737,14 @@
   "parameters": {
     "title": "Parâmetros",
     "rate": "1 {currency} em EUR",
+    "fxSourceDate": "{source} · {date}",
+    "fxSource": {
+      "pool": "Valor do agregado",
+      "seed": "Valor inicial",
+      "ecb": "BCE",
+      "manual": "Introduzido à mão",
+      "default": "Sem taxa conhecida"
+    },
     "depositTax": "Imposto sobre juros (%)",
     "depositTaxHint": "Em Portugal, 28% sobre juros de depósitos.",
     "dividendTax": "Imposto sobre dividendos (%)",
