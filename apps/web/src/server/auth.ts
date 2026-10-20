@@ -5,6 +5,7 @@ import {
   type AccountService,
   type AuditService,
   type AccountsService,
+  type CashMovesService,
   type OpsService,
   type PlansService,
   type ProductsService,
@@ -145,4 +146,8 @@ export async function getNotesService(): Promise<NotesService> {
 
 export async function getInterestService(): Promise<InterestService> {
   return (await getRuntime()).interest;
+}
+
+export async function getCashMovesService(): Promise<CashMovesService> {
+  return (await getRuntime()).cashMoves;
 }

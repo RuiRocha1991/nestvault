@@ -11,6 +11,7 @@ export * from './category-rules';
 export * from './positions';
 export * from './xirr';
 export * from './portfolio-cash';
+export * from './cash-moves';
 export * from './deposits';
 export * from './dividends';
 export * from './interest';

@@ -1,10 +1,13 @@
 import {
+  CashMoveDto,
+  CashMoveListDto,
   CreateOpInput,
   CreatePlanInput,
   CreatePortfolioInput,
   DeletePortfolioQuery,
   ListOpsQuery,
   ListPlansQuery,
+  MoveCashInput,
   OpDto,
   OpListDto,
   PlanDto,
@@ -26,7 +29,7 @@ import { errorResponses, json, registry } from './registry';
 // Portfolios, investment operations and regular plans (PRD 04). Guards in the service: session,
 // input validation, membership (404 for non-members), then `portfolios.write` (portfolios and
 // plans, owner and admin) or `ops.write` (operations and plan runs, members too) for writes (403),
-// then `withPool` (RLS). Writes are audited (`portfolio.*`, `op.*`, `plan.*`, target id; never
+// then `withPool` (RLS). Writes are audited (`portfolio.*`, `op.*`, `plan.*`, `cashmove.*`, target id; never
 // amounts or notes).
 
 const PoolId = z.uuid();
@@ -198,6 +201,53 @@ registry.registerPath({
   responses: {
     204: { description: 'Deleted' },
     ...errorResponses(400, 401, 403, 404, 409, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/portfolios/{id}/cash-moves',
+  operationId: 'listCashMoves',
+  summary: 'Cash moves of a portfolio',
+  description: 'Newest first. Any member may list.',
+  tags: ['Portfolios'],
+  request: { params: z.object({ poolId: PoolId, id: z.uuid() }) },
+  responses: {
+    200: { description: 'The list', ...json(CashMoveListDto) },
+    ...errorResponses(401, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/pools/{poolId}/portfolios/{id}/cash-moves',
+  operationId: 'moveCash',
+  summary: 'Move cash to an account',
+  description:
+    'Needs `ops.write` (owner, admin, member). Moves `amount` (positive, EUR) of the portfolio cash to a checking or savings account. More than the portfolio cash on `date` answers 400. With `mirror=true` the matching bank movement (a transfer) is created in the same database transaction, so the account balance rises and net worth does not change; without it the statement import brings the line and it is recognised as a transfer, not income. The note is user content. The body is strict: the pool and the portfolio come from the URL.',
+  tags: ['Portfolios'],
+  request: {
+    params: z.object({ poolId: PoolId, id: z.uuid() }),
+    body: { required: true, ...json(MoveCashInput) },
+  },
+  responses: {
+    201: { description: 'Created', ...json(CashMoveDto) },
+    ...errorResponses(400, 401, 403, 404, 413, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/pools/{poolId}/portfolios/{id}/cash-moves/{moveId}',
+  operationId: 'deleteCashMove',
+  summary: 'Undo a cash move',
+  description:
+    'Needs `ops.write`. The bank movement the move created (the mirror) is deleted with it; an imported line that was matched to the move stays.',
+  tags: ['Portfolios'],
+  request: { params: z.object({ poolId: PoolId, id: z.uuid(), moveId: z.uuid() }) },
+  responses: {
+    204: { description: 'Deleted' },
+    ...errorResponses(400, 401, 403, 404, 429, 500),
   },
 });
 

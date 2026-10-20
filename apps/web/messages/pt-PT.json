@@ -563,6 +563,7 @@
       "portfolio": "Carteiras",
       "op": "Operações",
       "plan": "Planos",
+      "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
       "interest": "Juros",
@@ -649,6 +650,10 @@
         "updated": "Plano alterado",
         "deleted": "Plano eliminado",
         "run": "Plano executado"
+      },
+      "cashmove": {
+        "created": "Liquidez movida para uma conta",
+        "deleted": "Movimento de liquidez anulado"
       },
       "product": {
         "created": "Produto de poupança criado",

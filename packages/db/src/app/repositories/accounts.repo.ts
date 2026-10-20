@@ -9,6 +9,7 @@ import { depositsRepo } from './deposits.repo';
 import { interestEntriesRepo } from './interest-entries.repo';
 import { investmentOpsRepo } from './investment-ops.repo';
 import { plansRepo } from './plans.repo';
+import { portfolioCashMovesRepo } from './portfolio-cash-moves.repo';
 import { savingsProductsRepo } from './savings-products.repo';
 
 export type { AccountRow };
@@ -119,7 +120,7 @@ export const accountsRepo = {
   /**
    * How many movements, plans and references are on this account: transactions, investment
    * operations, plans, interest entries, and the products and deposits that name it as where the
-   * interest goes or the money comes from. (Its own deposit goes with it.)
+   * interest goes or the money comes from, and portfolio cash moves. (Its own deposit goes with it.)
    */
   async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
     const [movements] = await tx
@@ -132,6 +133,7 @@ export const accountsRepo = {
       interestEntriesRepo.countByAccount(tx, ctx, id),
       savingsProductsRepo.countByAccount(tx, ctx, id),
       depositsRepo.countByFundingAccount(tx, ctx, id),
+      portfolioCashMovesRepo.countByAccount(tx, ctx, id),
     ]);
     return counts.reduce((total, n) => total + n, movements?.n ?? 0);
   },

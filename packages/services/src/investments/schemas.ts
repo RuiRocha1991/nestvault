@@ -1,5 +1,5 @@
 import { INVESTMENT_OP_TYPES } from '@nestvault/db';
-import type { InvestmentOpRow, PlanRow, PortfolioRow } from '@nestvault/db';
+import type { InvestmentOpRow, PlanRow, PortfolioCashMoveRow, PortfolioRow } from '@nestvault/db';
 import { dec, toPlain, type PortfolioSummary } from '@nestvault/domain';
 import { z } from 'zod';
 
@@ -15,7 +15,7 @@ const Text = (max: number) => z.string().trim().min(1).max(max).regex(NO_CONTROL
 /** Notes may span lines; only the other control characters are refused. */
 // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
 const NOTE_CHARS = /^[^\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]*$/;
-const Note = z.string().trim().min(1).max(2000).regex(NOTE_CHARS);
+export const Note = z.string().trim().min(1).max(2000).regex(NOTE_CHARS);
 
 const MONEY = /^\d{1,14}(\.\d{1,4})?$/;
 const SIGNED_MONEY = /^-?\d{1,14}(\.\d{1,4})?$/;
@@ -387,3 +387,50 @@ export const PlanRunDto = z.object({
   op: OpDto,
 });
 export type PlanRunDto = z.infer<typeof PlanRunDto>;
+
+/* ------------------------------------------------------------------ portfolio cash moves */
+
+/**
+ * Moves cash from a portfolio to a bank account. `amount` is positive, in EUR, and may not exceed
+ * the cash the portfolio holds on `date`. `mirror=true` also records the matching movement in the
+ * account; without it the statement import brings the line and matches it later.
+ */
+export const MoveCashInput = z
+  .object({
+    accountId: z.uuid(),
+    date: z.iso.date(),
+    amount: Money.refine((value) => MONEY.test(value) && dec(value).gt(0)),
+    mirror: z.boolean().optional(),
+    note: Note.nullable().optional(),
+  })
+  .strict();
+export type MoveCashInput = z.input<typeof MoveCashInput>;
+
+export const CashMoveDto = z.object({
+  id: z.uuid(),
+  portfolioId: z.uuid(),
+  accountId: z.uuid(),
+  date: z.iso.date(),
+  /** Positive: how much left the portfolio for the account, in EUR. */
+  amount: z.string(),
+  note: z.string().nullable(),
+  /** The bank movement behind the move: the mirror, or the imported line matched to it. */
+  transactionId: z.uuid().nullable(),
+  /** True when this move created that bank movement (deleting the move deletes it too). */
+  mirror: z.boolean(),
+});
+export type CashMoveDto = z.infer<typeof CashMoveDto>;
+
+export const CashMoveListDto = z.object({ moves: z.array(CashMoveDto) });
+export type CashMoveListDto = z.infer<typeof CashMoveListDto>;
+
+export const toCashMoveDto = (row: PortfolioCashMoveRow): CashMoveDto => ({
+  id: row.id,
+  portfolioId: row.portfolioId,
+  accountId: row.accountId,
+  date: row.date,
+  amount: toPlain(dec(row.amount).neg()),
+  note: row.note,
+  transactionId: row.transactionId,
+  mirror: row.mirror,
+});

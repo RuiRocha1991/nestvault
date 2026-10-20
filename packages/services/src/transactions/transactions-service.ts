@@ -18,6 +18,7 @@ import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
+import { linkCashMoves } from '../investments/cash-moves-match';
 import { clientIpResolver } from '../rate-limit/client-ip';
 
 import { loadEngineContext, toEngineTransaction, type EngineContext } from './engine';
@@ -188,6 +189,8 @@ export function createTransactionsService(deps: TransactionsServiceDeps): Transa
           hash: `manual:${id}`,
         });
         await detectAround(tx, ctx, engine, row);
+        // A line that is the other side of a portfolio cash move is a transfer, not income.
+        await linkCashMoves(tx, ctx, row.date);
       });
       await recordAudit(identity, ctx, 'transaction.created', { target: id, ip: ipOf(headers) });
       return run(ctx, (tx) => readOne(tx, ctx, id));

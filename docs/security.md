@@ -204,6 +204,16 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/notes.repo.integration.test.ts` (`expectIsolated` for every function, checks, injection
   payloads, re-import keeps the note), `tests/services/notes.integration.test.ts` (roles,
   lengths, 409, audit without text) and the generated route cases for `/note` and `/months`.
+- **Portfolio cash moves (NES-43)**: `portfolio_cash_moves` follows the block above (`pool_id`,
+  FORCE RLS, repository on a `PoolContext`). The portfolio, the receiving account and the bank
+  movement are composite foreign keys `(pool_id, …)`, so none can belong to another pool even by
+  raw SQL; the account is restricted (409 first) and the portfolio's moves must be moved or deleted
+  with it. Moving cash and undoing a move need `ops.write`; the pool and portfolio come from the
+  URL, never the body, and the body is strict. The amount check and the mirror movement share one
+  database transaction. Writes are audited (`cashmove.*`, target id only, never amounts or notes).
+  Verified by `tests/db/portfolio-cash-moves.repo.integration.test.ts` (`expectIsolated` for every
+  function, composite keys, checks, injection payload), `tests/services/cash-moves.integration.test.ts`
+  and the generated route cases for `/portfolios/:id/cash-moves`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with
