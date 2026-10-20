@@ -6,6 +6,14 @@ import {
   AccountDto,
   AccountListDto,
   ApplyRulesDto,
+  OpDto,
+  OpListDto,
+  PlanDto,
+  PlanListDto,
+  PlanRunDto,
+  PortfolioDto,
+  PortfolioListDto,
+  PortfolioSummaryDto,
   RuleDto,
   RuleListDto,
   TransactionDto,
@@ -323,6 +331,87 @@ const foreignRule = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.rules.list(await s.as('outsider'), s.poolB);
       expect(seen.rules).toContainEqual(other);
+    },
+  };
+};
+
+/** A portfolio in pool A (made by its owner) or pool B (made by `outsider`), made once per scenario. */
+const portfolioIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`portfolio-${pool}`, async () =>
+    s.world.portfolios.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      pool === 'A'
+        ? { name: 'Carteira Alfa Secreta', color: '#112233', currency: 'EUR' }
+        : { name: 'Carteira Beta Secreta', color: '#445566', currency: 'USD' },
+    ),
+  );
+
+/** The portfolio of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignPortfolio = async (s: Scenario): Promise<Foreign> => {
+  const other = await portfolioIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.portfolios.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A buy in pool A or pool B (their portfolio and asset), made once per scenario. */
+const opIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`op-${pool}`, async () =>
+    s.world.ops.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        portfolioId: (await portfolioIn(s, pool)).id,
+        assetId: (await assetIn(s, pool)).id,
+        type: 'buy',
+        date: '2026-02-10',
+        qty: pool === 'A' ? '3' : '7',
+        price: '10',
+        note: pool === 'A' ? 'Nota Alfa Secreta' : 'Nota Beta Secreta',
+      },
+    ),
+  );
+
+/** The operation of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignOp = async (s: Scenario): Promise<Foreign> => {
+  const other = await opIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.ops.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A plan in pool A or pool B, made once per scenario. */
+const planIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`plan-${pool}`, async () =>
+    s.world.plans.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        portfolioId: (await portfolioIn(s, pool)).id,
+        assetId: (await assetIn(s, pool)).id,
+        amount: pool === 'A' ? '100' : '250',
+        day: 5,
+      },
+    ),
+  );
+
+/** The plan of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignPlan = async (s: Scenario): Promise<Foreign> => {
+  const other = await planIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.plans.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
     },
   };
 };
@@ -1216,6 +1305,263 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
         },
       };
     },
+  },
+
+  // ---------------------------------------------------------------- pool scope: portfolios, operations, plans
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/portfolios`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/route')),
+    success: { status: 200, schema: PortfolioListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s portfolios',
+    leaks: async (s) => {
+      await portfolioIn(s, 'A');
+      const other = await portfolioIn(s, 'B');
+      return [other.id, other.name];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/portfolios`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/route')),
+    body: () => ({ name: 'Reforma', color: '#778899', currency: 'EUR', targets: { etf: '60' } }),
+    success: { status: 201, schema: PortfolioDto },
+    noForeignBecause: 'creates a new row; the pool comes from the URL',
+    negatives: [
+      {
+        name: 'targets above 100 %',
+        body: { name: 'X', color: '#778899', currency: 'EUR', targets: { etf: '101' } },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/portfolios/summary`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/summary/route')),
+    success: { status: 200, schema: PortfolioSummaryDto },
+    noForeignBecause: 'summarizes the URL’s own pool; the leak probe covers pool B’s operations',
+    leaks: async (s) => {
+      await opIn(s, 'A');
+      const other = await opIn(s, 'B');
+      return [other.id, other.portfolioId, other.assetId];
+    },
+    negatives: [{ name: 'an unknown filter', query: '?poolId=1', expect: 400 }],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/portfolios/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/route')),
+    params: async (s) => ({ id: (await portfolioIn(s, 'A')).id }),
+    success: { status: 200, schema: PortfolioDto },
+    foreign: foreignPortfolio,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/portfolios/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/route')),
+    params: async (s) => ({ id: (await portfolioIn(s, 'A')).id }),
+    body: () => ({ note: 'Para a reforma' }),
+    success: { status: 200, schema: PortfolioDto },
+    foreign: foreignPortfolio,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/portfolios/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/route')),
+    params: async (s) => ({ id: (await portfolioIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignPortfolio,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/ops`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/route')),
+    success: { status: 200, schema: OpListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s operations',
+    leaks: async (s) => {
+      await opIn(s, 'A');
+      const other = await opIn(s, 'B');
+      return [other.id, other.note ?? ''];
+    },
+    negatives: [{ name: 'an unknown filter', query: '?type=buy&poolId=2', expect: 400 }],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/ops`,
+    permission: 'ops.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/route')),
+    body: async (s) => ({
+      portfolioId: (await portfolioIn(s, 'A')).id,
+      assetId: (await assetIn(s, 'A')).id,
+      type: 'buy',
+      date: '2026-03-02',
+      qty: '2',
+      price: '15.5',
+    }),
+    success: { status: 201, schema: OpDto },
+    noForeignBecause: 'creates a new row; a portfolio or asset of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a portfolio of another pool',
+        body: {
+          portfolioId: '0192f3a1-0000-7000-8000-000000000001',
+          assetId: '0192f3a1-0000-7000-8000-000000000002',
+          type: 'buy',
+          date: '2026-03-02',
+          qty: '1',
+          price: '1',
+        },
+        expect: 400,
+      },
+      {
+        name: 'a buy without quantity',
+        body: {
+          portfolioId: '0192f3a1-0000-7000-8000-000000000001',
+          assetId: '0192f3a1-0000-7000-8000-000000000002',
+          type: 'buy',
+          date: '2026-03-02',
+          price: '1',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/ops/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/[id]/route')),
+    params: async (s) => ({ id: (await opIn(s, 'A')).id }),
+    success: { status: 200, schema: OpDto },
+    foreign: foreignOp,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/ops/:id`,
+    permission: 'ops.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/[id]/route')),
+    params: async (s) => ({ id: (await opIn(s, 'A')).id }),
+    body: () => ({ qty: '4' }),
+    success: { status: 200, schema: OpDto },
+    foreign: foreignOp,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/ops/:id`,
+    permission: 'ops.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/ops/[id]/route')),
+    params: async (s) => ({ id: (await opIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignOp,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/plans`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/route')),
+    success: { status: 200, schema: PlanListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s plans',
+    leaks: async (s) => {
+      await planIn(s, 'A');
+      const other = await planIn(s, 'B');
+      return [other.id, other.assetId];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/plans`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/route')),
+    body: async (s) => ({
+      portfolioId: (await portfolioIn(s, 'A')).id,
+      assetId: (await assetIn(s, 'A')).id,
+      amount: '75',
+      day: 10,
+    }),
+    success: { status: 201, schema: PlanDto },
+    noForeignBecause: 'creates a new row; a portfolio or asset of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a day outside 1-28',
+        body: {
+          portfolioId: '0192f3a1-0000-7000-8000-000000000001',
+          assetId: '0192f3a1-0000-7000-8000-000000000002',
+          amount: '75',
+          day: 31,
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/plans/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/[id]/route')),
+    params: async (s) => ({ id: (await planIn(s, 'A')).id }),
+    success: { status: 200, schema: PlanDto },
+    foreign: foreignPlan,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/plans/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/[id]/route')),
+    params: async (s) => ({ id: (await planIn(s, 'A')).id }),
+    body: () => ({ active: false }),
+    success: { status: 200, schema: PlanDto },
+    foreign: foreignPlan,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/plans/:id`,
+    permission: 'portfolios.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/[id]/route')),
+    params: async (s) => ({ id: (await planIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignPlan,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/plans/:id/run`,
+    permission: 'ops.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plans/[id]/run/route')),
+    params: async (s) => ({ id: (await planIn(s, 'A')).id }),
+    body: () => ({ month: '2026-03' }),
+    prepare: async (s) => {
+      await s.world.assets.setPrice(await s.as('owner'), s.poolA, (await assetIn(s, 'A')).id, {
+        date: '2026-03-01',
+        price: '20',
+      });
+    },
+    success: { status: 201, schema: PlanRunDto },
+    foreign: foreignPlan,
   },
 
   // ---------------------------------------------------------------- exempt, with the reason

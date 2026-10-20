@@ -217,7 +217,11 @@ describe('accounts service: creating', () => {
 
   it('allows several holders and a portfolio link, and links an account to a portfolio id', async () => {
     const who = await people();
-    const portfolioId = '0192f3a1-0000-7000-8000-0000000000aa';
+    const { id: portfolioId } = await world.portfolios.create(await s.as('owner'), s.poolA, {
+      name: 'Fundo de emergência',
+      color: '#112233',
+      currency: 'EUR',
+    });
     const account = await create('owner', {
       type: 'savings',
       name: 'Poupança',
@@ -229,6 +233,27 @@ describe('accounts service: creating', () => {
     });
     expect(account).toMatchObject({ rate: '2.5', groupName: 'Fundo de emergência', portfolioId });
     expect(account.holderIds).toHaveLength(2);
+  });
+
+  it('refuses a portfolio of another pool and unlinks the account when the portfolio is deleted', async () => {
+    const who = await people();
+    const own = await world.portfolios.create(await s.as('owner'), s.poolA, {
+      name: 'Reforma',
+      color: '#112233',
+      currency: 'EUR',
+    });
+    const other = await world.portfolios.create(await s.as('outsider'), s.poolB, {
+      name: 'Outra',
+      color: '#445566',
+      currency: 'EUR',
+    });
+    const body = { type: 'savings', name: 'Poupança', currency: 'EUR', holderIds: [who.owner] };
+    await expect(create('owner', { ...body, portfolioId: other.id })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    const account = await create('owner', { ...body, portfolioId: own.id });
+    await world.portfolios.remove(await s.as('owner'), s.poolA, own.id);
+    expect((await world.accounts.get(await s.as('owner'), s.poolA, account.id)).portfolioId).toBeNull();
   });
 
   it.each([

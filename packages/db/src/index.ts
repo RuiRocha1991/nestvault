@@ -56,6 +56,21 @@ export type {
 } from './app/repositories/transactions.repo';
 export { categoryRulesRepo } from './app/repositories/category-rules.repo';
 export type { CategoryRuleRow, RuleValues } from './app/repositories/category-rules.repo';
+export { portfoliosRepo } from './app/repositories/portfolios.repo';
+export type {
+  PortfolioRow,
+  PortfolioValues,
+  PortfolioWithCounts,
+} from './app/repositories/portfolios.repo';
+export { plansRepo } from './app/repositories/plans.repo';
+export type { PlanRow, PlanValues } from './app/repositories/plans.repo';
+export { INVESTMENT_OP_TYPES, investmentOpsRepo } from './app/repositories/investment-ops.repo';
+export type {
+  InvestmentOpFilter,
+  InvestmentOpRow,
+  InvestmentOpType,
+  InvestmentOpValues,
+} from './app/repositories/investment-ops.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';

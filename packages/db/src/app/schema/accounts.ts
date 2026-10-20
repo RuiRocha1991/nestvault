@@ -17,11 +17,12 @@ import {
 import { money, poolId, rate } from '../../columns';
 
 import { holders } from './holders';
+import { portfolios } from './portfolios';
 
 // Where the family's money sits (PRD 04): checking, savings, term deposits and brokerage accounts,
 // each with one or more holders. Money is a decimal string; the IBAN is stored normalized (no
-// spaces, upper case) and is unique inside a pool, never across pools. `portfolio_id` is a plain
-// uuid for now: the foreign key to `portfolios` comes with that table (NES-42).
+// spaces, upper case) and is unique inside a pool, never across pools. `portfolio_id` links an
+// account to a portfolio (e.g. an emergency fund) and is cleared when the portfolio is deleted.
 export const accounts = pgTable(
   'accounts',
   {
@@ -62,6 +63,12 @@ export const accounts = pgTable(
       sql`${table.type} <> 'term_deposit' or ${table.currency} = 'EUR'`,
     ),
     check('accounts_rate_range', sql`${table.rate} between 0 and 100`),
+    // The migration narrows SET NULL to `portfolio_id` (the pool column is not nullable).
+    foreignKey({
+      name: 'accounts_portfolio_fk',
+      columns: [table.poolId, table.portfolioId],
+      foreignColumns: [portfolios.poolId, portfolios.id],
+    }).onDelete('set null'),
   ],
 );
 
@@ -106,6 +113,8 @@ export const subAccounts = pgTable(
   (table) => [
     index('sub_accounts_pool_account_idx').on(table.poolId, table.accountId),
     unique('sub_accounts_pool_id_uniq').on(table.poolId, table.id),
+    // Lets operations and plans prove a sub-account belongs to the account they name (NES-42).
+    unique('sub_accounts_pool_account_id_uniq').on(table.poolId, table.accountId, table.id),
     unique('sub_accounts_account_name_uniq').on(table.accountId, table.name),
     check('sub_accounts_name_len', sql`char_length(${table.name}) between 1 and 60`),
     foreignKey({

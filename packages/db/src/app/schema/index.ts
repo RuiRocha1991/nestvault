@@ -14,3 +14,7 @@ export { categories, poolCategorySettings } from './categories';
 export type { CategoryRow, CategorySettingsRow } from './categories';
 export { categoryRules, transactions } from './transactions';
 export type { CategoryRuleRow, TransactionRow } from './transactions';
+export { portfolios } from './portfolios';
+export type { PortfolioRow } from './portfolios';
+export { investmentOps, plans } from './investments';
+export type { InvestmentOpRow, PlanRow } from './investments';

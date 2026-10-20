@@ -23,6 +23,9 @@ import {
   createMemoryEmailSender,
   createPoolsService,
   createRateLimiter,
+  createOpsService,
+  createPlansService,
+  createPortfoliosService,
   createRulesService,
   createTransactionsService,
   createSettingsService,
@@ -40,6 +43,9 @@ import {
   type MemoryEmailSender,
   type PoolsService,
   type RateLimiter,
+  type OpsService,
+  type PlansService,
+  type PortfoliosService,
   type RulesService,
   type TransactionsService,
   type SettingsService,
@@ -96,6 +102,9 @@ export interface ApiWorld {
   accounts: AccountsService;
   transactions: TransactionsService;
   rules: RulesService;
+  portfolios: PortfoliosService;
+  ops: OpsService;
+  plans: PlansService;
   assets: AssetsService;
   categories: CategoriesService;
   holders: HoldersService;
@@ -197,6 +206,24 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     rules: createRulesService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    portfolios: createPortfoliosService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    ops: createOpsService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    plans: createPlansService({
       auth,
       identity,
       run: database.withPool,
@@ -373,6 +400,9 @@ async function buildScenario(
               (await pool.query('select * from sub_accounts order by id')).rows,
               (await pool.query('select * from transactions order by id')).rows,
               (await pool.query('select * from category_rules order by id')).rows,
+              (await pool.query('select * from portfolios order by id')).rows,
+              (await pool.query('select * from investment_ops order by id')).rows,
+              (await pool.query('select * from plans order by id')).rows,
               (await pool.query('select * from assets order by id')).rows,
               (await pool.query('select * from asset_prices order by asset_id, date')).rows,
               await allCategories(pool),

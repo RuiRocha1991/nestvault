@@ -4,6 +4,7 @@ import './auth';
 import './health';
 import './accounts';
 import './transactions';
+import './investments';
 import './assets';
 import './categories';
 import './holders';
@@ -44,6 +45,9 @@ export function buildOpenApiDocument() {
         description: 'The global category catalogue and the pool’s own categories',
       },
       { name: 'Transactions', description: 'Bank movements with their categories and transfers' },
+      { name: 'Portfolios', description: 'Portfolios with their summary' },
+      { name: 'Operations', description: 'Buys, sells and dividends of the portfolios' },
+      { name: 'Plans', description: 'Regular investment plans and their monthly runs' },
       { name: 'Rules', description: 'Keyword rules that categorize movements' },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },

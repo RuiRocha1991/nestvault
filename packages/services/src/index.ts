@@ -18,4 +18,5 @@ export * from './categories';
 export * from './holders';
 export * from './rules';
 export * from './transactions';
+export * from './investments';
 export * from './settings';

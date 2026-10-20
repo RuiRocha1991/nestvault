@@ -5,6 +5,9 @@ import type { PoolTx } from '../client';
 import { accountHolders, accounts, type AccountRow } from '../schema/accounts';
 import { transactions } from '../schema/transactions';
 
+import { investmentOpsRepo } from './investment-ops.repo';
+import { plansRepo } from './plans.repo';
+
 export type { AccountRow };
 
 export interface AccountValues {
@@ -111,15 +114,19 @@ export const accountsRepo = {
   },
 
   /**
-   * How many movements are on this account (transactions today; operations and interest entries
-   * arrive with NES-42 and NES-40, which add to the count).
+   * How many movements and plans are on this account: transactions, investment operations and
+   * plans (interest entries arrive with NES-40, which adds to the count).
    */
   async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
-    const [row] = await tx
+    const [movements] = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(transactions)
       .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.accountId, id)));
-    return row?.n ?? 0;
+    const [ops, planCount] = await Promise.all([
+      investmentOpsRepo.countByAccount(tx, ctx, id),
+      plansRepo.countByAccount(tx, ctx, id),
+    ]);
+    return (movements?.n ?? 0) + ops + planCount;
   },
 
   /** Every holder link of the pool's accounts (or of the given ones). */

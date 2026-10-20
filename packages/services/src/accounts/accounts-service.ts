@@ -1,9 +1,12 @@
 import {
   accountsRepo,
   holdersRepo,
+  investmentOpsRepo,
   isUuid,
   newId,
+  plansRepo,
   poolSettingsRepo,
+  portfoliosRepo,
   subAccountsRepo,
   withPool,
   type AccountRow,
@@ -13,7 +16,7 @@ import {
   type PoolRunner,
   type PoolTx,
 } from '@nestvault/db';
-import { accountBalances, dec, toFxRates, toEur, type LedgerAccount } from '@nestvault/domain';
+import { accountBalances, dec, toFxRates, toEur } from '@nestvault/domain';
 
 import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
@@ -21,9 +24,11 @@ import { requireSession } from '../auth/require-session';
 import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
+import { CASH_ACCOUNT_TYPES } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
 import { loadFxRates } from '../settings/fx';
 
+import { toLedgerAccount } from './ledger';
 import {
   AccountDto,
   AccountListDto,
@@ -75,9 +80,6 @@ export interface AccountsServiceDeps {
 const invalid = (path: string, message: string) =>
   new ValidationError('The request is not valid.', [{ path, message }]);
 
-const kindOf = (type: string): LedgerAccount['kind'] =>
-  type === 'term_deposit' ? 'term' : type === 'savings' ? 'savings' : 'other';
-
 export function createAccountsService(deps: AccountsServiceDeps): AccountsService {
   const { auth, identity } = deps;
   const run = deps.run ?? withPool;
@@ -107,16 +109,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     // through the same domain function those tasks will feed.
     const balances = accountBalances(
       {
-        accounts: rows.map((row): LedgerAccount => ({
-          id: row.id,
-          currency: row.currency,
-          kind: kindOf(row.type),
-          isBrokerage: row.type === 'brokerage',
-          trackCash: row.trackCash,
-          opening: row.opening,
-          openingDate: row.openingDate,
-          portfolioId: row.portfolioId,
-        })),
+        accounts: rows.map(toLedgerAccount),
         transactions: [],
         interestEntries: [],
         ops: [],
@@ -158,6 +151,13 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     opening: merged.opening ?? '0',
     trackCash: merged.trackCash ?? true,
   });
+
+  /** The linked portfolio must be the pool's own. */
+  async function assertPortfolio(tx: PoolTx, ctx: PoolContext, id: string | null) {
+    if (id && !(await portfoliosRepo.find(tx, ctx, id))) {
+      throw invalid('portfolioId', 'not a portfolio of this pool');
+    }
+  }
 
   /** Rules that span fields: a term deposit is in euros, an IBAN is a text and so on. */
   function assertShape(values: AccountValues) {
@@ -226,6 +226,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
       try {
         await run(ctx, async (tx) => {
           await assertHolders(tx, ctx, holderIds);
+          await assertPortfolio(tx, ctx, values.portfolioId);
           await accountsRepo.insert(tx, ctx, id, values);
           await accountsRepo.setHolders(tx, ctx, id, holderIds);
           for (const sub of data.subAccounts ?? []) {
@@ -276,11 +277,23 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
               data.xtbAccountNo === undefined ? current.xtbAccountNo : data.xtbAccountNo,
           });
           assertShape(values);
+          await assertPortfolio(tx, ctx, values.portfolioId);
           const subs = (await subAccountsRepo.list(tx, ctx)).filter(
             (sub) => sub.accountId === accountId,
           );
           if (values.type !== 'brokerage' && subs.length > 0) {
             throw new ConflictError('Remove the sub-accounts before changing the account type.');
+          }
+          if (!CASH_ACCOUNT_TYPES.has(values.type)) {
+            const [ops, plans] = await Promise.all([
+              investmentOpsRepo.countByAccount(tx, ctx, accountId),
+              plansRepo.countByAccount(tx, ctx, accountId),
+            ]);
+            if (ops + plans > 0) {
+              throw new ConflictError(
+                'This account has investment operations or plans; its type cannot change.',
+              );
+            }
           }
           const holderIds = data.holderIds?.map((holderId) => holderId.toLowerCase());
           if (holderIds) {

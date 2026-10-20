@@ -51,6 +51,28 @@ export const assetPricesRepo = {
       .orderBy(asc(assetPrices.assetId), desc(assetPrices.date));
   },
 
+  /** The newest price of one asset dated on or before `asOf`, if it has any. */
+  async latestFor(
+    tx: PoolTx,
+    ctx: PoolContext,
+    assetId: string,
+    asOf: string,
+  ): Promise<AssetPriceRow | undefined> {
+    const [row] = await tx
+      .select()
+      .from(assetPrices)
+      .where(
+        and(
+          eq(assetPrices.poolId, ctx.poolId),
+          eq(assetPrices.assetId, assetId),
+          lte(assetPrices.date, asOf),
+        ),
+      )
+      .orderBy(desc(assetPrices.date))
+      .limit(1);
+    return row;
+  },
+
   /** Adds the price of a day or replaces it. One statement, so many rows are atomic. */
   async upsertMany(
     tx: PoolTx,

@@ -7,6 +7,14 @@ import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
 import { createHoldersService, type HoldersService } from '../holders';
+import {
+  createOpsService,
+  createPlansService,
+  createPortfoliosService,
+  type OpsService,
+  type PlansService,
+  type PortfoliosService,
+} from '../investments';
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
 import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
@@ -46,6 +54,9 @@ export interface AuthRuntime {
   accounts: AccountsService;
   /** Bank movements: manual entry, categories by hand and transfers. */
   transactions: TransactionsService;
+  portfolios: PortfoliosService;
+  ops: OpsService;
+  plans: PlansService;
   /** Keyword rules that categorize movements. */
   rules: RulesService;
   /** Assets (unique ticker per pool) and their price history. */
@@ -97,6 +108,9 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
     transactions: createTransactionsService({ auth, identity, ...hops }),
+    portfolios: createPortfoliosService({ auth, identity, ...hops }),
+    ops: createOpsService({ auth, identity, ...hops }),
+    plans: createPlansService({ auth, identity, ...hops }),
     rules: createRulesService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
     categories: createCategoriesService({ auth, identity, ...hops }),
