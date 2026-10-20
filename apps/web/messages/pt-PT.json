@@ -834,6 +834,25 @@
       }
     }
   },
+  "notes": {
+    "title": "Nota",
+    "close": "Fechar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Apagar nota",
+    "view": "Ver nota",
+    "label": "Nota deste movimento",
+    "placeholder": "Adiciona uma nota para te lembrares porquê",
+    "counter": "{count} / {max}",
+    "readOnlyEmpty": "Este movimento não tem nota.",
+    "editedBy": "Editado por {name} · {date}",
+    "someone": "alguém",
+    "errorTitle": "Não foi possível guardar a nota",
+    "errorText": "Tenta novamente dentro de instantes.",
+    "forbidden": "Não tens permissão para editar notas.",
+    "lockedTitle": "Pedidos a mais",
+    "lockedText": "Tenta novamente dentro de <time></time>."
+  },
   "holders": {
     "title": "Agregado familiar",
     "lead": "Quem se regista no agregado aparece aqui automaticamente. Adiciona também quem não tem conta, como as crianças.",
