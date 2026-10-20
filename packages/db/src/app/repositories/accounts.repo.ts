@@ -1,8 +1,9 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
 import { accountHolders, accounts, type AccountRow } from '../schema/accounts';
+import { transactions } from '../schema/transactions';
 
 export type { AccountRow };
 
@@ -110,13 +111,15 @@ export const accountsRepo = {
   },
 
   /**
-   * How many transactions, operations and interest entries sit on this account. Those tables
-   * arrive with NES-44, NES-42 and NES-40, which replace this with the real count; until then
-   * nothing references an account and deleting is never blocked.
+   * How many movements are on this account (transactions today; operations and interest entries
+   * arrive with NES-42 and NES-40, which add to the count).
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the signature those tasks fill in
-  countReferences(_tx: PoolTx, _ctx: PoolContext, _id: string): Promise<number> {
-    return Promise.resolve(0);
+  async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
+    const [row] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(transactions)
+      .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.accountId, id)));
+    return row?.n ?? 0;
   },
 
   /** Every holder link of the pool's accounts (or of the given ones). */

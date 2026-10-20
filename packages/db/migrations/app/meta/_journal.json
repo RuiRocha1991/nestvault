@@ -43,6 +43,13 @@
       "when": 1792448220506,
       "tag": "0005_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792449071582,
+      "tag": "0006_transactions_and_rules",
+      "breakpoints": true
     }
   ]
 }

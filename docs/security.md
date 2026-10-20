@@ -147,6 +147,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   pool, raw `UPDATE`/`DELETE`/"steal" and a `pool_id` null insert refused, another pool's category
   invisible, settings pointing at another pool's category refused, injection payloads, CHECKs),
   `tests/services/categories.integration.test.ts` and the generated route cases for `/categories`.
+- **Transactions and rules (NES-44)**: `transactions` and `category_rules` follow the block above
+  (`pool_id`, FORCE RLS, repositories on a `PoolContext`). The account is a composite foreign key
+  `(pool_id, account_id)`; the category (global or the pool's own, so no pool id to include) is a
+  plain foreign key plus a row policy whose `WITH CHECK` requires the category to be visible through
+  RLS, so a pool cannot attach a movement or a rule to another pool's category even by raw SQL.
+  Accounts and categories in use are protected by `ON DELETE RESTRICT`. Lists sort and filter only
+  through allow-lists (`z.enum` of `date|amount|description`, filter keys, kinds): the column
+  comes from a map in the repository, never from the request; pagination is a keyset cursor that
+  names its sort (another sort's cursor answers 400); the text search escapes `%`, `_` and `\`
+  and is a bound parameter. A transaction written by hand needs `transactions.write` (members too),
+  rules need `categories.write`; writes are audited (`transaction.*`, `rule.*`, target id and a
+  count, never descriptions, keywords or amounts). Verified by
+  `tests/db/transactions.repo.integration.test.ts` (`expectIsolated` for every function, RLS,
+  composite and visibility checks, injection payloads, escaped LIKE, keyset paging, 20 000 rows in
+  under 150 ms), `tests/services/transactions.integration.test.ts`,
+  `tests/services/rules.integration.test.ts` and the generated route cases for `/transactions` and
+  `/rules`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

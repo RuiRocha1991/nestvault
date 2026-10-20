@@ -6,7 +6,6 @@ import { categoryMessageKey } from '@webapp/lib/category-name';
 
 import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 
-
 const names = messages.categories as Record<string, string>;
 
 describe('category names (ADR 0004)', () => {

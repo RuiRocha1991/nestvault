@@ -12,7 +12,9 @@ import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
+import { createRulesService, type RulesService } from '../rules';
 import { createSettingsService, type SettingsService } from '../settings';
+import { createTransactionsService, type TransactionsService } from '../transactions';
 
 import { createAuth, type Auth } from './create-auth';
 
@@ -42,6 +44,10 @@ export interface AuthRuntime {
   audit: AuditService;
   /** Bank, savings, deposit and brokerage accounts with their holders and sub-accounts. */
   accounts: AccountsService;
+  /** Bank movements: manual entry, categories by hand and transfers. */
+  transactions: TransactionsService;
+  /** Keyword rules that categorize movements. */
+  rules: RulesService;
   /** Assets (unique ticker per pool) and their price history. */
   assets: AssetsService;
   /** The global category catalogue plus the pool's own categories and settings. */
@@ -90,6 +96,8 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
+    transactions: createTransactionsService({ auth, identity, ...hops }),
+    rules: createRulesService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
     categories: createCategoriesService({ auth, identity, ...hops }),
     holders: createHoldersService({ auth, identity, ...hops }),

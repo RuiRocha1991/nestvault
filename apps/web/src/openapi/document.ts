@@ -3,6 +3,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 import './auth';
 import './health';
 import './accounts';
+import './transactions';
 import './assets';
 import './categories';
 import './holders';
@@ -42,6 +43,8 @@ export function buildOpenApiDocument() {
         name: 'Categories',
         description: 'The global category catalogue and the pool’s own categories',
       },
+      { name: 'Transactions', description: 'Bank movements with their categories and transfers' },
+      { name: 'Rules', description: 'Keyword rules that categorize movements' },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },
       { name: 'Auth', description: 'Sign-up, sign-in, sessions and passwords (Better Auth)' },

@@ -557,7 +557,9 @@
       "settings": "Definições",
       "account": "Contas",
       "asset": "Ativos",
-      "category": "Categorias"
+      "category": "Categorias",
+      "transaction": "Movimentos",
+      "rule": "Regras"
     },
     "actions": {
       "auth": {
@@ -611,6 +613,18 @@
         "updated": "Categoria alterada",
         "deleted": "Categoria eliminada",
         "settingsUpdated": "Definições da categoria alteradas"
+      },
+      "transaction": {
+        "created": "Movimento criado",
+        "updated": "Movimento alterado",
+        "deleted": "Movimento eliminado"
+      },
+      "rule": {
+        "created": "Regra criada",
+        "updated": "Regra alterada",
+        "deleted": "Regra eliminada",
+        "reordered": "Regras reordenadas",
+        "applied": "Regras aplicadas aos movimentos"
       }
     },
     "table": {

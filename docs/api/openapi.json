@@ -50,6 +50,14 @@
       "description": "The global category catalogue and the pool’s own categories"
     },
     {
+      "name": "Transactions",
+      "description": "Bank movements with their categories and transfers"
+    },
+    {
+      "name": "Rules",
+      "description": "Keyword rules that categorize movements"
+    },
+    {
       "name": "Holders",
       "description": "The people of the household who own accounts"
     },
@@ -2698,6 +2706,1698 @@
           },
           "409": {
             "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/transactions": {
+      "get": {
+        "operationId": "listTransactions",
+        "summary": "Movements of the pool",
+        "description": "Any member may list. Filters: `month` (yyyy-mm), `accountId`, `categoryId` (or `none`), `kind`, `q` (text in the description, matched literally: `%`, `_` and quotes are data) and `withNotes`. `sort` is one of `date`, `amount`, `description` (anything else answers 400), `order` `asc` or `desc`. Pagination is by cursor: pass `nextCursor` back as `cursor` (a cursor of another sort answers 400).",
+        "tags": [
+          "Transactions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": false,
+            "name": "month",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "none"
+                  ]
+                }
+              ]
+            },
+            "required": false,
+            "name": "categoryId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expense",
+                "income",
+                "refund",
+                "transfer",
+                "invest"
+              ]
+            },
+            "required": false,
+            "name": "kind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "withNotes",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "date",
+                "amount",
+                "description"
+              ]
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 600
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of movements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "categoryId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "expense",
+                              "income",
+                              "refund",
+                              "transfer",
+                              "invest"
+                            ]
+                          },
+                          "transfer": {
+                            "type": "boolean"
+                          },
+                          "pairId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "transferLocked": {
+                            "type": "boolean"
+                          },
+                          "manualCategory": {
+                            "type": "boolean"
+                          },
+                          "depositInterest": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "date",
+                          "description",
+                          "amount",
+                          "categoryId",
+                          "kind",
+                          "transfer",
+                          "pairId",
+                          "transferLocked",
+                          "manualCategory",
+                          "depositInterest",
+                          "note"
+                        ]
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "transactions",
+                    "nextCursor"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTransaction",
+        "summary": "Record a movement",
+        "description": "Needs `transactions.write` (owner, admin and member). `amount` is signed, in the account currency, a decimal string and not zero. Without `categoryId` the pool’s rules choose one; with one it counts as chosen by hand. A movement that mirrors one in another account (same cents, opposite sign, within the transfer window) is paired as an internal transfer. The body is strict: `poolId`, `hash`, `pairId` or any other field answers 400.",
+        "tags": [
+          "Transactions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "categoryId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "date",
+                  "description",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new movement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "categoryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "expense",
+                        "income",
+                        "refund",
+                        "transfer",
+                        "invest"
+                      ]
+                    },
+                    "transfer": {
+                      "type": "boolean"
+                    },
+                    "pairId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "transferLocked": {
+                      "type": "boolean"
+                    },
+                    "manualCategory": {
+                      "type": "boolean"
+                    },
+                    "depositInterest": {
+                      "type": "boolean"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "date",
+                    "description",
+                    "amount",
+                    "categoryId",
+                    "kind",
+                    "transfer",
+                    "pairId",
+                    "transferLocked",
+                    "manualCategory",
+                    "depositInterest",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/transactions/{id}": {
+      "patch": {
+        "operationId": "updateTransaction",
+        "summary": "Set the category or the transfer flag",
+        "description": "Needs `transactions.write`. `categoryId` sets the category by hand (rules never override it); `null` hands it back to the rules. `transfer` fixes the internal-transfer flag (detection then leaves it alone); `false` releases the other side of a pair. At least one field is needed.",
+        "tags": [
+          "Transactions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categoryId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "transfer": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated movement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "categoryId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "expense",
+                        "income",
+                        "refund",
+                        "transfer",
+                        "invest"
+                      ]
+                    },
+                    "transfer": {
+                      "type": "boolean"
+                    },
+                    "pairId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "transferLocked": {
+                      "type": "boolean"
+                    },
+                    "manualCategory": {
+                      "type": "boolean"
+                    },
+                    "depositInterest": {
+                      "type": "boolean"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "date",
+                    "description",
+                    "amount",
+                    "categoryId",
+                    "kind",
+                    "transfer",
+                    "pairId",
+                    "transferLocked",
+                    "manualCategory",
+                    "depositInterest",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTransaction",
+        "summary": "Delete a movement",
+        "description": "Needs `transactions.write`. The other side of a transfer is released.",
+        "tags": [
+          "Transactions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Movement deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/rules": {
+      "get": {
+        "operationId": "listRules",
+        "summary": "Keyword rules",
+        "description": "Any member may list. In the order the rules are tried.",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rules of the pool",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "keyword": {
+                            "type": "string"
+                          },
+                          "categoryId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "position": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "keyword",
+                          "categoryId",
+                          "accountId",
+                          "position"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "rules"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRule",
+        "summary": "Add a rule",
+        "description": "Needs `categories.write` (owner, admin). The keyword is matched at the start of a word of the description; the category is global or the pool’s own (another pool’s answers 400); `accountId` optionally restricts the rule to one account. The rule goes after the last.",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keyword": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "accountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "keyword",
+                  "categoryId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "keyword": {
+                      "type": "string"
+                    },
+                    "categoryId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "position": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "keyword",
+                    "categoryId",
+                    "accountId",
+                    "position"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/rules/{id}": {
+      "patch": {
+        "operationId": "updateRule",
+        "summary": "Change a rule",
+        "description": "Needs `categories.write`. Fields left out stay; `accountId: null` applies the rule to every account.",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keyword": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "accountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "keyword": {
+                      "type": "string"
+                    },
+                    "categoryId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "position": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "keyword",
+                    "categoryId",
+                    "accountId",
+                    "position"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteRule",
+        "summary": "Delete a rule",
+        "description": "Needs `categories.write`.",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Rule deleted"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/rules/order": {
+      "put": {
+        "operationId": "reorderRules",
+        "summary": "Reorder the rules",
+        "description": "Needs `categories.write`. `ids` must be every rule of the pool, once each, in the new order (anything else answers 400).",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 500
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rules in their new order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "keyword": {
+                            "type": "string"
+                          },
+                          "categoryId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "position": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "keyword",
+                          "categoryId",
+                          "accountId",
+                          "position"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "rules"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/rules/apply": {
+      "post": {
+        "operationId": "applyRules",
+        "summary": "Apply the rules to the existing movements",
+        "description": "Needs `categories.write`. `confirm: false` only previews (counts and the first 200 changes); `confirm: true` applies them. A category chosen by hand is never overridden.",
+        "tags": [
+          "Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What the rules change (or changed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matched": {
+                      "type": "integer"
+                    },
+                    "changed": {
+                      "type": "integer"
+                    },
+                    "applied": {
+                      "type": "boolean"
+                    },
+                    "changes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "transactionId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "fromCategoryId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "toCategoryId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "transfer": {
+                            "type": [
+                              "boolean",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "transactionId",
+                          "description",
+                          "fromCategoryId",
+                          "toCategoryId",
+                          "transfer"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "matched",
+                    "changed",
+                    "applied",
+                    "changes"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
