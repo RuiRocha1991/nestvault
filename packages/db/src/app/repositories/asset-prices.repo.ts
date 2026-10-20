@@ -51,6 +51,15 @@ export const assetPricesRepo = {
       .orderBy(asc(assetPrices.assetId), desc(assetPrices.date));
   },
 
+  /** Every price of the pool's assets dated on or after `from` (`yyyy-mm-dd`), oldest first. */
+  async since(tx: PoolTx, ctx: PoolContext, from: string): Promise<AssetPriceRow[]> {
+    return tx
+      .select()
+      .from(assetPrices)
+      .where(and(eq(assetPrices.poolId, ctx.poolId), gte(assetPrices.date, from)))
+      .orderBy(asc(assetPrices.date), asc(assetPrices.assetId));
+  },
+
   /** The newest price of one asset dated on or before `asOf`, if it has any. */
   async latestFor(
     tx: PoolTx,

@@ -103,6 +103,8 @@ export interface EngineTransaction {
   transfer: boolean;
   pairId: string | null;
   transferLocked: boolean;
+  /** Already counted as the interest of a deposit. */
+  depositInterest: boolean;
 }
 
 const engineColumns = {
@@ -116,6 +118,7 @@ const engineColumns = {
   transfer: transactions.transfer,
   pairId: transactions.pairId,
   transferLocked: transactions.transferLocked,
+  depositInterest: transactions.depositInterest,
 };
 
 export interface EngineChange {

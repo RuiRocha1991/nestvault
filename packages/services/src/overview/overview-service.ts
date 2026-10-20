@@ -1,0 +1,368 @@
+import {
+  accountsRepo,
+  assetPricesRepo,
+  assetsRepo,
+  categoriesRepo,
+  categorySettingsRepo,
+  investmentOpsRepo,
+  poolSettingsRepo,
+  portfolioCashMovesRepo,
+  portfoliosRepo,
+  transactionsRepo,
+  withPool,
+  type AccountRow,
+  type IdentityDatabase,
+  type PoolContext,
+  type PoolRunner,
+  type PoolTx,
+} from '@nestvault/db';
+import {
+  accountBalances,
+  accountInterest,
+  dec,
+  dividendsForecast,
+  dividendsReceived,
+  expensesByCategory,
+  fx,
+  interestLast12Months,
+  interestTotal,
+  lastMonths,
+  monthEnd,
+  monthFlows,
+  monthKey,
+  monthsBetween,
+  netWorths,
+  nextMonths,
+  portfolioSummary,
+  sum,
+  toEur,
+  toFxRates,
+  toPlain,
+  type Category,
+  type CategoryKind,
+  type Dec,
+  type FxRates,
+  type InterestCandidate,
+  type InvestmentAsset,
+  type LedgerData,
+  type PortfolioSummary,
+  type SummaryAccount,
+  type Transaction,
+} from '@nestvault/domain';
+
+import { toLedgerAccount } from '../accounts/ledger';
+import type { Auth } from '../auth/create-auth';
+import { requireSession } from '../auth/require-session';
+import { ValidationError } from '../errors';
+import { can, requirePoolAccess } from '../guards/pool-access';
+import { toCashMove, toInvestmentOp } from '../investments/domain';
+import { loadSavingsLedger } from '../savings/domain';
+import { loadFxRates } from '../settings/fx';
+import { toEngineTransaction } from '../transactions/engine';
+
+import { OVERVIEW_MAX_MONTHS, OverviewDto, OverviewQuery, type OverviewRange } from './schemas';
+
+export interface OverviewService {
+  /**
+   * Everything the overview screen shows, in one read: KPIs with sparklines, net worth evolution,
+   * portfolios, this month's expenses by category and the dividend forecast (any member).
+   */
+  get(headers: Headers, poolId: string, query?: unknown): Promise<OverviewDto>;
+}
+
+export interface OverviewServiceDeps {
+  auth: Auth;
+  identity: IdentityDatabase;
+  /** Runs work inside `withPool`; tests pass their own database. */
+  run?: PoolRunner;
+  now?: () => Date;
+}
+
+const ZERO = dec(0);
+const HUNDRED = dec(100);
+const FORECAST_MONTHS = 12;
+const FALLBACK_COLOR = '#8C8FB8';
+const DEFAULT_TAX = '28';
+
+/** `part / whole` as a percentage; 0 without a whole. */
+const percent = (part: Dec, whole: Dec): Dec => (whole.isZero() ? ZERO : part.div(whole).times(HUNDRED));
+
+/** Change of `current` against `previous` in percent; 0 when there is nothing to compare with. */
+const change = (current: Dec, previous: Dec): Dec =>
+  previous.isZero() ? ZERO : current.minus(previous).div(previous).times(HUNDRED);
+
+const plain = (values: readonly Dec[]): string[] => values.map((value) => toPlain(value));
+
+function earliest(dates: readonly (string | null | undefined)[]): string | null {
+  let first: string | null = null;
+  for (const date of dates) if (date && (first === null || date < first)) first = date;
+  return first;
+}
+
+export function createOverviewService(deps: OverviewServiceDeps): OverviewService {
+  const { auth, identity } = deps;
+  const run = deps.run ?? withPool;
+  const now = deps.now ?? (() => new Date());
+
+  /** The months of the chart: the last 6, 12 or 24, or from the first record up to the cap. */
+  function monthsOf(range: OverviewRange, today: string, firstDate: string | null): string[] {
+    if (range !== 'all') return lastMonths(Number(range), today);
+    const first = firstDate ? Math.max(1, monthsBetween(firstDate, today) + 1) : 1;
+    // At least 2 months so the "previous month" has something to compare with.
+    return lastMonths(Math.min(OVERVIEW_MAX_MONTHS, Math.max(2, first)), today);
+  }
+
+  /** The price history from `from` on, with the price in force at `from` as its first entry. */
+  async function loadAssets(
+    tx: PoolTx,
+    ctx: PoolContext,
+    from: string,
+    today: string,
+  ): Promise<InvestmentAsset[]> {
+    const [assetRows, baseline, later] = await Promise.all([
+      assetsRepo.list(tx, ctx),
+      assetPricesRepo.latestAsOf(tx, ctx, from),
+      assetPricesRepo.since(tx, ctx, from),
+    ]);
+    const history = new Map<string, { date: string; price: string }[]>();
+    for (const row of [...baseline, ...later]) {
+      const list = history.get(row.assetId) ?? [];
+      list.push({ date: row.date, price: row.price });
+      history.set(row.assetId, list);
+    }
+    return assetRows.map((row) => {
+      const prices = history.get(row.id) ?? [];
+      // The price in force today: the newest entry dated up to today (a future one is ignored).
+      let current: { date: string; price: string } | undefined;
+      for (const entry of prices) {
+        if (entry.date <= today && (!current || entry.date >= current.date)) current = entry;
+      }
+      return {
+        id: row.id,
+        currency: row.currency,
+        price: current?.price ?? '0',
+        prices,
+        dps: row.dps,
+        divMonths: row.divMonths,
+      };
+    });
+  }
+
+  async function load(
+    tx: PoolTx,
+    ctx: PoolContext,
+    today: string,
+    range: OverviewRange,
+  ): Promise<OverviewDto> {
+    const [
+      accountRows,
+      opRows,
+      moveRows,
+      txRows,
+      categoryRows,
+      settingRows,
+      portfolioRows,
+      pool,
+      savings,
+      resolved,
+    ] = await Promise.all([
+      accountsRepo.list(tx, ctx),
+      investmentOpsRepo.list(tx, ctx),
+      portfolioCashMovesRepo.list(tx, ctx),
+      transactionsRepo.listForEngine(tx, ctx),
+      categoriesRepo.list(tx, ctx),
+      categorySettingsRepo.list(tx, ctx),
+      portfoliosRepo.list(tx, ctx),
+      poolSettingsRepo.find(tx, ctx),
+      loadSavingsLedger(tx, ctx),
+      loadFxRates(tx, ctx, today),
+    ]);
+    const rates: FxRates = toFxRates(resolved);
+    const ops = opRows.map(toInvestmentOp);
+    const moves = moveRows.map(toCashMove);
+    const transactions: Transaction[] = txRows.map(toEngineTransaction);
+    const defaultTax = pool?.depositTax ?? DEFAULT_TAX;
+
+    // "All" starts at the first record: movements are sorted by date, the rest is scanned.
+    const firstDate = earliest([
+      transactions[0]?.date,
+      ...ops.map((op) => op.date),
+      ...accountRows.map((row) => row.openingDate),
+    ]);
+    const months = monthsOf(range, today, firstDate);
+    const current = monthKey(today);
+    const dates = months.map((month) => (month === current ? today : monthEnd(month)));
+    const assets = await loadAssets(tx, ctx, `${months[0] ?? current}-01`, today);
+
+    const kindOfCategory = (kind: string) => kind as CategoryKind;
+    const categories: Category[] = categoryRows.map((row) => ({
+      id: row.id,
+      kind: kindOfCategory(row.kind),
+      systemKey: row.systemKey,
+    }));
+    const budgets: Record<string, string> = {};
+    for (const row of settingRows) if (row.monthlyBudget) budgets[row.categoryId] = row.monthlyBudget;
+
+    const data: LedgerData = {
+      accounts: accountRows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
+      transactions,
+      interestEntries: savings.interestEntries,
+      ops,
+      assets,
+      moves,
+      categories,
+      budgets,
+      rates,
+      defaultTax,
+    };
+
+    // Balances and interest of today feed the summaries; interest also gives the 12-month figure.
+    const balances = accountBalances(data, today);
+    const categoryById = new Map(categoryRows.map((row) => [row.id, row]));
+    const candidatesOf = new Map<string, InterestCandidate[]>();
+    for (const movement of transactions) {
+      const category = movement.categoryId ? categoryById.get(movement.categoryId) : undefined;
+      const list = candidatesOf.get(movement.accountId) ?? [];
+      list.push({
+        id: movement.id,
+        date: movement.date,
+        amount: movement.amount,
+        description: movement.description,
+        ...(movement.transfer !== undefined && { transfer: movement.transfer }),
+        ...(movement.depositInterest !== undefined && { depositInterest: movement.depositInterest }),
+        category: category
+          ? { kind: category.kind, name: category.name, systemKey: category.systemKey }
+          : null,
+      });
+      candidatesOf.set(movement.accountId, list);
+    }
+    let interest12 = ZERO;
+    const summaryAccounts: SummaryAccount[] = accountRows.map((row: AccountRow) => {
+      const entries = accountInterest(
+        {
+          deposit: savings.deposits.get(row.id) ?? null,
+          manual: savings.interestEntries.filter((entry) => entry.accountId === row.id),
+          transactions: candidatesOf.get(row.id) ?? [],
+        },
+        today,
+        defaultTax,
+      );
+      interest12 = interest12.plus(toEur(interestLast12Months(entries, today), row.currency, rates));
+      return {
+        id: row.id,
+        currency: row.currency,
+        trackCash: row.trackCash,
+        isBrokerage: row.type === 'brokerage',
+        portfolioId: row.portfolioId,
+        balance: balances.get(row.id) ?? '0',
+        interest: toPlain(interestTotal(entries, today)),
+      };
+    });
+
+    const summaryInput = { ops, assets, accounts: summaryAccounts, moves, rates };
+    const summaryOf = (portfolioIds?: string[]): PortfolioSummary =>
+      portfolioSummary(summaryInput, {
+        asOf: today,
+        today,
+        ...(portfolioIds ? { portfolioIds } : {}),
+      });
+    const all = summaryOf();
+
+    const worth = netWorths(data, dates, today);
+    const totals = worth.map((w) => w.net);
+    const investments = worth.map((w) => w.investments);
+    const flows = monthFlows(data, months);
+    const flow = flows[flows.length - 1];
+    const previousFlow = flows[flows.length - 2];
+    const netNow = totals[totals.length - 1] ?? ZERO;
+    const netBefore = totals[totals.length - 2] ?? totals[0] ?? ZERO;
+
+    const budgetTotal = sum(
+      categories
+        .filter((category) => category.kind === 'expense')
+        .map((category) => budgets[category.id] ?? 0),
+    );
+    const expensesNow = flow?.expenses ?? ZERO;
+
+    const byCategory = expensesByCategory(data, current);
+    const settingOf = new Map(settingRows.map((row) => [row.categoryId, row]));
+    const expenseItems = byCategory.map((item) => {
+      const row = item.categoryId ? categoryById.get(item.categoryId) : undefined;
+      const setting = item.categoryId ? settingOf.get(item.categoryId) : undefined;
+      return {
+        categoryId: item.categoryId,
+        systemKey: row?.systemKey ?? null,
+        name: row?.name ?? null,
+        color: setting?.colorOverride ?? row?.color ?? FALLBACK_COLOR,
+        value: toPlain(item.value),
+      };
+    });
+
+    const forecastMonths = nextMonths(FORECAST_MONTHS, today);
+    const forecast = dividendsForecast(all.holdings, forecastMonths);
+    const received = dividendsReceived(ops, assets, rates, months);
+
+    return OverviewDto.parse({
+      asOf: today,
+      range,
+      empty: accountRows.length === 0 && ops.length === 0,
+      kpis: {
+        netWorth: {
+          value: toPlain(netNow),
+          changePct: toPlain(change(netNow, netBefore)),
+          spark: plain(totals),
+        },
+        investments: {
+          value: toPlain(all.value),
+          returnPct: toPlain(all.totalPct.times(HUNDRED)),
+          spark: plain(investments),
+        },
+        passiveIncome: {
+          annual: toPlain(all.income),
+          monthly: toPlain(all.income.div(12)),
+          yieldPct: toPlain(all.yld.times(HUNDRED)),
+          interest12: toPlain(interest12),
+          spark: plain(received),
+        },
+        monthExpenses: {
+          value: toPlain(expensesNow),
+          budget: budgetTotal.gt(0) ? toPlain(budgetTotal) : null,
+          budgetUsedPct: budgetTotal.gt(0) ? toPlain(percent(expensesNow, budgetTotal)) : null,
+          changePct: toPlain(change(expensesNow, previousFlow?.expenses ?? ZERO)),
+          spark: plain(flows.map((f) => f.expenses)),
+        },
+      },
+      evolution: { months, total: plain(totals), investments: plain(investments) },
+      goals: [],
+      portfolios: portfolioRows.map((row) => {
+        const summary = summaryOf([row.id]);
+        return {
+          id: row.id,
+          name: row.name,
+          color: row.color,
+          currency: row.currency,
+          value: toPlain(summary.valueAll.div(fx(row.currency, rates))),
+          returnPct: toPlain(summary.profitPct.times(HUNDRED)),
+        };
+      }),
+      expenses: { month: current, total: toPlain(expensesNow), categories: expenseItems },
+      dividends: {
+        months: forecastMonths,
+        values: plain(forecast.map((month) => month.value)),
+        total: toPlain(sum(forecast.map((month) => month.value))),
+      },
+    });
+  }
+
+  return {
+    async get(headers, poolId, query = {}) {
+      const session = await requireSession(auth, headers);
+      const parsed = OverviewQuery.safeParse(query);
+      if (!parsed.success) throw new ValidationError();
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'pool.read');
+      const today = now().toISOString().slice(0, 10);
+      return run(ctx, (tx) => load(tx, ctx, today, parsed.data.range));
+    },
+  };
+}

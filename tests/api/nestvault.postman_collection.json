@@ -4881,6 +4881,52 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Overview",
+      "item": [
+        {
+          "name": "Overview of the pool",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/overview?range=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "range",
+                  "value": "12",
+                  "description": "6, 12, 24 or all"
+                }
+              ]
+            },
+            "description": "KPIs, net worth evolution, portfolios, this month's expenses by category and the dividend forecast. Any member may read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has the KPIs', () => { const b = pm.response.json(); pm.expect(b.kpis.netWorth.value).to.be.a('string'); pm.expect(b.evolution.months).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

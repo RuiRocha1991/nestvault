@@ -21,6 +21,7 @@ import { createInvitesService, createInviteVerifier, type InvitesService } from 
 import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createNotesService, type NotesService } from '../notes';
+import { createOverviewService, type OverviewService } from '../overview';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createPrototypeImportService, type PrototypeImportService } from '../prototype-import';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
@@ -77,6 +78,8 @@ export interface AuthRuntime {
   interest: InterestService;
   /** Notes on movements and operations, and month notes. */
   notes: NotesService;
+  /** The overview screen in one read. */
+  overview: OverviewService;
   /** Keyword rules that categorize movements. */
   rules: RulesService;
   /** Assets (unique ticker per pool) and their price history. */
@@ -138,6 +141,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),
     notes: createNotesService({ auth, identity, ...hops }),
+    overview: createOverviewService({ auth, identity, ...hops }),
     rules: createRulesService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
     categories: createCategoriesService({ auth, identity, ...hops }),

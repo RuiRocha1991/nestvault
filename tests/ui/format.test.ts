@@ -14,6 +14,12 @@ describe('formatMoney', () => {
     expect(formatMoney('1361.87', 'USD')).toBe(`1${NBSP}361,87${NBSP}US$`);
   });
 
+  it('rounds to whole units with digits: 0, as the overview totals do', () => {
+    expect(formatMoney('89325.5', 'EUR', { digits: 0 })).toBe(`89${NBSP}326${NBSP}€`);
+    expect(formatMoney('-0.4', 'EUR', { digits: 0 })).toBe(`0${NBSP}€`);
+    expect(formatMoney('1234.5', 'EUR', { digits: 1 })).toBe(`1${NBSP}234,5${NBSP}€`);
+  });
+
   it('defaults to EUR', () => {
     expect(formatMoney('5')).toBe(`5,00${NBSP}€`);
   });

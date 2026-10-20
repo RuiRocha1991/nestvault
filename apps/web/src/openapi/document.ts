@@ -7,6 +7,7 @@ import './transactions';
 import './investments';
 import './savings';
 import './notes';
+import './overview';
 import './assets';
 import './categories';
 import './holders';
@@ -48,6 +49,7 @@ export function buildOpenApiDocument() {
         description: 'The global category catalogue and the pool’s own categories',
       },
       { name: 'Transactions', description: 'Bank movements with their categories and transfers' },
+      { name: 'Overview', description: 'The overview screen in one read' },
       { name: 'Portfolios', description: 'Portfolios with their summary' },
       { name: 'Operations', description: 'Buys, sells and dividends of the portfolios' },
       { name: 'Plans', description: 'Regular investment plans and their monthly runs' },

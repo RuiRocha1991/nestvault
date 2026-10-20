@@ -25,6 +25,7 @@ import {
   NoteDto,
   PortfolioDto,
   PortfolioListDto,
+  OverviewDto,
   PortfolioSummaryDto,
   RuleDto,
   RuleListDto,
@@ -1576,6 +1577,24 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
         body: { name: 'X', color: '#778899', currency: 'EUR', targets: { etf: '101' } },
         expect: 400,
       },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/overview`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/overview/route')),
+    success: { status: 200, schema: OverviewDto },
+    noForeignBecause: 'summarizes the URL’s own pool; the leak probe covers pool B’s operations',
+    leaks: async (s) => {
+      await opIn(s, 'A');
+      const other = await opIn(s, 'B');
+      return [other.id, other.portfolioId, other.assetId];
+    },
+    negatives: [
+      { name: 'an unknown filter', query: '?poolId=1', expect: 400 },
+      { name: 'a range that does not exist', query: '?range=7', expect: 400 },
     ],
   },
   {
