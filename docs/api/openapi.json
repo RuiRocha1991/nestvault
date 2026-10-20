@@ -6801,6 +6801,449 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/portfolios/{id}/cash-moves": {
+      "get": {
+        "operationId": "listCashMoves",
+        "summary": "Cash moves of a portfolio",
+        "description": "Newest first. Any member may list.",
+        "tags": [
+          "Portfolios"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "moves": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "portfolioId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "transactionId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "portfolioId",
+                          "accountId",
+                          "date",
+                          "amount",
+                          "note",
+                          "transactionId",
+                          "mirror"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "moves"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "moveCash",
+        "summary": "Move cash to an account",
+        "description": "Needs `ops.write` (owner, admin, member). Moves `amount` (positive, EUR) of the portfolio cash to a checking or savings account. More than the portfolio cash on `date` answers 400. With `mirror=true` the matching bank movement (a transfer) is created in the same database transaction, so the account balance rises and net worth does not change; without it the statement import brings the line and it is recognised as a transfer, not income. The note is user content. The body is strict: the pool and the portfolio come from the URL.",
+        "tags": [
+          "Portfolios"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^\\d{1,14}(\\.\\d{1,4})?$"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]*$"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "date",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "portfolioId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "transactionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "mirror": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "portfolioId",
+                    "accountId",
+                    "date",
+                    "amount",
+                    "note",
+                    "transactionId",
+                    "mirror"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/portfolios/{id}/cash-moves/{moveId}": {
+      "delete": {
+        "operationId": "deleteCashMove",
+        "summary": "Undo a cash move",
+        "description": "Needs `ops.write`. The bank movement the move created (the mirror) is deleted with it; an imported line that was matched to the move stays.",
+        "tags": [
+          "Portfolios"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "moveId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/plans": {
       "get": {
         "operationId": "listPlans",

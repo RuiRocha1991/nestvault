@@ -86,6 +86,11 @@ export type {
   InvestmentOpType,
   InvestmentOpValues,
 } from './app/repositories/investment-ops.repo';
+export { portfolioCashMovesRepo } from './app/repositories/portfolio-cash-moves.repo';
+export type {
+  PortfolioCashMoveRow,
+  PortfolioCashMoveValues,
+} from './app/repositories/portfolio-cash-moves.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';

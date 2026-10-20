@@ -8,9 +8,11 @@ import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
 import { createHoldersService, type HoldersService } from '../holders';
 import {
+  createCashMovesService,
   createOpsService,
   createPlansService,
   createPortfoliosService,
+  type CashMovesService,
   type OpsService,
   type PlansService,
   type PortfoliosService,
@@ -65,6 +67,8 @@ export interface AuthRuntime {
   transactions: TransactionsService;
   portfolios: PortfoliosService;
   ops: OpsService;
+  /** Cash moves from a portfolio to a bank account. */
+  cashMoves: CashMovesService;
   plans: PlansService;
   /** Savings products, term deposits and manual interest entries. */
   products: ProductsService;
@@ -125,6 +129,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     transactions: createTransactionsService({ auth, identity, ...hops }),
     portfolios: createPortfoliosService({ auth, identity, ...hops }),
     ops: createOpsService({ auth, identity, ...hops }),
+    cashMoves: createCashMovesService({ auth, identity, ...hops }),
     plans: createPlansService({ auth, identity, ...hops }),
     products: createProductsService({ auth, identity, ...hops }),
     deposits: createDepositsService({ auth, identity, ...hops }),

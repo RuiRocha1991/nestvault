@@ -8,6 +8,7 @@ import {
   poolSettingsRepo,
   portfoliosRepo,
   subAccountsRepo,
+  transactionsRepo,
   withPool,
   type AccountRow,
   type AccountValues,
@@ -28,6 +29,7 @@ import { CASH_ACCOUNT_TYPES } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
+import { toEngineTransaction } from '../transactions/engine';
 
 import { toLedgerAccount } from './ledger';
 import {
@@ -99,20 +101,21 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
       ? [await accountsRepo.find(tx, ctx, only)].filter((row): row is AccountRow => !!row)
       : await accountsRepo.list(tx, ctx);
     const ids = rows.map((row) => row.id);
-    const [links, subs, resolved, settings, savings] = await Promise.all([
+    const [links, subs, resolved, settings, savings, txRows] = await Promise.all([
       accountsRepo.listHolders(tx, ctx, ids),
       subAccountsRepo.list(tx, ctx),
       loadFxRates(tx, ctx, today),
       poolSettingsRepo.find(tx, ctx),
       loadSavingsLedger(tx, ctx),
+      transactionsRepo.listForEngine(tx, ctx),
     ]);
     const rates = toFxRates(resolved);
-    // Deposits and manual interest feed the balance; movements and operations join them as their
-    // modules are wired in (the same domain function reads them all).
+    // Movements, deposits and manual interest feed the balance; operations join them as their
+    // module is wired in (the same domain function reads them all).
     const balances = accountBalances(
       {
         accounts: rows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
-        transactions: [],
+        transactions: txRows.map(toEngineTransaction),
         interestEntries: savings.interestEntries,
         ops: [],
         assets: [],

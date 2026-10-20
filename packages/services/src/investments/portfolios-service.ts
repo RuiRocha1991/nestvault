@@ -6,7 +6,9 @@ import {
   newId,
   plansRepo,
   poolSettingsRepo,
+  portfolioCashMovesRepo,
   portfoliosRepo,
+  transactionsRepo,
   withPool,
   type IdentityDatabase,
   type PoolContext,
@@ -21,7 +23,6 @@ import {
   toFxRates,
   toPlain,
   type InvestmentAsset,
-  type InvestmentOp,
   type SummaryAccount,
 } from '@nestvault/domain';
 
@@ -35,8 +36,10 @@ import { can, requirePoolAccess } from '../guards/pool-access';
 import { clientIpResolver } from '../rate-limit/client-ip';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
+import { toEngineTransaction } from '../transactions/engine';
 
 import { invalid, parseId } from './checks';
+import { toCashMove, toInvestmentOp } from './domain';
 import {
   CreatePortfolioInput,
   DeletePortfolioQuery,
@@ -59,9 +62,9 @@ export interface PortfoliosService {
   /** Changes a portfolio; fields left out stay (`portfolios.write`). */
   update(headers: Headers, poolId: string, id: string, input: unknown): Promise<PortfolioDto>;
   /**
-   * Deletes a portfolio (`portfolios.write`). While it has operations or plans, `moveTo` (another
-   * portfolio, they all go there) or `deleteOps=true` (they are all deleted) must say what happens
-   * to them; otherwise 409.
+   * Deletes a portfolio (`portfolios.write`). While it has operations, plans or cash moves,
+   * `moveTo` (another portfolio, they all go there) or `deleteOps=true` (they are all deleted)
+   * must say what happens to them; otherwise 409.
    */
   remove(headers: Headers, poolId: string, id: string, query?: unknown): Promise<void>;
   /** The domain's summary of one portfolio, or of all of them (any member). */
@@ -110,8 +113,8 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
     asOf: string,
     portfolioId: string | undefined,
   ) {
-    const [opRows, assetRows, prices, accountRows, resolved, settings, savings] = await Promise.all(
-      [
+    const [opRows, assetRows, prices, accountRows, resolved, settings, savings, moveRows, txRows] =
+      await Promise.all([
         investmentOpsRepo.list(tx, ctx),
         assetsRepo.list(tx, ctx),
         assetPricesRepo.latestAsOf(tx, ctx, asOf),
@@ -119,8 +122,9 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
         loadFxRates(tx, ctx, asOf),
         poolSettingsRepo.find(tx, ctx),
         loadSavingsLedger(tx, ctx),
-      ],
-    );
+        portfolioCashMovesRepo.list(tx, ctx),
+        transactionsRepo.listForEngine(tx, ctx),
+      ]);
     const rates = toFxRates(resolved);
     const latest = new Map(prices.map((price) => [price.assetId, price.price]));
     const assets: InvestmentAsset[] = assetRows.map((row) => ({
@@ -130,33 +134,18 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       dps: row.dps,
       divMonths: row.divMonths,
     }));
-    const ops: InvestmentOp[] = opRows.map((row) => ({
-      id: row.id,
-      date: row.date,
-      assetId: row.assetId,
-      type: row.type === 'dividend' ? 'div' : (row.type as 'buy' | 'sell'),
-      portfolioId: row.portfolioId,
-      accountId: row.accountId,
-      subAccountId: row.subAccountId,
-      fromCash: row.fromCash,
-      qty: row.qty,
-      price: row.price,
-      fee: row.fee,
-      amount: row.amount,
-      gross: row.gross,
-      tax: row.tax,
-    }));
-    // Balances follow the operations, deposits, manual interest and the opening balance; movements
-    // join them as their module is wired in (NES-44).
+    const ops = opRows.map(toInvestmentOp);
+    const moves = moveRows.map(toCashMove);
+    // Balances follow the movements, operations, deposits, manual interest and the opening balance.
     const defaultTax = settings?.depositTax ?? '28';
     const balances = accountBalances(
       {
         accounts: accountRows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
-        transactions: [],
+        transactions: txRows.map(toEngineTransaction),
         interestEntries: savings.interestEntries,
         ops,
         assets,
-        moves: [],
+        moves,
         categories: [],
         rates,
         defaultTax,
@@ -185,7 +174,7 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       ),
     }));
     return portfolioSummary(
-      { ops, assets, accounts, moves: [], rates },
+      { ops, assets, accounts, moves, rates },
       { asOf, today: asOf, ...(portfolioId ? { portfolioIds: [portfolioId] } : {}) },
     );
   }
@@ -275,13 +264,15 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       await run(ctx, async (tx) => {
         if (!(await portfoliosRepo.find(tx, ctx, portfolioId))) throw new NotFoundError();
         const { opsCount, plansCount } = await countsOf(tx, ctx, portfolioId);
-        if (opsCount + plansCount > 0) {
+        const movesCount = await portfolioCashMovesRepo.count(tx, ctx, portfolioId);
+        if (opsCount + plansCount + movesCount > 0) {
           if (moveTo) {
             if (!(await portfoliosRepo.find(tx, ctx, moveTo))) {
               throw invalid('moveTo', 'not a portfolio of this pool');
             }
             await investmentOpsRepo.moveAll(tx, ctx, portfolioId, moveTo);
             await plansRepo.moveAll(tx, ctx, portfolioId, moveTo);
+            await portfolioCashMovesRepo.moveAll(tx, ctx, portfolioId, moveTo);
           } else if (deleteOps) {
             await investmentOpsRepo.removeAll(tx, ctx, portfolioId);
             await plansRepo.removeAll(tx, ctx, portfolioId);

@@ -2,6 +2,8 @@ import { expect } from 'vitest';
 import type { z } from 'zod';
 
 import {
+  CashMoveDto,
+  CashMoveListDto,
   AcceptInviteDto,
   AccountDto,
   AccountListDto,
@@ -405,6 +407,52 @@ const foreignOp = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.ops.get(await s.as('outsider'), s.poolB, other.id);
       expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A dividend in the portfolio of pool A or B, so it holds cash to move, made once per scenario. */
+const cashIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`cash-${pool}`, async () =>
+    s.world.ops.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        portfolioId: (await portfolioIn(s, pool)).id,
+        assetId: (await assetIn(s, pool)).id,
+        type: 'dividend',
+        date: '2026-02-11',
+        amount: '500',
+      },
+    ),
+  );
+
+/** A cash move (with a mirror) from the portfolio of pool A or B to a checking account. */
+const cashMoveIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`cash-move-${pool}`, async () => {
+    await cashIn(s, pool);
+    return s.world.cashMoves.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      (await portfolioIn(s, pool)).id,
+      {
+        accountId: (await cashAccountIn(s, pool, 'checking')).id,
+        date: '2026-02-12',
+        amount: '10',
+        mirror: true,
+        note: pool === 'A' ? 'Nota Liquidez Alfa' : 'Nota Liquidez Beta',
+      },
+    );
+  });
+
+/** A cash move of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignCashMove = async (s: Scenario): Promise<Foreign> => {
+  const other = await cashMoveIn(s, 'B');
+  return {
+    params: { id: other.portfolioId, moveId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.cashMoves.list(await s.as('outsider'), s.poolB, other.portfolioId);
+      expect(seen.moves).toContainEqual(other);
     },
   };
 };
@@ -1642,6 +1690,69 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await opIn(s, 'A')).id }),
     success: { status: 204 },
     foreign: foreignOp,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/portfolios/:id/cash-moves`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/cash-moves/route')),
+    params: async (s) => ({ id: (await portfolioIn(s, 'A')).id }),
+    success: { status: 200, schema: CashMoveListDto },
+    foreign: foreignPortfolio,
+    leaks: async (s) => {
+      await cashMoveIn(s, 'A');
+      const other = await cashMoveIn(s, 'B');
+      return [other.id, other.note ?? ''];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/portfolios/:id/cash-moves`,
+    permission: 'ops.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/cash-moves/route')),
+    params: async (s) => ({ id: (await portfolioIn(s, 'A')).id }),
+    prepare: async (s) => {
+      await cashIn(s, 'A');
+    },
+    body: async (s) => ({
+      accountId: (await cashAccountIn(s, 'A', 'checking')).id,
+      date: '2026-03-02',
+      amount: '25.5',
+      mirror: false,
+    }),
+    success: { status: 201, schema: CashMoveDto },
+    foreign: foreignPortfolio,
+    negatives: [
+      {
+        name: 'more than the cash available',
+        body: {
+          accountId: '0192f3a1-0000-7000-8000-000000000001',
+          date: '2026-03-02',
+          amount: '1',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/portfolios/:id/cash-moves/:moveId`,
+    permission: 'ops.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/portfolios/[id]/cash-moves/[moveId]/route'),
+      ),
+    params: async (s) => ({
+      id: (await portfolioIn(s, 'A')).id,
+      moveId: (await cashMoveIn(s, 'A')).id,
+    }),
+    success: { status: 204 },
+    foreign: foreignCashMove,
   },
   {
     scope: 'pool',

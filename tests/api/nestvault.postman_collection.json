@@ -92,6 +92,14 @@
     {
       "key": "monthNoteUpdatedAt",
       "value": ""
+    },
+    {
+      "key": "cashAccountId",
+      "value": ""
+    },
+    {
+      "key": "cashMoveId",
+      "value": ""
     }
   ],
   "item": [
@@ -3337,6 +3345,123 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Move portfolio cash to an account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/portfolios/{{portfolioId}}/cash-moves",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "portfolios",
+                "{{portfolioId}}",
+                "cash-moves"
+              ]
+            },
+            "description": "Needs ops.write. Moves part of the portfolio cash (EUR, positive) to a checking or savings account (set cashAccountId). More than the cash available answers 400. mirror=true also records the bank movement (a transfer); without it the statement import brings the line and it is matched later. Strict body.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{cashAccountId}}\",\n  \"date\": \"2026-06-12\",\n  \"amount\": \"100\",\n  \"mirror\": true,\n  \"note\": \"Dividends to the current account\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('cashMoveId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List cash moves of a portfolio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/portfolios/{{portfolioId}}/cash-moves",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "portfolios",
+                "{{portfolioId}}",
+                "cash-moves"
+              ]
+            },
+            "description": "Newest first. Any member."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Undo a cash move",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/portfolios/{{portfolioId}}/cash-moves/{{cashMoveId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "portfolios",
+                "{{portfolioId}}",
+                "cash-moves",
+                "{{cashMoveId}}"
+              ]
+            },
+            "description": "Needs ops.write. The mirror movement it created is deleted with it."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }

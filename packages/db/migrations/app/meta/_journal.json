@@ -71,6 +71,13 @@
       "when": 1792501559351,
       "tag": "0009_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792503995323,
+      "tag": "0010_portfolio_cash_moves",
+      "breakpoints": true
     }
   ]
 }
