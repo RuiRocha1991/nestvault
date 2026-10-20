@@ -3,7 +3,7 @@
 import { Button, Card, Input, useToast } from '@nestvault/ui';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type SyntheticEvent } from 'react';
+import { Fragment, useId, useState, type SyntheticEvent } from 'react';
 
 import { Countdown, LockedAlert, ProblemAlert } from '@webapp/components/auth/alert';
 import {
@@ -113,11 +113,13 @@ export function ParametersCard({ poolId, settings, rates, canWrite }: Parameters
       )}
       <form id={ids.form} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          {FX_CURRENCIES.map((ccy) =>
-            field(ids[ccy], t('rate', { currency: ccy }), form.rates[ccy], (value) => {
-              change((current) => ({ ...current, rates: { ...current.rates, [ccy]: value } }));
-            }),
-          )}
+          {FX_CURRENCIES.map((ccy) => (
+            <Fragment key={ccy}>
+              {field(ids[ccy], t('rate', { currency: ccy }), form.rates[ccy], (value) => {
+                change((current) => ({ ...current, rates: { ...current.rates, [ccy]: value } }));
+              })}
+            </Fragment>
+          ))}
           <div className="flex flex-col gap-1.5">
             {field(ids.deposit, t('depositTax'), form.depositTax, (value) => {
               change((current) => ({ ...current, depositTax: value }));

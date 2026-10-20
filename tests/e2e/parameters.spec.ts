@@ -111,3 +111,16 @@ test.describe('layout', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test('the settings page logs no console error for the owner, import card included', async ({
+  page,
+}) => {
+  const problems: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') problems.push(message.text());
+  });
+  page.on('pageerror', (error) => problems.push(error.message));
+  await openSettings(page, world.owner);
+  await expect(page.getByRole('heading', { name: messages.importPrototype.title })).toBeVisible();
+  expect(problems).toEqual([]);
+});

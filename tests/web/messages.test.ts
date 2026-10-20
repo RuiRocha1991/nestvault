@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import messages from '../../apps/web/messages/pt-PT.json';
@@ -31,6 +34,39 @@ describe('pt-PT messages', () => {
       expect(messages.nav.groups).toHaveProperty(group.key);
       for (const item of group.items) expect(messages.nav.items).toHaveProperty(item.key);
     }
+  });
+});
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : sourceFiles(path);
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
+
+describe('message namespaces', () => {
+  it('every literal namespace passed to useTranslations / getTranslations exists in pt-PT.json', () => {
+    const root = join(__dirname, '../../apps/web/src');
+    const pattern =
+      /(?:useTranslations|getTranslations)\(\s*(?:\{\s*[^}]*namespace:\s*)?'([\w.]+)'/g;
+    const missing: string[] = [];
+    for (const file of sourceFiles(root)) {
+      for (const [, namespace] of readFileSync(file, 'utf8').matchAll(pattern)) {
+        const found = (namespace ?? '')
+          .split('.')
+          .reduce<unknown>(
+            (node, key) =>
+              typeof node === 'object' && node !== null
+                ? (node as Record<string, unknown>)[key]
+                : undefined,
+            messages,
+          );
+        if (typeof found !== 'object' || found === null)
+          missing.push(`${namespace} (${file.slice(root.length + 1)})`);
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
 
