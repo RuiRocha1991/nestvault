@@ -179,6 +179,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/investments.repo.integration.test.ts` (`expectIsolated` for every function, composite
   keys, checks, injection payloads), `tests/services/investments.integration.test.ts` and the
   generated route cases for `/portfolios`, `/ops` and `/plans`.
+- **Savings products, deposits and interest (NES-40)**: `savings_products`, `deposits` and
+  `interest_entries` follow the block above (`pool_id`, FORCE RLS, repositories on a `PoolContext`).
+  Every reference is a composite foreign key `(pool_id, …)`: the deposit's account, its product and
+  the accounts that receive the interest or fund it cannot belong to another pool even by raw SQL,
+  and they are restricted, so an account a product, deposit or interest entry names cannot be
+  deleted (the service answers 409 first). A deposit goes with its account. Rate and tax are check
+  constraints (0-100) as well as zod rules (up to 4 decimals), and a period always has its number
+  and its unit. There is one deposit per account (unique `(pool_id, account_id)`). All three need
+  `accounts.write` to change; the pool and ids never come from the body; writes are audited
+  (`product.*`, `deposit.*`, `interest.*`, target id only, never amounts or notes). Verified by
+  `tests/db/savings.repo.integration.test.ts` (`expectIsolated` for every function, composite keys,
+  checks, injection payloads), `tests/services/savings.integration.test.ts` and the generated route
+  cases for `/products`, `/deposits` and `/interest`.
 
 ## 5. Encryption of sensitive data
 - **What:** in transit — HTTPS when not local (see 19). At rest — AES-256-GCM with

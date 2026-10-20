@@ -62,6 +62,19 @@ export type {
   PortfolioValues,
   PortfolioWithCounts,
 } from './app/repositories/portfolios.repo';
+export { savingsProductsRepo } from './app/repositories/savings-products.repo';
+export type {
+  SavingsProductRow,
+  SavingsProductValues,
+} from './app/repositories/savings-products.repo';
+export { depositsRepo } from './app/repositories/deposits.repo';
+export type { DepositRow, DepositValues } from './app/repositories/deposits.repo';
+export { interestEntriesRepo } from './app/repositories/interest-entries.repo';
+export type {
+  InterestEntryRow,
+  InterestEntryValues,
+} from './app/repositories/interest-entries.repo';
+export { PERIOD_UNITS } from './app/schema/savings';
 export { plansRepo } from './app/repositories/plans.repo';
 export type { PlanRow, PlanValues } from './app/repositories/plans.repo';
 export { INVESTMENT_OP_TYPES, investmentOpsRepo } from './app/repositories/investment-ops.repo';

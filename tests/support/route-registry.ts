@@ -11,6 +11,13 @@ import {
   PlanDto,
   PlanListDto,
   PlanRunDto,
+  ProductDto,
+  ProductListDto,
+  DepositDto,
+  DepositListDto,
+  DepositScheduleDto,
+  InterestEntryDto,
+  InterestListDto,
   PortfolioDto,
   PortfolioListDto,
   PortfolioSummaryDto,
@@ -412,6 +419,98 @@ const foreignPlan = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.plans.get(await s.as('outsider'), s.poolB, other.id);
       expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A savings product in pool A or pool B, made once per scenario. */
+const productIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`product-${pool}`, async () =>
+    s.world.products.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      pool === 'A'
+        ? { name: 'Produto Alfa Secreto', rate: '2.5', payN: 3, payU: 'm', termN: 12, termU: 'm' }
+        : { name: 'Produto Beta Secreto', rate: '3.1', payN: 1, payU: 'm' },
+    ),
+  );
+
+/** The product of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignProduct = async (s: Scenario): Promise<Foreign> => {
+  const other = await productIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.products.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A term-deposit account (the `n`th one) or a savings account in pool A or B, made once. */
+const cashAccountIn = (s: Scenario, pool: 'A' | 'B', type: string, n = 1) =>
+  s.memo(`${type}-${pool}-${n}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const headers = await s.as(pool === 'A' ? 'owner' : 'outsider');
+    const [holder] = (await s.world.holders.list(headers, poolId)).holders;
+    return s.world.accounts.create(headers, poolId, {
+      type,
+      name: `${type} ${pool}${n}`,
+      currency: 'EUR',
+      holderIds: [holder?.id ?? ''],
+    });
+  });
+
+/** The deposit of a term-deposit account in pool A or B, made once per scenario. */
+const depositIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`deposit-${pool}`, async () =>
+    s.world.deposits.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        accountId: (await cashAccountIn(s, pool, 'term_deposit')).id,
+        productId: (await productIn(s, pool)).id,
+        capital: pool === 'A' ? '10000' : '25000',
+        start: '2026-01-31',
+      },
+    ),
+  );
+
+/** The deposit of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignDeposit = async (s: Scenario): Promise<Foreign> => {
+  const other = await depositIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.deposits.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** An interest entry on the savings account of pool A or B, made once per scenario. */
+const interestIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`interest-${pool}`, async () =>
+    s.world.interest.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        accountId: (await cashAccountIn(s, pool, 'savings')).id,
+        date: '2026-02-01',
+        amount: pool === 'A' ? '12.34' : '56.78',
+        note: pool === 'A' ? 'Nota Alfa Secreta' : 'Nota Beta Secreta',
+      },
+    ),
+  );
+
+/** The entry of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignInterest = async (s: Scenario): Promise<Foreign> => {
+  const other = await interestIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.interest.list(await s.as('outsider'), s.poolB);
+      expect(seen.entries.find((entry) => entry.id === other.id)).toEqual(other);
     },
   };
 };
@@ -1562,6 +1661,209 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     },
     success: { status: 201, schema: PlanRunDto },
     foreign: foreignPlan,
+  },
+
+  // ---------------------------------------------------------------- pool scope: savings
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/products`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/products/route')),
+    success: { status: 200, schema: ProductListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s products',
+    leaks: async (s) => {
+      await productIn(s, 'A');
+      const other = await productIn(s, 'B');
+      return [other.id, 'Produto Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/products`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/products/route')),
+    body: () => ({ name: 'Novo produto', rate: '1.75', payN: 1, payU: 'm' }),
+    success: { status: 201, schema: ProductDto },
+    noForeignBecause: 'creates a new row; an account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a rate above 100',
+        body: { name: 'Mau produto', rate: '100.5' },
+        expect: 400,
+      },
+      {
+        name: 'a rate with five decimals',
+        body: { name: 'Mau produto', rate: '2.12345' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/products/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/products/[id]/route')),
+    params: async (s) => ({ id: (await productIn(s, 'A')).id }),
+    success: { status: 200, schema: ProductDto },
+    foreign: foreignProduct,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/products/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/products/[id]/route')),
+    params: async (s) => ({ id: (await productIn(s, 'A')).id }),
+    body: () => ({ rate: '2.75' }),
+    success: { status: 200, schema: ProductDto },
+    foreign: foreignProduct,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/products/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/products/[id]/route')),
+    params: async (s) => ({ id: (await productIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignProduct,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/deposits`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/route')),
+    success: { status: 200, schema: DepositListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s deposits',
+    leaks: async (s) => {
+      await depositIn(s, 'A');
+      const other = await depositIn(s, 'B');
+      return [other.id, other.accountId];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/deposits`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/route')),
+    body: async (s) => ({
+      accountId: (await cashAccountIn(s, 'A', 'term_deposit', 2)).id,
+      productId: (await productIn(s, 'A')).id,
+      capital: '5000',
+      start: '2026-03-01',
+    }),
+    success: { status: 201, schema: DepositDto },
+    noForeignBecause: 'creates a new row; an account or product of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a tax above 100',
+        body: {
+          accountId: '0192f3a1-0000-7000-8000-000000000001',
+          capital: '5000',
+          start: '2026-03-01',
+          rate: '2',
+          tax: '101',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/deposits/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/[id]/route')),
+    params: async (s) => ({ id: (await depositIn(s, 'A')).id }),
+    success: { status: 200, schema: DepositDto },
+    foreign: foreignDeposit,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/deposits/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/[id]/route')),
+    params: async (s) => ({ id: (await depositIn(s, 'A')).id }),
+    body: () => ({ capital: '12000' }),
+    success: { status: 200, schema: DepositDto },
+    foreign: foreignDeposit,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/deposits/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/[id]/route')),
+    params: async (s) => ({ id: (await depositIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignDeposit,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/deposits/:id/schedule`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/deposits/[id]/schedule/route')),
+    params: async (s) => ({ id: (await depositIn(s, 'A')).id }),
+    query: 'asOf=2026-12-31',
+    success: { status: 200, schema: DepositScheduleDto },
+    foreign: foreignDeposit,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/interest`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/interest/route')),
+    success: { status: 200, schema: InterestListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s entries',
+    leaks: async (s) => {
+      await interestIn(s, 'A');
+      const other = await interestIn(s, 'B');
+      return [other.id, other.accountId, 'Nota Beta Secreta'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/interest`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/interest/route')),
+    body: async (s) => ({
+      accountId: (await cashAccountIn(s, 'A', 'savings')).id,
+      date: '2026-03-01',
+      amount: '8.5',
+    }),
+    success: { status: 201, schema: InterestEntryDto },
+    noForeignBecause: 'creates a new row; an account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a negative amount',
+        body: {
+          accountId: '0192f3a1-0000-7000-8000-000000000001',
+          date: '2026-03-01',
+          amount: '-1',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/interest/:id`,
+    permission: 'accounts.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/interest/[id]/route')),
+    params: async (s) => ({ id: (await interestIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignInterest,
   },
 
   // ---------------------------------------------------------------- exempt, with the reason

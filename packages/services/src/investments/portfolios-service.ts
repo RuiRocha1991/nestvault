@@ -15,8 +15,11 @@ import {
 } from '@nestvault/db';
 import {
   accountBalances,
+  accountInterest,
+  interestTotal,
   portfolioSummary,
   toFxRates,
+  toPlain,
   type InvestmentAsset,
   type InvestmentOp,
   type SummaryAccount,
@@ -30,6 +33,7 @@ import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { clientIpResolver } from '../rate-limit/client-ip';
+import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 
 import { invalid, parseId } from './checks';
@@ -106,14 +110,17 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
     asOf: string,
     portfolioId: string | undefined,
   ) {
-    const [opRows, assetRows, prices, accountRows, resolved, settings] = await Promise.all([
-      investmentOpsRepo.list(tx, ctx),
-      assetsRepo.list(tx, ctx),
-      assetPricesRepo.latestAsOf(tx, ctx, asOf),
-      accountsRepo.list(tx, ctx),
-      loadFxRates(tx, ctx, asOf),
-      poolSettingsRepo.find(tx, ctx),
-    ]);
+    const [opRows, assetRows, prices, accountRows, resolved, settings, savings] = await Promise.all(
+      [
+        investmentOpsRepo.list(tx, ctx),
+        assetsRepo.list(tx, ctx),
+        assetPricesRepo.latestAsOf(tx, ctx, asOf),
+        accountsRepo.list(tx, ctx),
+        loadFxRates(tx, ctx, asOf),
+        poolSettingsRepo.find(tx, ctx),
+        loadSavingsLedger(tx, ctx),
+      ],
+    );
     const rates = toFxRates(resolved);
     const latest = new Map(prices.map((price) => [price.assetId, price.price]));
     const assets: InvestmentAsset[] = assetRows.map((row) => ({
@@ -139,19 +146,20 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       gross: row.gross,
       tax: row.tax,
     }));
-    // Balances follow the operations and the opening balance; movements and interest entries
-    // join them as their modules arrive (NES-44 wiring, NES-40).
+    // Balances follow the operations, deposits, manual interest and the opening balance; movements
+    // join them as their module is wired in (NES-44).
+    const defaultTax = settings?.depositTax ?? '28';
     const balances = accountBalances(
       {
-        accounts: accountRows.map(toLedgerAccount),
+        accounts: accountRows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
         transactions: [],
-        interestEntries: [],
+        interestEntries: savings.interestEntries,
         ops,
         assets,
         moves: [],
         categories: [],
         rates,
-        defaultTax: settings?.depositTax ?? '28',
+        defaultTax,
       },
       asOf,
     );
@@ -162,7 +170,19 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       isBrokerage: row.type === 'brokerage',
       portfolioId: row.portfolioId,
       balance: balances.get(row.id) ?? '0',
-      interest: '0',
+      interest: toPlain(
+        interestTotal(
+          accountInterest(
+            {
+              deposit: savings.deposits.get(row.id) ?? null,
+              manual: savings.interestEntries.filter((entry) => entry.accountId === row.id),
+            },
+            asOf,
+            defaultTax,
+          ),
+          asOf,
+        ),
+      ),
     }));
     return portfolioSummary(
       { ops, assets, accounts, moves: [], rates },

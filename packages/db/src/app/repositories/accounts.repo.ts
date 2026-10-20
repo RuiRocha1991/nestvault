@@ -5,8 +5,11 @@ import type { PoolTx } from '../client';
 import { accountHolders, accounts, type AccountRow } from '../schema/accounts';
 import { transactions } from '../schema/transactions';
 
+import { depositsRepo } from './deposits.repo';
+import { interestEntriesRepo } from './interest-entries.repo';
 import { investmentOpsRepo } from './investment-ops.repo';
 import { plansRepo } from './plans.repo';
+import { savingsProductsRepo } from './savings-products.repo';
 
 export type { AccountRow };
 
@@ -114,19 +117,23 @@ export const accountsRepo = {
   },
 
   /**
-   * How many movements and plans are on this account: transactions, investment operations and
-   * plans (interest entries arrive with NES-40, which adds to the count).
+   * How many movements, plans and references are on this account: transactions, investment
+   * operations, plans, interest entries, and the products and deposits that name it as where the
+   * interest goes or the money comes from. (Its own deposit goes with it.)
    */
   async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
     const [movements] = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(transactions)
       .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.accountId, id)));
-    const [ops, planCount] = await Promise.all([
+    const counts = await Promise.all([
       investmentOpsRepo.countByAccount(tx, ctx, id),
       plansRepo.countByAccount(tx, ctx, id),
+      interestEntriesRepo.countByAccount(tx, ctx, id),
+      savingsProductsRepo.countByAccount(tx, ctx, id),
+      depositsRepo.countByFundingAccount(tx, ctx, id),
     ]);
-    return (movements?.n ?? 0) + ops + planCount;
+    return counts.reduce((total, n) => total + n, movements?.n ?? 0);
   },
 
   /** Every holder link of the pool's accounts (or of the given ones). */

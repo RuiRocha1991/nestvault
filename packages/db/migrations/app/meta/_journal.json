@@ -57,6 +57,13 @@
       "when": 1792484774289,
       "tag": "0007_investments",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792495938830,
+      "tag": "0008_savings",
+      "breakpoints": true
     }
   ]
 }
