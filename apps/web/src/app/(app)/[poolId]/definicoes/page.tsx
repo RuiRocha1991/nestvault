@@ -54,8 +54,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ poolI
           rates={rates}
           canWrite={permissions.includes('settings.write')}
         />
-        {permissions.includes('pool.import') && <ImportPrototypeCard poolId={poolId} />}
       </div>
+      {/* Second row, full width as in mockup 69; outside the grid so it keeps its two cells. */}
+      {permissions.includes('pool.import') && (
+        <div className="mt-4">
+          <ImportPrototypeCard poolId={poolId} />
+        </div>
+      )}
     </>
   );
 }
