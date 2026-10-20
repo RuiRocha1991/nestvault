@@ -593,7 +593,8 @@
       "holder": {
         "created": "Pessoa criada",
         "updated": "Pessoa alterada",
-        "deleted": "Pessoa removida"
+        "deleted": "Pessoa removida",
+        "merged": "Pessoas juntadas"
       },
       "settings": {
         "updated": "Definições alteradas"
@@ -751,7 +752,28 @@
     "remove": "Remover {name}",
     "toast": {
       "saved": "Pessoa guardada.",
-      "deleted": "Pessoa removida."
+      "deleted": "Pessoa removida.",
+      "merged": "Pessoas juntadas."
+    },
+    "merge": {
+      "open": "Juntar {name} com outra pessoa",
+      "suggestion": "Já existe um membro chamado {name}. Queres juntá-los?",
+      "title": "Juntar {name}",
+      "lead": "{name} deixa de existir como pessoa à parte: as contas, as subcontas e os nomes nos extratos passam para a pessoa escolhida. Esta ação fica registada e não se desfaz.",
+      "target": "Juntar com",
+      "targetPlaceholder": "Escolhe uma pessoa",
+      "moves": "Passam {accounts, plural, one {# conta} other {# contas}} e {subAccounts, plural, one {# subconta} other {# subcontas}}.",
+      "addedAliases": "Nomes nos extratos que se juntam:",
+      "keepsName": "O nome fica {name}.",
+      "tooManyAliases": "A pessoa ficaria com mais de 10 nomes nos extratos. Remove alguns antes de juntar.",
+      "previewFailed": "Não foi possível calcular o que passa. Tenta novamente.",
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "submit": "Juntar",
+      "errorTitle": "Não foi possível juntar",
+      "errorText": "Tenta novamente dentro de instantes.",
+      "lockedTitle": "Pedidos a mais",
+      "lockedText": "Tenta novamente dentro de <time></time>."
     },
     "dialog": {
       "title": "Adicionar pessoa ao agregado",

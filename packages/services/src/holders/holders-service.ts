@@ -6,6 +6,7 @@ import {
   withPool,
   type IdentityDatabase,
   type PoolContext,
+  type PoolTx,
   type PoolRunner,
 } from '@nestvault/db';
 
@@ -21,6 +22,9 @@ import {
   CreateHolderInput,
   HolderDto,
   HolderListDto,
+  HOLDER_ALIASES_MAX,
+  MergeHolderInput,
+  MergePreviewDto,
   toHolderDto,
   UpdateHolderInput,
 } from './schemas';
@@ -35,6 +39,19 @@ export interface HoldersService {
   update(headers: Headers, poolId: string, id: string, input: unknown): Promise<HolderDto>;
   /** Removes a person (`accounts.write`); 409 for a current member and while accounts name them. */
   remove(headers: Headers, poolId: string, id: string): Promise<void>;
+  /** What merging `id` into `query.intoId` would move (`accounts.write`); changes nothing. */
+  mergePreview(
+    headers: Headers,
+    poolId: string,
+    id: string,
+    query: unknown,
+  ): Promise<MergePreviewDto>;
+  /**
+   * Joins a person added by hand (`id`) into another one (`accounts.write`): in one transaction
+   * every account, sub-account and alias moves to the target, then the source is deleted. The
+   * target keeps its name. Answers the target; 409 for a member's holder or more than 10 aliases.
+   */
+  merge(headers: Headers, poolId: string, id: string, input: unknown): Promise<HolderDto>;
 }
 
 export interface HoldersServiceDeps {
@@ -80,6 +97,33 @@ export function createHoldersService(deps: HoldersServiceDeps): HoldersService {
         { path: 'userId', message: 'not a member of this pool' },
       ]);
     }
+  }
+
+  /** Locks both people (so a double click queues up) and works out the aliases the target ends with. */
+  async function loadMerge(
+    tx: PoolTx,
+    ctx: PoolContext,
+    fromId: string,
+    intoId: string,
+    memberIds: ReadonlySet<string>,
+  ) {
+    if (fromId === intoId) {
+      throw new ValidationError('The request is not valid.', [
+        { path: 'intoId', message: 'must be another person' },
+      ]);
+    }
+    // Locked in id order, so two opposite merges cannot wait on each other.
+    const [firstId, secondId] = fromId < intoId ? [fromId, intoId] : [intoId, fromId];
+    const first = await holdersRepo.findForUpdate(tx, ctx, firstId);
+    const second = await holdersRepo.findForUpdate(tx, ctx, secondId);
+    const from = fromId === firstId ? first : second;
+    const into = fromId === firstId ? second : first;
+    if (!from || !into) throw new NotFoundError();
+    if (from.userId !== null && memberIds.has(from.userId)) {
+      throw new ConflictError('This person is a member of the pool and cannot be merged away.');
+    }
+    const addedAliases = from.aliases.filter((alias) => !into.aliases.includes(alias));
+    return { addedAliases, aliases: [...into.aliases, ...addedAliases] };
   }
 
   return {
@@ -177,6 +221,49 @@ export function createHoldersService(deps: HoldersServiceDeps): HoldersService {
         await holdersRepo.remove(tx, ctx, holderId);
       });
       await recordAudit(identity, ctx, 'holder.deleted', { target: holderId, ip: ipOf(headers) });
+    },
+
+    async mergePreview(headers, poolId, id, query) {
+      const session = await requireSession(auth, headers);
+      const parsed = MergeHolderInput.safeParse(query);
+      if (!parsed.success) throw new ValidationError();
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'accounts.write');
+      const fromId = parseId(id);
+      const memberIds = await sync(ctx);
+      return run(ctx, async (tx) => {
+        const plan = await loadMerge(tx, ctx, fromId, parsed.data.intoId.toLowerCase(), memberIds);
+        const moves = await holdersRepo.countMoves(tx, ctx, fromId);
+        return MergePreviewDto.parse({
+          ...moves,
+          addedAliases: plan.addedAliases,
+          tooManyAliases: plan.aliases.length > HOLDER_ALIASES_MAX,
+        });
+      });
+    },
+
+    async merge(headers, poolId, id, input) {
+      const session = await requireSession(auth, headers);
+      const parsed = MergeHolderInput.safeParse(input);
+      if (!parsed.success) throw new ValidationError();
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'accounts.write');
+      const fromId = parseId(id);
+      const intoId = parsed.data.intoId.toLowerCase();
+      const memberIds = await sync(ctx);
+
+      const merged = await run(ctx, async (tx) => {
+        const plan = await loadMerge(tx, ctx, fromId, intoId, memberIds);
+        if (plan.aliases.length > HOLDER_ALIASES_MAX) {
+          throw new ConflictError('The merged person would have more than 10 aliases.');
+        }
+        await holdersRepo.merge(tx, ctx, fromId, intoId, plan.aliases);
+        const row = await holdersRepo.find(tx, ctx, intoId);
+        if (!row) throw new NotFoundError();
+        return row;
+      });
+      await recordAudit(identity, ctx, 'holder.merged', { target: intoId, ip: ipOf(headers) });
+      return HolderDto.parse(toHolderDto(merged, memberIds));
     },
   };
 }
