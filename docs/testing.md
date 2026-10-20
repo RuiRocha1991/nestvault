@@ -134,6 +134,17 @@ totals in the job summary. React pages and components are covered by Playwright,
 
 ## CI (`.github/workflows/security.yml`)
 
+- **When it runs** (to save the monthly Actions minutes, NES-141): on every pull request, on push to
+  `master` and manually (`workflow_dispatch`); **not** on push to `dev`, because the PR already ran the
+  same checks. A new push to a PR cancels its previous run (`concurrency`).
+- **Changed files** (`changes` job, a few seconds) decides what to run on a pull request:
+  - docs-only (Markdown, `docs/adr/`, `docs/prototype/`): `Audit, lint, typecheck, test` and
+    `Browser checks (Playwright)` are skipped (`docs/api/openapi.json` still counts as code);
+  - Playwright runs for PRs to `master`, manual runs, and PRs that change `apps/web/`, `packages/ui/`,
+    `design/`, `tests/e2e/`, `playwright.config.ts` or `pnpm-lock.yaml`.
+  A skipped job counts as passed for required checks. Run `pnpm test:e2e` locally when a change can
+  affect the browser flows but touches none of those paths.
+
 - **Audit, lint, typecheck, test**: audit, secrets in `NEXT_PUBLIC_`, Docker Postgres + Mailpit
   (the same `docker-compose.yml` as local development: two databases, three roles), migrations,
   lint, typecheck, `pnpm openapi --check`, `pnpm test:coverage`.

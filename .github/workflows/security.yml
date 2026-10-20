@@ -1,9 +1,18 @@
 name: security
 
+# Actions minutes are limited (NES-141): pull requests are the gate, so there is no run on push to dev
+# (the PR already ran the same checks), a new push cancels the previous run of the same PR, and
+# docs-only changes skip the heavy jobs. The Playwright job runs for PRs to master, manual runs
+# and PRs that touch the web app. Skipped jobs count as passed for required checks.
 on:
   push:
-    branches: [master, dev]
+    branches: [master]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -11,6 +20,39 @@ permissions:
   checks: write # lets the JUnit report step publish a check with the per-test results
 
 jobs:
+  changes:
+    name: Changed files
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      # On a pull request the checkout is the merge commit: HEAD^1 is the tip of the base branch.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          code=true
+          e2e=true
+          if [ "$EVENT" = "pull_request" ]; then
+            files=$(git diff --name-only HEAD^1 HEAD)
+            # docs-only: Markdown, ADRs and the prototype (docs/api/openapi.json is still checked)
+            if ! echo "$files" | grep -qvE '\.md$|^docs/(adr|prototype)/'; then
+              code=false
+            fi
+            if [ "$BASE_REF" != "master" ] \
+               && ! echo "$files" | grep -qE '^(apps/web|packages/ui|design|tests/e2e)/|^playwright\.config\.ts$|^pnpm-lock\.yaml$'; then
+              e2e=false
+            fi
+          fi
+          if [ "$code" = false ]; then e2e=false; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
+
   secrets:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
@@ -24,6 +66,8 @@ jobs:
 
   checks:
     name: Audit, lint, typecheck, test
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +144,8 @@ jobs:
 
   e2e:
     name: Browser checks (Playwright)
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
