@@ -21,6 +21,13 @@ export interface TransactionValues {
   hash: string;
 }
 
+/** A movement of a prototype import (NES-47): the id is chosen by the importer, the pair is set later. */
+export interface ImportedTransactionValues extends TransactionValues {
+  id: string;
+  /** Linked to a term deposit's interest, so it is not counted twice. */
+  depositInterest: boolean;
+}
+
 /** The fields a user or the engine may change on a stored movement. */
 export interface TransactionPatch {
   categoryId?: string | null;
@@ -239,6 +246,55 @@ export const transactionsRepo = {
       })
       .returning({ id: transactions.id });
     return rows.length > 0;
+  },
+
+  /**
+   * Inserts many movements in chunks of 500 (prototype import). Pairs are set afterwards with
+   * `setPairs`, once both sides exist. Rows come with their own ids; the pool is always `ctx`'s.
+   */
+  async insertMany(
+    tx: PoolTx,
+    ctx: PoolContext,
+    rows: readonly ImportedTransactionValues[],
+  ): Promise<void> {
+    for (let at = 0; at < rows.length; at += 500) {
+      await tx.insert(transactions).values(
+        rows.slice(at, at + 500).map((row) => ({
+          id: row.id,
+          poolId: ctx.poolId,
+          accountId: row.accountId,
+          date: row.date,
+          description: row.description,
+          amount: row.amount,
+          categoryId: row.categoryId,
+          transfer: row.transfer,
+          transferLocked: row.transferLocked,
+          manualCategory: row.manualCategory,
+          depositInterest: row.depositInterest,
+          hash: row.hash,
+        })),
+      );
+    }
+  },
+
+  /** Links movements to the other side of their transfer, in one statement per chunk of 500. */
+  async setPairs(
+    tx: PoolTx,
+    ctx: PoolContext,
+    pairs: readonly { id: string; pairId: string }[],
+  ): Promise<void> {
+    for (let at = 0; at < pairs.length; at += 500) {
+      const chunk = pairs.slice(at, at + 500);
+      await tx.execute(sql`
+        update transactions t
+        set pair_id = v.pair_id
+        from (
+          select * from unnest(${uuidArray(chunk.map((pair) => pair.id))}, ${uuidArray(chunk.map((pair) => pair.pairId))})
+            as v(id, pair_id)
+        ) v
+        where t.pool_id = ${ctx.poolId} and t.id = v.id
+      `);
+    }
   },
 
   /** Changes the given fields only. Returns `undefined` when the movement is not in this pool. */

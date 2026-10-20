@@ -45,6 +45,7 @@ export {
 export type {
   EngineChange,
   EngineTransaction,
+  ImportedTransactionValues,
   TransactionCursor,
   TransactionFilter,
   TransactionKind,
@@ -93,6 +94,8 @@ export type {
 } from './app/repositories/portfolio-cash-moves.repo';
 export { fxRatesRepo } from './app/repositories/fx-rates.repo';
 export type { MarketRate } from './app/repositories/fx-rates.repo';
+export { poolDataRepo } from './app/repositories/pool-data.repo';
+export type { PoolDataCounts } from './app/repositories/pool-data.repo';
 export { poolSettingsRepo } from './app/repositories/pool-settings.repo';
 export type { PoolSettingsRow, PoolSettingsValues } from './app/repositories/pool-settings.repo';
 

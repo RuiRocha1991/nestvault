@@ -110,6 +110,23 @@ export const investmentOpsRepo = {
     return row;
   },
 
+  /** Inserts many operations in chunks of 500 (prototype import); ids come from the importer. */
+  async insertMany(
+    tx: PoolTx,
+    ctx: PoolContext,
+    rows: readonly (InvestmentOpValues & { id: string })[],
+  ): Promise<void> {
+    for (let at = 0; at < rows.length; at += 500) {
+      await tx.insert(investmentOps).values(
+        rows.slice(at, at + 500).map((row) => ({
+          id: row.id,
+          poolId: ctx.poolId,
+          ...fields(row),
+        })),
+      );
+    }
+  },
+
   async update(
     tx: PoolTx,
     ctx: PoolContext,

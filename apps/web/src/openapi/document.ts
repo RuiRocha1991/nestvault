@@ -14,6 +14,7 @@ import './invites';
 import './me';
 import './members';
 import './pools';
+import './prototype-import';
 import './settings';
 import { registry } from './registry';
 

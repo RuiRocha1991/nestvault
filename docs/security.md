@@ -571,6 +571,29 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   SHA-256, original filename kept only as metadata. Never execute or render uploaded content.
   Parsing happens only in the isolated parser service (21).
 - **Verified by:** importer tests with an oversized file, a renamed executable and a zip bomb.
+- **The prototype's JSON export (NES-47)** is the one upload that is data, not a statement, and it
+  writes a whole pool at once, so it is the strictest. `POST /api/v1/pools/:poolId/import-prototype`:
+  the body is counted while it is read and cut off at 10 MB (413), parsed as strict UTF-8 JSON, its
+  nesting measured iteratively (more than 8 levels is a 400, so a hostile file cannot overflow the
+  stack) and validated with a zod schema that is `.strict()` at every level and caps the size of
+  every list; one unknown field is a 400 that names its path. Only the owner may run it
+  (`pool.import`, 403 for the rest, 404 for non-members), at most 20 calls an hour per pool (`imports`
+  bucket), and only into an empty pool (409). Everything runs in one `withPool` transaction: all or
+  nothing, with an advisory lock so two simultaneous imports cannot both pass the emptiness check.
+  Every value goes through the repositories' bound parameters (the text of a movement, a person or a
+  category is data, never SQL); control characters are stripped from text before the insert; the
+  prototype's 32-bit hashes are discarded and recomputed with SHA-256. The answer and the audit entry
+  (`pool.prototype_imported`) carry counts and warning codes only, never content; comments a broker
+  put on a movement are dropped, and notes are never read from or written by the import. The file is
+  held in memory for the request and never stored.
+  Verified by `tests/services/prototype-import.integration.test.ts` (dry run writes nothing, the
+  fixture's counts and warnings, 409 on a non-empty pool and under two parallel commits, 400 for
+  malformed or unknown fields with nothing written, owner only, other pool, rollback when a late
+  write fails, injection payloads stored literally, month notes untouched, rate limit, plan-limit
+  hook), `tests/services/prototype-import-map.test.ts` (schema and mapping),
+  `tests/db/prototype-import.repo.integration.test.ts` (bulk inserts and counts: injection payload,
+  isolation), `tests/web/prototype-import-route.test.ts` (401, Origin, 413, error mapping) and the
+  route registry of the isolation suite.
 
 ## 17. Minimal API responses
 - **What:** every response is built from an explicit zod output schema (DTO) — never return a DB

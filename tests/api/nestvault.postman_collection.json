@@ -4790,6 +4790,97 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Import",
+      "item": [
+        {
+          "name": "Import prototype export (dry run)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/import-prototype",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "import-prototype"
+              ]
+            },
+            "description": "Owner only. Empty pool only. Paste the content of the prototype's 'Exportar cópia (JSON)' file as `export` (up to 10 MB). A dry run writes nothing and returns the counts per entity and the warnings (codes with how many times). Unknown fields answer 400 with their path; a pool that already has data answers 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dryRun\": true,\n  \"export\": {\n    \"v\": 6,\n    \"members\": [\n      {\n        \"id\": \"m1\",\n        \"name\": \"Ana\",\n        \"color\": \"#F2913D\",\n        \"aliases\": \"ANA SILVA\"\n      }\n    ],\n    \"accounts\": [\n      {\n        \"id\": \"a1\",\n        \"name\": \"Conta Ana\",\n        \"type\": \"ordem\",\n        \"bank\": \"BPI\",\n        \"members\": [\n          \"m1\"\n        ],\n        \"opening\": 1000,\n        \"openingDate\": \"2026-01-01\",\n        \"ccy\": \"EUR\"\n      }\n    ],\n    \"tx\": [\n      {\n        \"id\": \"t1\",\n        \"acc\": \"a1\",\n        \"date\": \"2026-01-05\",\n        \"desc\": \"COMPRA CONTINENTE\",\n        \"amount\": -85.37,\n        \"cat\": null,\n        \"transfer\": false,\n        \"pair\": null\n      }\n    ],\n    \"settings\": {\n      \"fx\": {\n        \"USD\": 0.92\n      },\n      \"tax\": 28,\n      \"tdays\": 3,\n      \"divTax\": 28\n    }\n  }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is a dry run with counts', () => { const b = pm.response.json(); pm.expect(b.dryRun).to.eql(true); pm.expect(b.counts.accounts).to.eql(1); pm.expect(b.counts.transactions).to.eql(1); pm.expect(b.warnings).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import prototype export (commit)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/import-prototype",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "import-prototype"
+              ]
+            },
+            "description": "Same body with dryRun false: writes everything in ONE transaction (all or nothing). Run the dry run first. A second call answers 409 because the pool is no longer empty.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dryRun\": false,\n  \"export\": {\n    \"v\": 6,\n    \"members\": [\n      {\n        \"id\": \"m1\",\n        \"name\": \"Ana\",\n        \"color\": \"#F2913D\",\n        \"aliases\": \"ANA SILVA\"\n      }\n    ],\n    \"accounts\": [\n      {\n        \"id\": \"a1\",\n        \"name\": \"Conta Ana\",\n        \"type\": \"ordem\",\n        \"bank\": \"BPI\",\n        \"members\": [\n          \"m1\"\n        ],\n        \"opening\": 1000,\n        \"openingDate\": \"2026-01-01\",\n        \"ccy\": \"EUR\"\n      }\n    ],\n    \"tx\": [\n      {\n        \"id\": \"t1\",\n        \"acc\": \"a1\",\n        \"date\": \"2026-01-05\",\n        \"desc\": \"COMPRA CONTINENTE\",\n        \"amount\": -85.37,\n        \"cat\": null,\n        \"transfer\": false,\n        \"pair\": null\n      }\n    ],\n    \"settings\": {\n      \"fx\": {\n        \"USD\": 0.92\n      },\n      \"tax\": 28,\n      \"tdays\": 3,\n      \"divTax\": 28\n    }\n  }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('committed', () => { const b = pm.response.json(); pm.expect(b.dryRun).to.eql(false); pm.expect(b.counts.accounts).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

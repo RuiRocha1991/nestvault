@@ -17518,6 +17518,1842 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/import-prototype": {
+      "post": {
+        "operationId": "importPrototype",
+        "summary": "Import the prototype’s JSON export",
+        "description": "Loads the file the prototype’s “Exportar cópia (JSON)” writes into an EMPTY pool (no accounts, movements, portfolios, assets, products, rules or own categories; people, month notes and settings may exist). Owner only; the body is at most 10 MB. `dryRun: true` returns the counts per entity and the warnings and writes nothing; `dryRun: false` writes everything in one transaction. Old ids become new UUID v7, movement hashes are recomputed with SHA-256, the prototype’s default categories map to the global catalogue and the rest become the pool’s own. Goals are read but not imported (no goals table yet). Answers 409 when the pool already has data, 400 for malformed JSON, unknown fields or values the schema cannot store.",
+        "tags": [
+          "Pools"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dryRun": {
+                    "type": "boolean"
+                  },
+                  "export": {
+                    "type": "object",
+                    "properties": {
+                      "v": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 6
+                      },
+                      "demo": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "exportedAt": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 5000
+                      },
+                      "__reclass": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "members": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "color": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "aliases": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "maxItems": 50
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 50
+                      },
+                      "accounts": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "type": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "bank": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "members": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "maxItems": 50
+                            },
+                            "member": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "opening": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "openingDate": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "rate": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "ccy": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "iban": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "subs": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "maxLength": 5000
+                                  },
+                                  "member": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "maxLength": 160
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 50
+                            },
+                            "group": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "pf": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "trackCash": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "xtb": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "product": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "capital": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "start": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "termMonths": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "termN": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "termU": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "payN": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "payU": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "payTo": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "fundFrom": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "tax": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "capitalize": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 500
+                      },
+                      "categories": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "kind": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "color": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "budget": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 500
+                      },
+                      "rules": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "kw": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "cat": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "acc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 5000
+                      },
+                      "tx": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "acc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "date": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "desc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "cat": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "manualCat": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "transfer": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "tlock": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "pair": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "hash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "depLink": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "ext": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 250000
+                      },
+                      "assets": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "ticker": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "symbol": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "type": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "ccy": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "price": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "priceDate": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "prices": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "d": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "maxLength": 5000
+                                  },
+                                  "p": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "maxLength": 40
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "maxItems": 50000
+                            },
+                            "sector": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "country": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "dps": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "divMonths": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "maxLength": 40
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "maxItems": 24
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 2000
+                      },
+                      "ops": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "asset": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "pf": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "type": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "date": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "qty": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "price": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "fee": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "cash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "sub": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "fromCash": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "plan": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "gross": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "tax": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "ext": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 100000
+                      },
+                      "plans": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "asset": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "pf": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "day": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "cash": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "sub": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "active": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 500
+                      },
+                      "portfolios": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "color": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "ccy": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "targets": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "maxLength": 40
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 100
+                      },
+                      "interest": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "acc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "date": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "rate": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "ext": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 50000
+                      },
+                      "goals": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "type": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "target": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "deadline": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "when": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "pfs": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "maxItems": 100
+                            },
+                            "accs": {
+                              "type": [
+                                "array",
+                                "null"
+                              ],
+                              "items": {
+                                "type": "string",
+                                "maxLength": 130
+                              },
+                              "maxItems": 1000
+                            },
+                            "rate": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "monthly": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "yield": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "color": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "savings": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 500
+                      },
+                      "pfMoves": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "pf": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "date": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "amount": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "acc": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "txId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 20000
+                      },
+                      "products": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "bank": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "rate": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "payN": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "payU": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "termN": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "termU": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 5000
+                            },
+                            "payTo": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "fundFrom": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 160
+                            },
+                            "tax": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 200
+                      },
+                      "settings": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "fx": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 40
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "tax": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 40
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "tdays": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 40
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "divTax": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 40
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "dryRun",
+                  "export"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What the import created (or would create)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dryRun": {
+                      "type": "boolean"
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "holders": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "holdersMatched": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "accounts": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "subAccounts": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "savingsProducts": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "deposits": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "categories": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "categorySettings": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "rules": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "transactions": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "transferPairs": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "assets": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "assetPrices": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "portfolios": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "plans": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "investmentOps": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cashMoves": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "interestEntries": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "goalsSkipped": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "holders",
+                        "holdersMatched",
+                        "accounts",
+                        "subAccounts",
+                        "savingsProducts",
+                        "deposits",
+                        "categories",
+                        "categorySettings",
+                        "rules",
+                        "transactions",
+                        "transferPairs",
+                        "assets",
+                        "assetPrices",
+                        "portfolios",
+                        "plans",
+                        "investmentOps",
+                        "cashMoves",
+                        "interestEntries",
+                        "goalsSkipped"
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "goals_not_imported",
+                              "holder_matched",
+                              "transaction_notes_dropped",
+                              "transaction_skipped",
+                              "category_reference_dropped",
+                              "pair_dropped",
+                              "rule_skipped",
+                              "iban_dropped",
+                              "sub_account_dropped",
+                              "deposit_skipped",
+                              "product_skipped",
+                              "account_reference_dropped",
+                              "interest_skipped",
+                              "asset_adjusted",
+                              "price_skipped",
+                              "op_skipped",
+                              "op_adjusted",
+                              "plan_skipped",
+                              "cash_move_skipped",
+                              "duplicate_skipped",
+                              "fx_skipped",
+                              "default_rules_added",
+                              "account_owner_defaulted",
+                              "category_merged"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "count"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "dryRun",
+                    "counts",
+                    "warnings"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/settings": {
       "get": {
         "operationId": "getPoolSettings",

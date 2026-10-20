@@ -580,6 +580,7 @@
       },
       "pool": {
         "created": "Agregado criado",
+        "prototypeImported": "Cópia do protótipo importada",
         "ownershipTransferred": "Propriedade transferida"
       },
       "member": {
@@ -749,6 +750,89 @@
     "errorText": "Tenta novamente dentro de instantes.",
     "lockedTitle": "Pedidos a mais",
     "lockedText": "Tenta novamente dentro de <time></time>."
+  },
+  "importPrototype": {
+    "title": "Importar do protótipo",
+    "lead": "Carrega o ficheiro JSON que o protótipo exporta (Exportar cópia). Só funciona num agregado vazio e só o proprietário pode fazê-lo. Primeiro vês o que vai ser criado; nada é guardado até confirmares.",
+    "file": "Ficheiro da cópia (.json, até 10 MB)",
+    "previewTitle": "Vai ser importado",
+    "confirm": "Importar tudo",
+    "done": "Cópia importada.",
+    "count": "{value, number}",
+    "counts": {
+      "holders": "Pessoas novas",
+      "accounts": "Contas",
+      "subAccounts": "Subcontas",
+      "savingsProducts": "Produtos de poupança",
+      "deposits": "Depósitos a prazo",
+      "categories": "Categorias próprias",
+      "rules": "Regras",
+      "transactions": "Movimentos",
+      "transferPairs": "Transferências internas",
+      "portfolios": "Carteiras",
+      "assets": "Ativos",
+      "assetPrices": "Preços",
+      "plans": "Planos regulares",
+      "investmentOps": "Operações",
+      "cashMoves": "Liquidez das carteiras",
+      "interestEntries": "Juros"
+    },
+    "warnings": {
+      "goalsNotImported": "{count, plural, one {# objetivo não foi importado} other {# objetivos não foram importados}}: ainda não existem no novo sistema.",
+      "holderMatched": "{count, plural, one {# pessoa do ficheiro já existia no agregado e foi reutilizada} other {# pessoas do ficheiro já existiam no agregado e foram reutilizadas}}.",
+      "transactionNotesDropped": "{count, plural, one {# comentário de corretora num movimento não foi importado} other {# comentários de corretora em movimentos não foram importados}}.",
+      "transactionSkipped": "{count, plural, one {# movimento sem conta, data ou valor válidos foi ignorado} other {# movimentos sem conta, data ou valor válidos foram ignorados}}.",
+      "categoryReferenceDropped": "{count, plural, one {# referência a uma categoria inexistente foi removida} other {# referências a categorias inexistentes foram removidas}}.",
+      "pairDropped": "{count, plural, one {# ligação de transferência incompleta foi removida} other {# ligações de transferência incompletas foram removidas}}.",
+      "ruleSkipped": "{count, plural, one {# regra inválida foi ignorada} other {# regras inválidas foram ignoradas}}.",
+      "ibanDropped": "{count, plural, one {# IBAN inválido ou repetido não foi importado} other {# IBAN inválidos ou repetidos não foram importados}}.",
+      "subAccountDropped": "{count, plural, one {# subconta ou titular de subconta não foi importado} other {# subcontas ou titulares de subcontas não foram importados}}.",
+      "depositSkipped": "{count, plural, one {# depósito a prazo sem capital ou data válidos foi ignorado} other {# depósitos a prazo sem capital ou data válidos foram ignorados}}.",
+      "productSkipped": "{count, plural, one {# produto de poupança sem taxa válida foi ignorado} other {# produtos de poupança sem taxa válida foram ignorados}}.",
+      "accountReferenceDropped": "{count, plural, one {# ligação a uma conta que não pode ser usada foi removida} other {# ligações a contas que não podem ser usadas foram removidas}}.",
+      "interestSkipped": "{count, plural, one {# lançamento de juros com valor não positivo foi ignorado} other {# lançamentos de juros com valor não positivo foram ignorados}}.",
+      "assetAdjusted": "{count, plural, one {# código de ativo foi ajustado para ser único e válido} other {# códigos de ativos foram ajustados para serem únicos e válidos}}.",
+      "priceSkipped": "{count, plural, one {# preço inválido foi ignorado} other {# preços inválidos foram ignorados}}.",
+      "opSkipped": "{count, plural, one {# operação incompleta foi ignorada} other {# operações incompletas foram ignoradas}}.",
+      "opAdjusted": "{count, plural, one {# operação foi ajustada (comissão negativa, plano ou identificador repetidos)} other {# operações foram ajustadas (comissão negativa, plano ou identificador repetidos)}}.",
+      "planSkipped": "{count, plural, one {# plano incompleto foi ignorado} other {# planos incompletos foram ignorados}}.",
+      "cashMoveSkipped": "{count, plural, one {# movimento de liquidez incompleto foi ignorado} other {# movimentos de liquidez incompletos foram ignorados}}.",
+      "duplicateSkipped": "{count, plural, one {# registo repetido foi ignorado} other {# registos repetidos foram ignorados}}.",
+      "fxSkipped": "{count, plural, one {# taxa de câmbio inválida foi ignorada} other {# taxas de câmbio inválidas foram ignoradas}}.",
+      "defaultRulesAdded": "{count, plural, one {# regra por defeito acrescentada} other {# regras por defeito acrescentadas}}, como o protótipo faz com cópias antigas.",
+      "accountOwnerDefaulted": "{count, plural, one {# conta sem titular ficou com a primeira pessoa} other {# contas sem titular ficaram com a primeira pessoa}}.",
+      "categoryMerged": "{count, plural, one {# categoria repetida foi juntada à categoria base} other {# categorias repetidas foram juntadas à categoria base}}."
+    },
+    "problem": {
+      "notJson": {
+        "title": "Ficheiro inválido",
+        "text": "O ficheiro não é um JSON válido. Escolhe a cópia exportada pelo protótipo."
+      },
+      "tooLarge": {
+        "title": "Ficheiro demasiado grande",
+        "text": "O ficheiro tem mais de 10 MB."
+      },
+      "invalid": {
+        "title": "Não foi possível ler a cópia",
+        "text": "O ficheiro não parece uma cópia do protótipo ou tem valores que a aplicação não aceita. Nada foi guardado."
+      },
+      "forbidden": {
+        "title": "Sem permissão",
+        "text": "Só o proprietário pode importar uma cópia."
+      },
+      "notEmpty": {
+        "title": "O agregado já tem dados",
+        "text": "A importação só funciona num agregado vazio. Nada foi guardado."
+      },
+      "limit": {
+        "title": "Pedidos a mais",
+        "text": "Tenta novamente daqui a pouco."
+      },
+      "error": {
+        "title": "Não foi possível importar",
+        "text": "Tenta novamente dentro de instantes. Nada foi guardado."
+      }
+    }
   },
   "holders": {
     "title": "Agregado familiar",

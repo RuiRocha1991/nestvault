@@ -31,6 +31,7 @@ import {
   createInterestService,
   createNotesService,
   createPortfoliosService,
+  createPrototypeImportService,
   createRulesService,
   createTransactionsService,
   createSettingsService,
@@ -56,6 +57,7 @@ import {
   type InterestService,
   type NotesService,
   type PortfoliosService,
+  type PrototypeImportService,
   type RulesService,
   type TransactionsService,
   type SettingsService,
@@ -124,6 +126,7 @@ export interface ApiWorld {
   categories: CategoriesService;
   holders: HoldersService;
   settings: SettingsService;
+  prototypeImport: PrototypeImportService;
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
   newScenario(): Promise<Scenario>;
   close(): Promise<void>;
@@ -283,6 +286,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
     settings: createSettingsService({
       auth,
       identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    prototypeImport: createPrototypeImportService({
+      auth,
+      identity,
+      limiter,
       run: database.withPool,
       trustedProxyHops: 1,
     }),

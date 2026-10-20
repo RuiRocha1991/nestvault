@@ -9,6 +9,7 @@ export const ACCOUNT_AUDIT_ACTIONS = [
 /** Actions inside a pool; the pool and the actor come from the `PoolContext`. */
 export const POOL_AUDIT_ACTIONS = [
   'pool.created',
+  'pool.prototype_imported',
   'member.role_changed',
   'member.removed',
   'member.left',

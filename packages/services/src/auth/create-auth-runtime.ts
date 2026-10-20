@@ -22,6 +22,7 @@ import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createNotesService, type NotesService } from '../notes';
 import { createPoolsService, type PoolsService } from '../pools';
+import { createPrototypeImportService, type PrototypeImportService } from '../prototype-import';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
 import { createRulesService, type RulesService } from '../rules';
 import {
@@ -86,6 +87,8 @@ export interface AuthRuntime {
   holders: HoldersService;
   /** Pool settings and the FX rates the pool uses. */
   settings: SettingsService;
+  /** Imports the prototype's JSON export into an empty pool (owner only). */
+  prototypeImport: PrototypeImportService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -140,5 +143,6 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     categories: createCategoriesService({ auth, identity, ...hops }),
     holders: createHoldersService({ auth, identity, ...hops }),
     settings: createSettingsService({ auth, identity, ...hops }),
+    prototypeImport: createPrototypeImportService({ auth, identity, limiter, ...hops }),
   };
 }
