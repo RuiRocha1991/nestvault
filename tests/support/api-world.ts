@@ -29,6 +29,7 @@ import {
   createProductsService,
   createDepositsService,
   createInterestService,
+  createMonthsService,
   createNotesService,
   createPortfoliosService,
   createPrototypeImportService,
@@ -39,6 +40,7 @@ import {
   requireSession,
   UnauthorizedError,
   type AccountService,
+  type MonthsService,
   type AccountsService,
   type AssetsService,
   type CategoriesService,
@@ -125,6 +127,7 @@ export interface ApiWorld {
   deposits: DepositsService;
   interest: InterestService;
   notes: NotesService;
+  months: MonthsService;
   assets: AssetsService;
   categories: CategoriesService;
   holders: HoldersService;
@@ -286,6 +289,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
       identity,
       run: database.withPool,
       trustedProxyHops: 1,
+    }),
+    months: createMonthsService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+      now: clock.now,
     }),
     holders: createHoldersService({
       auth,

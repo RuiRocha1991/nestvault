@@ -22,6 +22,7 @@ import {
   InterestEntryDto,
   InterestListDto,
   MonthNoteDto,
+  MonthReviewDto,
   MonthNoteListDto,
   NoteDto,
   PortfolioDto,
@@ -2222,6 +2223,21 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: () => Promise.resolve({ month: '2026-03' }),
     success: { status: 200, schema: MonthNoteDto },
     noForeignBecause: 'the month names no resource; the leak probe covers pool B’s note',
+    leaks: async (s) => {
+      await monthNoteB(s);
+      return ['Nota do mês Beta Secreta'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/months/:month/review`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/months/[month]/review/route')),
+    params: () => Promise.resolve({ month: '2026-03' }),
+    success: { status: 200, schema: MonthReviewDto },
+    noForeignBecause: 'the month names no resource; the leak probe covers pool B’s month note',
     leaks: async (s) => {
       await monthNoteB(s);
       return ['Nota do mês Beta Secreta'];

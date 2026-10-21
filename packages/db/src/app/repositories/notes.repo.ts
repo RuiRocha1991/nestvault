@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lte, ne, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
@@ -64,6 +64,32 @@ export const notesRepo = {
         noteUpdatedAt: investmentOps.noteUpdatedAt,
       });
     return row;
+  },
+
+  /** The notes of the movements dated between two days (both included), for the monthly review. */
+  async listTransactionNotes(
+    tx: PoolTx,
+    ctx: PoolContext,
+    from: string,
+    to: string,
+  ): Promise<NoteState[]> {
+    return tx
+      .select({
+        id: transactions.id,
+        note: transactions.note,
+        noteUpdatedBy: transactions.noteUpdatedBy,
+        noteUpdatedAt: transactions.noteUpdatedAt,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          gte(transactions.date, from),
+          lte(transactions.date, to),
+          isNotNull(transactions.note),
+          ne(transactions.note, ''),
+        ),
+      );
   },
 };
 

@@ -4905,6 +4905,42 @@
           ]
         },
         {
+          "name": "Monthly review of a month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/months/2026-03/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "months",
+                "2026-03",
+                "review"
+              ]
+            },
+            "description": "Any member. KPIs, expenses by category, notable transactions, the month's investment operations, the month note and a 12-month timeline; 2026-13 answers 400."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has the timeline', () => pm.expect(pm.response.json().timeline).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Write the note of a month",
           "request": {
             "method": "PUT",
