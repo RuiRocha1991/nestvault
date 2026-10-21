@@ -36,7 +36,7 @@ const ops: InvestmentOp[] = [
   makeOp({ type: 'buy', assetId: 'A', date: '2026-04-02', qty: '2', price: '12' }),
 ];
 
-const rates = { USD: 0.92 };
+const rates = { USD: '0.92' };
 const dates = ['2026-01-31', '2026-02-28', '2026-03-31', '2026-05-31'];
 
 describe('computeHoldingsAt', () => {
