@@ -39,8 +39,9 @@ test('the owner renames the household; the switcher and the tab title follow wit
   await openSettings(page, world.owner);
   await expect(page.getByRole('heading', { name: h.title })).toBeVisible();
   await expect(page.getByLabel(h.name)).toHaveValue(world.poolName);
-  await expect(page.getByText(h.owner, { exact: true })).toBeVisible();
-  await expect(page.getByText(h.users, { exact: true })).toBeVisible();
+  const grid = page.getByTestId('settings-grid');
+  await expect(grid.getByText(h.owner, { exact: true })).toBeVisible();
+  await expect(grid.getByText(h.users, { exact: true })).toBeVisible();
 
   await page.getByLabel(h.name).fill('Família Nova');
   await page.getByRole('button', { name: h.save }).click();
