@@ -3189,6 +3189,132 @@
       ]
     },
     {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Month summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/summary?month=2026-03",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-03"
+                }
+              ]
+            },
+            "description": "Any member. Income, expenses (net of refunds), invested, savings rate, expenses by category with budget progress and the last twelve months. EUR decimal strings."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"categories\", \"flow\", \"history\", \"month\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Totals of a movements filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/totals?month=2026-03&kind=expense",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "totals"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-03"
+                },
+                {
+                  "key": "kind",
+                  "value": "expense"
+                }
+              ]
+            },
+            "description": "Any member. Same filters as the movements list (month, accountId, categoryId or none, kind, q, withNotes), without sort and paging. Totals in EUR."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"count\", \"expenses\", \"income\", \"invested\", \"rates\", \"transfers\", \"uncategorized\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Category and rule usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "usage"
+              ]
+            },
+            "description": "Any member. Movements per category and, per rule, the movements it is the first match for."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"categories\", \"rules\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Portfolios",
       "item": [
         {

@@ -54,6 +54,10 @@
       "description": "Bank movements with their categories and transfers"
     },
     {
+      "name": "Expenses",
+      "description": "Month summary and totals of the Despesas screen"
+    },
+    {
       "name": "Portfolios",
       "description": "Portfolios with their summary"
     },
@@ -3657,6 +3661,23 @@
                               "string",
                               "null"
                             ]
+                          },
+                          "noteUpdatedBy": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "noteUpdatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "suggestedKeyword": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -3672,7 +3693,10 @@
                           "transferLocked",
                           "manualCategory",
                           "depositInterest",
-                          "note"
+                          "note",
+                          "noteUpdatedBy",
+                          "noteUpdatedAt",
+                          "suggestedKeyword"
                         ]
                       }
                     },
@@ -3871,6 +3895,23 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "noteUpdatedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "noteUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "suggestedKeyword": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -3886,7 +3927,10 @@
                     "transferLocked",
                     "manualCategory",
                     "depositInterest",
-                    "note"
+                    "note",
+                    "noteUpdatedBy",
+                    "noteUpdatedAt",
+                    "suggestedKeyword"
                   ]
                 }
               }
@@ -4083,6 +4127,23 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "noteUpdatedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "noteUpdatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "suggestedKeyword": {
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -4098,7 +4159,10 @@
                     "transferLocked",
                     "manualCategory",
                     "depositInterest",
-                    "note"
+                    "note",
+                    "noteUpdatedBy",
+                    "noteUpdatedAt",
+                    "suggestedKeyword"
                   ]
                 }
               }
@@ -5109,6 +5173,494 @@
           },
           "413": {
             "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/expenses/summary": {
+      "get": {
+        "operationId": "getExpensesSummary",
+        "summary": "Month summary of the expenses",
+        "description": "Any member may read. Income, expenses (net of refunds; transfers and investments are not expenses), invested, savings and savings rate of `month` (yyyy-mm, the current month by default), expenses by category (largest first) with the monthly budget, its progress and the difference against the average of the three previous months, and the last twelve months. All amounts are EUR decimal strings, computed by the same domain functions as the monthly review.",
+        "tags": [
+          "Expenses"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": false,
+            "name": "month",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "month": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "flow": {
+                      "type": "object",
+                      "properties": {
+                        "income": {
+                          "type": "string"
+                        },
+                        "expenses": {
+                          "type": "string"
+                        },
+                        "refunds": {
+                          "type": "string"
+                        },
+                        "invested": {
+                          "type": "string"
+                        },
+                        "savings": {
+                          "type": "string"
+                        },
+                        "savingsRate": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "income",
+                        "expenses",
+                        "refunds",
+                        "invested",
+                        "savings",
+                        "savingsRate"
+                      ]
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "budget": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "budgetUsed": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "previousAverage": {
+                            "type": "string"
+                          },
+                          "difference": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "categoryId",
+                          "value",
+                          "budget",
+                          "budgetUsed",
+                          "previousAverage",
+                          "difference"
+                        ]
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "month": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                          },
+                          "income": {
+                            "type": "string"
+                          },
+                          "expenses": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "month",
+                          "income",
+                          "expenses"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "month",
+                    "flow",
+                    "categories",
+                    "history"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/expenses/totals": {
+      "get": {
+        "operationId": "getMovementTotals",
+        "summary": "Totals of the movements a filter selects",
+        "description": "Any member may read. The filters are those of `GET /transactions` (`month`, `accountId`, `categoryId` or `none`, `kind`, `q` matched literally, `withNotes`), without sort and paging. Income, net expenses, money sent to investments, internal transfers (inflow side) and the number of movements without a category, in EUR; `rates` gives the EUR rate of each foreign currency in use.",
+        "tags": [
+          "Expenses"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": false,
+            "name": "month",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "none"
+                  ]
+                }
+              ]
+            },
+            "required": false,
+            "name": "categoryId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expense",
+                "income",
+                "refund",
+                "transfer",
+                "invest"
+              ]
+            },
+            "required": false,
+            "name": "kind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "withNotes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The totals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "income": {
+                      "type": "string"
+                    },
+                    "expenses": {
+                      "type": "string"
+                    },
+                    "invested": {
+                      "type": "string"
+                    },
+                    "transfers": {
+                      "type": "string"
+                    },
+                    "uncategorized": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "rates": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "income",
+                    "expenses",
+                    "invested",
+                    "transfers",
+                    "uncategorized",
+                    "count",
+                    "rates"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/expenses/usage": {
+      "get": {
+        "operationId": "getExpensesUsage",
+        "summary": "How much each category and rule is used",
+        "description": "Any member may read. `categories` counts the movements of each category; `rules` counts, per rule, the movements it is the first match for (the \"Corresp.\" column of the rules table). Ids with a count of zero are left out.",
+        "tags": [
+          "Expenses"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "categories": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "required": [
+                    "categories",
+                    "rules"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
             "content": {
               "application/json": {
                 "schema": {

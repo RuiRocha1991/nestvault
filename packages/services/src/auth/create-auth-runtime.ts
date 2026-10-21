@@ -6,6 +6,7 @@ import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
+import { createExpensesService, type ExpensesService } from '../expenses';
 import { createHoldersService, type HoldersService } from '../holders';
 import {
   createCashMovesService,
@@ -66,6 +67,7 @@ export interface AuthRuntime {
   accounts: AccountsService;
   /** Bank movements: manual entry, categories by hand and transfers. */
   transactions: TransactionsService;
+  expenses: ExpensesService;
   portfolios: PortfoliosService;
   ops: OpsService;
   /** Cash moves from a portfolio to a bank account. */
@@ -130,6 +132,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
     transactions: createTransactionsService({ auth, identity, ...hops }),
+    expenses: createExpensesService({ auth, identity, ...hops }),
     portfolios: createPortfoliosService({ auth, identity, ...hops }),
     ops: createOpsService({ auth, identity, ...hops }),
     cashMoves: createCashMovesService({ auth, identity, ...hops }),

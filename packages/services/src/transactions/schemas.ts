@@ -1,6 +1,6 @@
 import { TRANSACTION_KINDS, TRANSACTION_SORTS } from '@nestvault/db';
 import type { TransactionCursor, TransactionRow } from '@nestvault/db';
-import { toPlain, transactionKind, type Category } from '@nestvault/domain';
+import { suggestKeyword, toPlain, transactionKind, type Category } from '@nestvault/domain';
 import { z } from 'zod';
 
 export const TRANSACTIONS_PAGE_DEFAULT = 50;
@@ -83,6 +83,11 @@ export const TransactionDto = z.object({
   manualCategory: z.boolean(),
   depositInterest: z.boolean(),
   note: z.string().nullable(),
+  /** Who last wrote the note and when (for the note editor); null while there is no note. */
+  noteUpdatedBy: z.uuid().nullable(),
+  noteUpdatedAt: z.iso.datetime().nullable(),
+  /** What a rule made from this movement would look for: its IBAN when it has one; may be empty. */
+  suggestedKeyword: z.string(),
 });
 export type TransactionDto = z.infer<typeof TransactionDto>;
 
@@ -110,6 +115,9 @@ export const toTransactionDto = (
   manualCategory: row.manualCategory,
   depositInterest: row.depositInterest,
   note: row.note,
+  noteUpdatedBy: row.noteUpdatedBy,
+  noteUpdatedAt: row.noteUpdatedAt ? row.noteUpdatedAt.toISOString() : null,
+  suggestedKeyword: suggestKeyword(row.description),
 });
 
 /** A cursor names the sort it belongs to, so a cursor of another sort answers 400, not an SQL error. */

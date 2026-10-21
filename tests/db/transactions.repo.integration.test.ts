@@ -353,6 +353,43 @@ describe('listing: filters, sort and cursor', () => {
   );
 });
 
+describe('totals', () => {
+  const totalsOf = (ctx: PoolContext, filter: TransactionFilter = {}) =>
+    withPool(ctx, (tx) => transactionsRepo.totals(tx, ctx, filter));
+
+  it('sums per currency and kind, counts the uncategorized and skips the outflow of transfers', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, async (tx) => {
+      const acc = await account(tx, a.ctx);
+      await add(tx, a.ctx, acc.id, { amount: '-10.5' });
+      await add(tx, a.ctx, acc.id, { amount: '-4.5' });
+      await add(tx, a.ctx, acc.id, { amount: '100', date: '2026-04-01' });
+      await add(tx, a.ctx, acc.id, { amount: '-20', transfer: true });
+      await add(tx, a.ctx, acc.id, { amount: '20', transfer: true });
+    });
+    const all = await totalsOf(a.ctx);
+    const by = (kind: string) => all.find((row) => row.kind === kind);
+    expect(by('expense')).toMatchObject({ currency: 'EUR', total: '-15.0000', count: 2 });
+    expect(by('expense')?.uncategorized).toBe(2);
+    expect(by('income')).toMatchObject({ total: '100.0000', count: 1 });
+    expect(by('transfer')).toMatchObject({ total: '20.0000', count: 2 });
+
+    const march = await totalsOf(a.ctx, { from: '2026-03-01', to: '2026-03-31' });
+    expect(march.find((row) => row.kind === 'income')).toBeUndefined();
+    expect(await totalsOf(a.ctx, { kind: 'income' })).toHaveLength(1);
+  });
+
+  it('treats an injection payload in the text filter as data', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, async (tx) => {
+      const acc = await account(tx, a.ctx);
+      await add(tx, a.ctx, acc.id, { description: 'COMPRA' });
+    });
+    expect(await totalsOf(a.ctx, { text: "' OR 1=1 --" })).toEqual([]);
+    expect(await totalsOf(a.ctx, { text: '%' })).toEqual([]);
+  });
+});
+
 describe('isolation between pools (repository filter and RLS)', () => {
   const seed = async (tx: PoolTx, ctxB: PoolContext) => {
     const acc = await account(tx, ctxB, 'pool B account');
@@ -385,6 +422,8 @@ describe('isolation between pools (repository filter and RLS)', () => {
         .list(tx, ctxA, { text: 'pool B' }, sorted, { value: '2999-01-01', id: s.id }, 50)
         .then((result) => result.rows),
     ));
+  it('transactions: totals count nothing of pool B', () =>
+    check((tx, ctxA) => transactionsRepo.totals(tx, ctxA, {})));
   it('transactions: find finds nothing of pool B', () =>
     check((tx, ctxA, s) => transactionsRepo.find(tx, ctxA, s.id)));
   it('transactions: update changes nothing of pool B', () =>

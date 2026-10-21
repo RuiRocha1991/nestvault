@@ -33,6 +33,9 @@ import {
   TransactionPageDto,
   CategoryDto,
   CategoryListDto,
+  ExpensesSummaryDto,
+  ExpensesUsageDto,
+  MovementTotalsDto,
   AssetDto,
   AssetListDto,
   BulkPricesDto,
@@ -873,6 +876,57 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     foreign: foreignCategory,
   },
 
+  // ---------------------------------------------------------------- pool scope: expenses
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/summary`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/summary/route')),
+    success: { status: 200, schema: ExpensesSummaryDto },
+    noForeignBecause: 'summarizes the URL’s own pool; the leak probe covers pool B’s movements',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.description];
+    },
+    negatives: [
+      { name: 'a month that is not yyyy-mm', query: '?month=2026-13', expect: 400 },
+      { name: 'an unknown filter', query: '?poolId=2', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/totals`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/totals/route')),
+    success: { status: 200, schema: MovementTotalsDto },
+    noForeignBecause: 'totals of the URL’s own pool; the leak probe covers pool B’s movements',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.description];
+    },
+    negatives: [
+      { name: 'an unknown filter', query: '?accountId=1&poolId=2', expect: 400 },
+      { name: 'a sort (not a filter of the totals)', query: '?sort=amount', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/usage`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/usage/route')),
+    success: { status: 200, schema: ExpensesUsageDto },
+    noForeignBecause: 'counts the URL’s own pool; the leak probe covers pool B’s ids',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.accountId];
+    },
+  },
   // ---------------------------------------------------------------- pool scope: transactions
   {
     scope: 'pool',
