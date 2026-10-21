@@ -48,6 +48,7 @@ export const TermDepositDto = z.object({
   /** The tax in force: the deposit's own, else the pool's default (percent). */
   tax: Amount,
   payToAccountId: z.uuid().nullable(),
+  fundFromAccountId: z.uuid().nullable(),
   /** Where the capital goes back at maturity; null when nowhere. */
   returnToAccountId: z.uuid().nullable(),
   /** Gross interest up to today, tax withheld and net interest received. */

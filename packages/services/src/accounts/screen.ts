@@ -42,13 +42,13 @@ import {
 
 import { toDomainDeposit } from '../savings/domain';
 
+import type { AccountDto } from './schemas';
 import type {
   AccountCardDto,
   AccountsScreenDto,
   BrokerageDto,
   TermDepositDto,
 } from './screen-schemas';
-import type { AccountDto } from './schemas';
 
 /** What the accounts screen reads, already loaded for one pool. */
 export interface ScreenInput {
@@ -135,6 +135,7 @@ function termCard(
     capitalize: row.capitalize,
     tax: toPlain(tax),
     payToAccountId: row.payToAccountId,
+    fundFromAccountId: row.fundFromAccountId,
     returnToAccountId: returnTo && accountIds.has(returnTo) ? returnTo : null,
     gross: plain(gross),
     withheld: plain(gross.minus(net)),

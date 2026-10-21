@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AccountsScreenDto, logger, NotFoundError, UnauthorizedError } from '@nestvault/services';
+import {
+  AccountsScreenDto,
+  logger,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from '@nestvault/services';
 
 import { createApiWorld, type ApiWorld, type Scenario } from '../support/api-world';
 
@@ -72,5 +78,22 @@ describe('accounts screen service', () => {
     const b = await world.accounts.screen(await s.as('outsider'), s.poolB);
     expect(a.accounts.map((card) => card.name)).toEqual(['Só do A']);
     expect(b.accounts.map((card) => card.name)).toEqual(['Só do B']);
+  });
+
+  it('names the failed field in a 400 so a form can mark it, without echoing the value', async () => {
+    const holder = await holderOf(s.poolA, 'owner');
+    const error = await world.accounts
+      .create(await s.as('owner'), s.poolA, {
+        type: 'checking',
+        name: 'Conta',
+        currency: 'EUR',
+        iban: 'PT50 1234',
+        holderIds: [holder],
+      })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ValidationError);
+    const issues = (error as ValidationError).issues;
+    expect(issues.map((issue) => issue.path)).toEqual(['iban']);
+    expect(JSON.stringify(issues)).not.toContain('1234');
   });
 });

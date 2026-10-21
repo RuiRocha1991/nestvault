@@ -12,10 +12,11 @@ import { isScheduled } from '@nestvault/domain';
 import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
-import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { ConflictError, NotFoundError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { invalid, parseId } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
+import { zodProblem } from '../zod-problem';
 
 import { toDomainDeposit } from './domain';
 import {
@@ -55,7 +56,7 @@ export function createInterestService(deps: InterestServiceDeps): InterestServic
     async list(headers, poolId, query = {}) {
       const session = await requireSession(auth, headers);
       const parsed = ListInterestQuery.safeParse(query);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, query);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
       const rows = await run(ctx, (tx) =>
@@ -67,7 +68,7 @@ export function createInterestService(deps: InterestServiceDeps): InterestServic
     async create(headers, poolId, input) {
       const session = await requireSession(auth, headers);
       const parsed = CreateInterestInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const data = parsed.data;

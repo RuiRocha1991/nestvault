@@ -29,6 +29,8 @@ export async function readAccounts(
   ctx: PoolContext,
   today: string,
   only?: string,
+  /** Count the investment operations in the balance (the accounts screen does; the list does not yet). */
+  options: { withOperations?: boolean } = {},
 ): Promise<AccountDto[]> {
   const rows = only
     ? [await accountsRepo.find(tx, ctx, only)].filter((row): row is AccountRow => !!row)
@@ -50,8 +52,8 @@ export async function readAccounts(
       accounts: rows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
       transactions: txRows.map(toEngineTransaction),
       interestEntries: savings.interestEntries,
-      ops: opRows.map(toInvestmentOp),
-      assets: assetRows.map((row) => ({
+      ops: options.withOperations ? opRows.map(toInvestmentOp) : [],
+      assets: (options.withOperations ? assetRows : []).map((row) => ({
         id: row.id,
         currency: row.currency,
         price: '0',

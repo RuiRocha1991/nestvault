@@ -16,10 +16,11 @@ import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
-import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { ConflictError, NotFoundError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { invalid, parseId } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
+import { zodProblem } from '../zod-problem';
 
 import { assertFundingAccount, assertPeriods, lowerOrNull } from './checks';
 import { toDomainDeposit } from './domain';
@@ -114,7 +115,7 @@ export function createDepositsService(deps: DepositsServiceDeps): DepositsServic
     async create(headers, poolId, input) {
       const session = await requireSession(auth, headers);
       const parsed = CreateDepositInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const data = parsed.data;
@@ -170,7 +171,7 @@ export function createDepositsService(deps: DepositsServiceDeps): DepositsServic
     async update(headers, poolId, id, input) {
       const session = await requireSession(auth, headers);
       const parsed = UpdateDepositInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const depositId = parseId(id);
@@ -224,7 +225,7 @@ export function createDepositsService(deps: DepositsServiceDeps): DepositsServic
     async schedule(headers, poolId, id, query = {}) {
       const session = await requireSession(auth, headers);
       const parsed = ScheduleQuery.safeParse(query);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, query);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
       const depositId = parseId(id);

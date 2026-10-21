@@ -21,7 +21,6 @@ import {
   type PoolRunner,
   type PoolTx,
 } from '@nestvault/db';
-
 import { toFxRates } from '@nestvault/domain';
 
 import { recordAudit } from '../audit/audit';
@@ -36,21 +35,21 @@ import { clientIpResolver } from '../rate-limit/client-ip';
 import { toManualInterest } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 import { toEngineTransaction } from '../transactions/engine';
+import { zodProblem } from '../zod-problem';
 
 import { readAccounts } from './read';
-import { AccountsScreenDto } from './screen-schemas';
-import { buildAccountsScreen } from './screen';
 import {
   AccountDto,
   AccountListDto,
   CreateAccountInput,
   SubAccountDto,
   SubAccountInput,
-  toAccountDto,
   toSubAccountDto,
   UpdateAccountInput,
   UpdateSubAccountInput,
 } from './schemas';
+import { buildAccountsScreen } from './screen';
+import { AccountsScreenDto } from './screen-schemas';
 
 export interface AccountsService {
   /** Every account of the pool with its balance today (any member). */
@@ -172,7 +171,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
           resolved,
           settings,
         ] = await Promise.all([
-          readAccounts(tx, ctx, today),
+          readAccounts(tx, ctx, today, undefined, { withOperations: true }),
           depositsRepo.list(tx, ctx),
           interestEntriesRepo.list(tx, ctx),
           transactionsRepo.listForEngine(tx, ctx),
@@ -219,7 +218,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     async create(headers, poolId, input) {
       const session = await requireSession(auth, headers);
       const parsed = CreateAccountInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const data = parsed.data;
@@ -274,7 +273,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     async update(headers, poolId, id, input) {
       const session = await requireSession(auth, headers);
       const parsed = UpdateAccountInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const accountId = parseId(id);
@@ -359,7 +358,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     async createSubAccount(headers, poolId, accountId, input) {
       const session = await requireSession(auth, headers);
       const parsed = SubAccountInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const parentId = parseId(accountId);
@@ -398,7 +397,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
     async updateSubAccount(headers, poolId, accountId, id, input) {
       const session = await requireSession(auth, headers);
       const parsed = UpdateSubAccountInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const parentId = parseId(accountId);
