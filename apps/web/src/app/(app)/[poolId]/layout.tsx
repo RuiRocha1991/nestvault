@@ -1,9 +1,21 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppFrame } from '@webapp/components/app-frame';
 import { isPoolSegment } from '@webapp/lib/pool';
 import { getMyPools, getPool } from '@webapp/server/pool';
+
+/** The tab title follows the pool's name (it changes after a rename, on the next refresh). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ poolId: string }>;
+}): Promise<Metadata> {
+  const { poolId } = await params;
+  if (!isPoolSegment(poolId)) return {};
+  return { title: (await getPool(poolId)).name };
+}
 
 export default async function PoolLayout({
   children,

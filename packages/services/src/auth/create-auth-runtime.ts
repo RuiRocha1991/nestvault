@@ -6,6 +6,7 @@ import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
+import { createExpensesService, type ExpensesService } from '../expenses';
 import { createHoldersService, type HoldersService } from '../holders';
 import {
   createCashMovesService,
@@ -20,6 +21,7 @@ import {
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
 import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
+import { createMonthsService, type MonthsService } from '../months';
 import { createNotesService, type NotesService } from '../notes';
 import { createOverviewService, type OverviewService } from '../overview';
 import { createPoolsService, type PoolsService } from '../pools';
@@ -67,6 +69,7 @@ export interface AuthRuntime {
   accounts: AccountsService;
   /** Bank movements: manual entry, categories by hand and transfers. */
   transactions: TransactionsService;
+  expenses: ExpensesService;
   portfolios: PortfoliosService;
   ops: OpsService;
   /** Cash moves from a portfolio to a bank account. */
@@ -80,6 +83,8 @@ export interface AuthRuntime {
   notes: NotesService;
   /** The overview screen in one read. */
   overview: OverviewService;
+  /** The monthly review. */
+  months: MonthsService;
   /** Keyword rules that categorize movements. */
   rules: RulesService;
   /** Assets (unique ticker per pool) and their price history. */
@@ -133,6 +138,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     audit: createAuditService({ auth, identity }),
     accounts: createAccountsService({ auth, identity, ...hops }),
     transactions: createTransactionsService({ auth, identity, ...hops }),
+    expenses: createExpensesService({ auth, identity, ...hops }),
     portfolios: createPortfoliosService({ auth, identity, ...hops }),
     ops: createOpsService({ auth, identity, ...hops }),
     cashMoves: createCashMovesService({ auth, identity, ...hops }),
@@ -142,6 +148,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     interest: createInterestService({ auth, identity, ...hops }),
     notes: createNotesService({ auth, identity, ...hops }),
     overview: createOverviewService({ auth, identity, ...hops }),
+    months: createMonthsService({ auth, identity, ...hops }),
     rules: createRulesService({ auth, identity, ...hops }),
     assets: createAssetsService({ auth, identity, ...hops }),
     categories: createCategoriesService({ auth, identity, ...hops }),

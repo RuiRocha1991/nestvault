@@ -90,7 +90,7 @@ test.describe('layout', () => {
     return { a, b };
   }
 
-  test('desktop: the household and parameters cards sit side by side', async ({ page }) => {
+  test('desktop: the household data and parameters cards sit side by side', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openSettings(page, world.owner);
     const { a, b } = await boxes(page);

@@ -85,6 +85,39 @@ export const intArray = (values: readonly number[]): SQL =>
     sql`, `,
   )}]::int[]`;
 
+/** The kind that counts, in SQL: transfer flag first, then the category's kind, then the sign. */
+const kindSql = sql`case when ${transactions.transfer} then 'transfer' else coalesce(${categories.kind}, case when ${transactions.amount} < 0 then 'expense' else 'income' end) end`;
+
+/** The WHERE conditions of a filter; values are bound parameters and `ilike` text is escaped. */
+function filterConditions(ctx: PoolContext, filter: TransactionFilter): (SQL | undefined)[] {
+  return [
+    eq(transactions.poolId, ctx.poolId),
+    filter.from ? gte(transactions.date, filter.from) : undefined,
+    filter.to ? lte(transactions.date, filter.to) : undefined,
+    filter.accountId ? eq(transactions.accountId, filter.accountId) : undefined,
+    filter.categoryId === 'none'
+      ? isNull(transactions.categoryId)
+      : filter.categoryId
+        ? eq(transactions.categoryId, filter.categoryId)
+        : undefined,
+    filter.kind ? sql`${kindSql} = ${filter.kind}` : undefined,
+    filter.text ? ilike(transactions.description, `%${escapeLike(filter.text)}%`) : undefined,
+    filter.withNotes ? sql`coalesce(${transactions.note}, '') <> ''` : undefined,
+    filter.noteText ? ilike(transactions.note, `%${escapeLike(filter.noteText)}%`) : undefined,
+  ];
+}
+
+/** The sum of the movements of one kind in one account currency, with how many there are. */
+export interface TransactionTotalsRow {
+  currency: string;
+  kind: TransactionKind;
+  /** Signed sum in the account's currency, a decimal string; the outflow side of transfers is left out. */
+  total: string;
+  count: number;
+  /** How many of them have no category. */
+  uncategorized: number;
+}
+
 const SORT_COLUMNS = {
   date: transactions.date,
   amount: transactions.amount,
@@ -156,21 +189,8 @@ export const transactionsRepo = {
     limit: number,
   ): Promise<TransactionPage> {
     const column = SORT_COLUMNS[sort.by];
-    const kind = sql`case when ${transactions.transfer} then 'transfer' else coalesce(${categories.kind}, case when ${transactions.amount} < 0 then 'expense' else 'income' end) end`;
     const conditions: (SQL | undefined)[] = [
-      eq(transactions.poolId, ctx.poolId),
-      filter.from ? gte(transactions.date, filter.from) : undefined,
-      filter.to ? lte(transactions.date, filter.to) : undefined,
-      filter.accountId ? eq(transactions.accountId, filter.accountId) : undefined,
-      filter.categoryId === 'none'
-        ? isNull(transactions.categoryId)
-        : filter.categoryId
-          ? eq(transactions.categoryId, filter.categoryId)
-          : undefined,
-      filter.kind ? sql`${kind} = ${filter.kind}` : undefined,
-      filter.text ? ilike(transactions.description, `%${escapeLike(filter.text)}%`) : undefined,
-      filter.withNotes ? sql`coalesce(${transactions.note}, '') <> ''` : undefined,
-      filter.noteText ? ilike(transactions.note, `%${escapeLike(filter.noteText)}%`) : undefined,
+      ...filterConditions(ctx, filter),
       cursor
         ? sort.descending
           ? sql`(${column}, ${transactions.id}) < (${cursor.value}, ${cursor.id})`
@@ -194,6 +214,30 @@ export const transactionsRepo = {
       rows,
       next: found.length > limit && last ? { value: last[sort.by], id: last.id } : null,
     };
+  },
+
+  /**
+   * What a filter selects, summed per account currency and kind (one aggregate statement; the
+   * caller converts to EUR). Every match counts: there is no cursor.
+   */
+  async totals(
+    tx: PoolTx,
+    ctx: PoolContext,
+    filter: TransactionFilter,
+  ): Promise<TransactionTotalsRow[]> {
+    return tx
+      .select({
+        currency: accounts.currency,
+        kind: sql<TransactionKind>`${kindSql}`,
+        total: sql<string>`coalesce(sum(case when ${transactions.transfer} and ${transactions.amount} <= 0 then 0 else ${transactions.amount} end), 0)::text`,
+        count: sql<number>`count(*)::int`,
+        uncategorized: sql<number>`(count(*) filter (where ${transactions.categoryId} is null))::int`,
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+      .leftJoin(categories, eq(categories.id, transactions.categoryId))
+      .where(and(...filterConditions(ctx, filter)))
+      .groupBy(accounts.currency, kindSql);
   },
 
   async find(tx: PoolTx, ctx: PoolContext, id: string): Promise<TransactionRow | undefined> {

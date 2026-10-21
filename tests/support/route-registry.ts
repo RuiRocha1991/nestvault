@@ -22,6 +22,7 @@ import {
   InterestEntryDto,
   InterestListDto,
   MonthNoteDto,
+  MonthReviewDto,
   MonthNoteListDto,
   NoteDto,
   PortfolioDto,
@@ -34,6 +35,9 @@ import {
   TransactionPageDto,
   CategoryDto,
   CategoryListDto,
+  ExpensesSummaryDto,
+  ExpensesUsageDto,
+  MovementTotalsDto,
   AssetDto,
   AssetListDto,
   BulkPricesDto,
@@ -874,6 +878,57 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     foreign: foreignCategory,
   },
 
+  // ---------------------------------------------------------------- pool scope: expenses
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/summary`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/summary/route')),
+    success: { status: 200, schema: ExpensesSummaryDto },
+    noForeignBecause: 'summarizes the URL’s own pool; the leak probe covers pool B’s movements',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.description];
+    },
+    negatives: [
+      { name: 'a month that is not yyyy-mm', query: '?month=2026-13', expect: 400 },
+      { name: 'an unknown filter', query: '?poolId=2', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/totals`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/totals/route')),
+    success: { status: 200, schema: MovementTotalsDto },
+    noForeignBecause: 'totals of the URL’s own pool; the leak probe covers pool B’s movements',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.description];
+    },
+    negatives: [
+      { name: 'an unknown filter', query: '?accountId=1&poolId=2', expect: 400 },
+      { name: 'a sort (not a filter of the totals)', query: '?sort=amount', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/usage`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/usage/route')),
+    success: { status: 200, schema: ExpensesUsageDto },
+    noForeignBecause: 'counts the URL’s own pool; the leak probe covers pool B’s ids',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.accountId];
+    },
+  },
   // ---------------------------------------------------------------- pool scope: transactions
   {
     scope: 'pool',
@@ -1305,6 +1360,32 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
         name: 'a target that is not in the pool',
         body: { intoId: '00000000-0000-7000-8000-000000000001' },
         expect: 404,
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------- pool scope: rename (NES-137)
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: POOL,
+    permission: 'pool.rename',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/route')),
+    body: () => ({ name: 'Família Renomeada' }),
+    success: { status: 200, schema: PoolSummaryDto },
+    noForeignBecause: 'the pool is the URL’s own; there is no other id in the path',
+    negatives: [
+      { name: 'an empty name', body: { name: '' }, expect: 400 },
+      { name: 'a name of 61 characters', body: { name: 'x'.repeat(61) }, expect: 400 },
+      {
+        name: 'an id in the body',
+        body: { name: 'Casa', id: '00000000-0000-7000-8000-000000000001' },
+        expect: 400,
+      },
+      {
+        name: 'a creation date in the body',
+        body: { name: 'Casa', createdAt: '2020-01-01T00:00:00Z' },
+        expect: 400,
       },
     ],
   },
@@ -2161,6 +2242,21 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: () => Promise.resolve({ month: '2026-03' }),
     success: { status: 200, schema: MonthNoteDto },
     noForeignBecause: 'the month names no resource; the leak probe covers pool B’s note',
+    leaks: async (s) => {
+      await monthNoteB(s);
+      return ['Nota do mês Beta Secreta'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/months/:month/review`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/months/[month]/review/route')),
+    params: () => Promise.resolve({ month: '2026-03' }),
+    success: { status: 200, schema: MonthReviewDto },
+    noForeignBecause: 'the month names no resource; the leak probe covers pool B’s month note',
     leaks: async (s) => {
       await monthNoteB(s);
       return ['Nota do mês Beta Secreta'];

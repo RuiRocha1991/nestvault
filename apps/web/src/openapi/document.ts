@@ -4,6 +4,7 @@ import './auth';
 import './health';
 import './accounts';
 import './transactions';
+import './expenses';
 import './investments';
 import './savings';
 import './notes';
@@ -50,6 +51,7 @@ export function buildOpenApiDocument() {
       },
       { name: 'Transactions', description: 'Bank movements with their categories and transfers' },
       { name: 'Overview', description: 'The overview screen in one read' },
+      { name: 'Expenses', description: 'Month summary and totals of the Despesas screen' },
       { name: 'Portfolios', description: 'Portfolios with their summary' },
       { name: 'Operations', description: 'Buys, sells and dividends of the portfolios' },
       { name: 'Plans', description: 'Regular investment plans and their monthly runs' },

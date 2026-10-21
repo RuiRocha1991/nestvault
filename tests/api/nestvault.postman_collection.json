@@ -902,6 +902,48 @@
               }
             }
           ]
+        },
+        {
+          "name": "Rename pool",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}"
+              ]
+            },
+            "description": "Owner only (pool.rename): admin, member and viewer answer 403, a non-member 404. The name is trimmed, 1-60 characters, no control characters. Strict body: id, createdAt, role or any other field answers 400. Audited as pool.renamed with the pool id only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Família Rocha\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the pool summary', () => pm.expect(pm.response.json().name).to.eql('Família Rocha'));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -3189,6 +3231,132 @@
       ]
     },
     {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Month summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/summary?month=2026-03",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-03"
+                }
+              ]
+            },
+            "description": "Any member. Income, expenses (net of refunds), invested, savings rate, expenses by category with budget progress and the last twelve months. EUR decimal strings."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"categories\", \"flow\", \"history\", \"month\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Totals of a movements filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/totals?month=2026-03&kind=expense",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "totals"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-03"
+                },
+                {
+                  "key": "kind",
+                  "value": "expense"
+                }
+              ]
+            },
+            "description": "Any member. Same filters as the movements list (month, accountId, categoryId or none, kind, q, withNotes), without sort and paging. Totals in EUR."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"count\", \"expenses\", \"income\", \"invested\", \"rates\", \"transfers\", \"uncategorized\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Category and rule usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/expenses/usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "expenses",
+                "usage"
+              ]
+            },
+            "description": "Any member. Movements per category and, per rule, the movements it is the first match for."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql([\"categories\", \"rules\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Portfolios",
       "item": [
         {
@@ -4731,6 +4899,42 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.collectionVariables.set('monthNoteUpdatedAt', pm.response.json().updatedAt || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monthly review of a month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/months/2026-03/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "months",
+                "2026-03",
+                "review"
+              ]
+            },
+            "description": "Any member. KPIs, expenses by category, notable transactions, the month's investment operations, the month note and a 12-month timeline; 2026-13 answers 400."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has the timeline', () => pm.expect(pm.response.json().timeline).to.be.an('array'));"
                 ]
               }
             }

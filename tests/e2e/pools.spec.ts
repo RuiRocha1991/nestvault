@@ -41,7 +41,9 @@ test('a user without a pool creates the first one and lands in it', async ({ pag
   const poolUrl = page.url();
   expect(poolUrl).not.toContain(E2E_POOL_ID);
   await expect(page.getByRole('navigation', { name: messages.nav.label })).toBeVisible();
-  await expect(page.getByText('Família Nova')).toBeVisible();
+  await expect(
+    page.getByLabel(messages.pools.switcher.label, { exact: true }).getByText('Família Nova'),
+  ).toBeVisible();
   await expect(page.getByText(pools.roles.owner)).toBeVisible();
 
   // Refreshing stays on the pool, and /pools now goes straight to it (the only one).

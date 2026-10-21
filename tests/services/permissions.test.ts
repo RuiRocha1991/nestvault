@@ -31,6 +31,8 @@ const PRD_MATRIX: Record<Permission, readonly [boolean, boolean, boolean, boolea
   'members.invite': [true, true, false, false],
   'members.manage': [true, true, false, false], // admin: not owners (members service, NES-28)
   'pool.delete': [true, false, false, false],
+  // Not in the PRD table: only the owner changes the household's name (NES-137).
+  'pool.rename': [true, false, false, false],
   'pool.transfer': [true, false, false, false],
   'pool.export': [true, false, false, false],
   // Not in the PRD table: loading the prototype's backup writes a whole pool at once (NES-47).

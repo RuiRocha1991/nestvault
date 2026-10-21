@@ -1,4 +1,5 @@
-import { CreatePoolInput, PoolSummaryDto } from '@nestvault/services';
+import { CreatePoolInput, PoolSummaryDto, RenamePoolInput } from '@nestvault/services';
+import { z } from 'zod';
 
 import { errorResponses, json, registry } from './registry';
 
@@ -17,5 +18,23 @@ registry.registerPath({
   responses: {
     201: { description: 'The new pool', ...json(PoolSummaryDto) },
     ...errorResponses(400, 401, 403, 409, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/v1/pools/{poolId}',
+  operationId: 'renamePool',
+  summary: 'Rename a pool',
+  description:
+    'Owner only (`pool.rename`): admin, member and viewer answer 403, a non-member 404. The name is trimmed, 1-60 characters, no control characters. The body is strict: `id`, `createdAt`, `role` or any other field answers 400. The `pool.renamed` audit entry carries the pool id only, never the name.',
+  tags: ['Pools'],
+  request: {
+    params: z.object({ poolId: z.uuid() }),
+    body: { required: true, ...json(RenamePoolInput) },
+  },
+  responses: {
+    200: { description: 'The pool after the change', ...json(PoolSummaryDto) },
+    ...errorResponses(400, 401, 403, 404, 413, 429, 500),
   },
 });

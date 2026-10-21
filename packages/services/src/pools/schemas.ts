@@ -4,18 +4,20 @@ import { z } from 'zod';
 export const POOL_NAME_MAX = 60;
 
 /** 1-60 characters after trimming, no control characters (a name is shown in titles and menus). */
-export const CreatePoolInput = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .min(1)
-      .max(POOL_NAME_MAX)
-      // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
-      .regex(/^[^\u0000-\u001f\u007f]+$/),
-  })
-  .strict();
+const PoolName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(POOL_NAME_MAX)
+  // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
+  .regex(/^[^\u0000-\u001f\u007f]+$/);
+
+export const CreatePoolInput = z.object({ name: PoolName }).strict();
 export type CreatePoolInput = z.input<typeof CreatePoolInput>;
+
+/** Only the name: the id, the creation date and the members never come from the body. */
+export const RenamePoolInput = z.object({ name: PoolName }).strict();
+export type RenamePoolInput = z.input<typeof RenamePoolInput>;
 
 /** A pool as its member sees it. No other member, no email. */
 export const PoolSummaryDto = z.object({

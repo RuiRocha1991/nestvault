@@ -11,12 +11,14 @@ import {
   type ProductsService,
   type DepositsService,
   type InterestService,
+  type MonthsService,
   type NotesService,
   type OverviewService,
   type PortfoliosService,
   type PrototypeImportService,
   type RulesService,
   type TransactionsService,
+  type ExpensesService,
   type AssetsService,
   type CategoriesService,
   type HoldersService,
@@ -110,6 +112,10 @@ export async function getTransactionsService(): Promise<TransactionsService> {
   return (await getRuntime()).transactions;
 }
 
+export async function getExpensesService(): Promise<ExpensesService> {
+  return (await getRuntime()).expenses;
+}
+
 export async function getRulesService(): Promise<RulesService> {
   return (await getRuntime()).rules;
 }
@@ -160,4 +166,8 @@ export async function getCashMovesService(): Promise<CashMovesService> {
 
 export async function getPrototypeImportService(): Promise<PrototypeImportService> {
   return (await getRuntime()).prototypeImport;
+}
+
+export async function getMonthsService(): Promise<MonthsService> {
+  return (await getRuntime()).months;
 }

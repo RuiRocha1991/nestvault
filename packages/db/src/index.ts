@@ -54,6 +54,7 @@ export type {
   TransactionPatch,
   TransactionRow,
   TransactionSort,
+  TransactionTotalsRow,
   TransactionValues,
 } from './app/repositories/transactions.repo';
 export { categoryRulesRepo } from './app/repositories/category-rules.repo';
