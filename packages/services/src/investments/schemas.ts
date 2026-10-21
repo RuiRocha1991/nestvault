@@ -1,6 +1,6 @@
 import { INVESTMENT_OP_TYPES } from '@nestvault/db';
 import type { InvestmentOpRow, PlanRow, PortfolioCashMoveRow, PortfolioRow } from '@nestvault/db';
-import { dec, toPlain, type PortfolioSummary } from '@nestvault/domain';
+import { dec, sumToEur, toPlain, type FxRates, type PortfolioSummary } from '@nestvault/domain';
 import { z } from 'zod';
 
 import { ASSET_CURRENCIES } from '../assets/schemas';
@@ -153,6 +153,10 @@ export const PortfolioSummaryDto = z.object({
   yld: z.string(),
   yoc: z.string(),
   divs12: z.string(),
+  /** Withholding tax (negative), tax refunds and interest of brokerage and linked accounts, EUR. */
+  tax: z.string(),
+  refund: z.string(),
+  other: z.string(),
   /** Annualised return; null when undefined. */
   irr: z.number().nullable(),
   positions: z.number().int(),
@@ -168,6 +172,7 @@ export const toSummaryDto = (
   summary: PortfolioSummary,
   asOf: string,
   portfolioId: string | null,
+  rates: FxRates,
 ): PortfolioSummaryDto => ({
   asOf,
   portfolioId,
@@ -203,6 +208,9 @@ export const toSummaryDto = (
   yld: toPlain(summary.yld),
   yoc: toPlain(summary.yoc),
   divs12: toPlain(summary.divs12),
+  tax: toPlain(sumToEur(summary.taxBy, rates)),
+  refund: toPlain(sumToEur(summary.refundBy, rates)),
+  other: toPlain(sumToEur(summary.otherBy, rates)),
   irr: Number.isFinite(summary.irr) ? summary.irr : null,
   positions: summary.positions,
 });

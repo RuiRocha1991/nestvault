@@ -1638,6 +1638,676 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/accounts/overview": {
+      "get": {
+        "operationId": "accountsOverview",
+        "summary": "Cards of the accounts screen",
+        "description": "Any member may read. Every account with its balance (account currency and EUR) plus, by type: interest received and effective rate, the term-deposit schedule (next payment, maturity, progress), brokerage figures (positions, sub-accounts, gross dividends, taxes, refunds, net) and EUR totals per type.",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The accounts screen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "checking",
+                              "savings",
+                              "term_deposit",
+                              "brokerage"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "institution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "iban": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "opening": {
+                            "type": "string"
+                          },
+                          "openingDate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "trackCash": {
+                            "type": "boolean"
+                          },
+                          "groupName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "portfolioId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "rate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "xtbAccountNo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "holderIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "subAccounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "accountId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "holderId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uuid"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "accountId",
+                                "name",
+                                "holderId"
+                              ]
+                            }
+                          },
+                          "balance": {
+                            "type": "string"
+                          },
+                          "balanceEur": {
+                            "type": "string"
+                          },
+                          "movements": {
+                            "type": "integer"
+                          },
+                          "interest": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "last12Months": {
+                                "type": "string"
+                              },
+                              "total": {
+                                "type": "string"
+                              },
+                              "effectiveRate": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "recent": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "date": {
+                                      "type": "string",
+                                      "format": "date"
+                                    },
+                                    "amount": {
+                                      "type": "string"
+                                    },
+                                    "source": {
+                                      "type": "string",
+                                      "enum": [
+                                        "manual",
+                                        "statement"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "date",
+                                    "amount",
+                                    "source"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "last12Months",
+                              "total",
+                              "effectiveRate",
+                              "recent"
+                            ]
+                          },
+                          "pendingDeposits": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "amount": {
+                                "type": "string"
+                              },
+                              "next": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "amount": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "date",
+                                  "amount"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "amount",
+                              "next"
+                            ]
+                          },
+                          "term": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "depositId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "productId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "capital": {
+                                "type": "string"
+                              },
+                              "rate": {
+                                "type": "string"
+                              },
+                              "start": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "maturity": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "payN": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "payU": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "m",
+                                  "d",
+                                  null
+                                ]
+                              },
+                              "termN": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "termU": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "m",
+                                  "d",
+                                  null
+                                ]
+                              },
+                              "scheduled": {
+                                "type": "boolean"
+                              },
+                              "capitalize": {
+                                "type": "boolean"
+                              },
+                              "tax": {
+                                "type": "string"
+                              },
+                              "payToAccountId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "fundFromAccountId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "returnToAccountId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "gross": {
+                                "type": "string"
+                              },
+                              "withheld": {
+                                "type": "string"
+                              },
+                              "net": {
+                                "type": "string"
+                              },
+                              "accrued": {
+                                "type": "string"
+                              },
+                              "annualEstimate": {
+                                "type": "string"
+                              },
+                              "next": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "net": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "date",
+                                  "net"
+                                ]
+                              },
+                              "matured": {
+                                "type": "boolean"
+                              },
+                              "progress": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "payments": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "date": {
+                                      "type": "string",
+                                      "format": "date"
+                                    },
+                                    "days": {
+                                      "type": "integer"
+                                    },
+                                    "gross": {
+                                      "type": "string"
+                                    },
+                                    "net": {
+                                      "type": "string"
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "planned",
+                                        "paid"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "date",
+                                    "days",
+                                    "gross",
+                                    "net",
+                                    "status"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "depositId",
+                              "productId",
+                              "capital",
+                              "rate",
+                              "start",
+                              "maturity",
+                              "payN",
+                              "payU",
+                              "termN",
+                              "termU",
+                              "scheduled",
+                              "capitalize",
+                              "tax",
+                              "payToAccountId",
+                              "fundFromAccountId",
+                              "returnToAccountId",
+                              "gross",
+                              "withheld",
+                              "net",
+                              "accrued",
+                              "annualEstimate",
+                              "next",
+                              "matured",
+                              "progress",
+                              "payments"
+                            ]
+                          },
+                          "brokerage": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "trackCash": {
+                                "type": "boolean"
+                              },
+                              "valueBy": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "valueEur": {
+                                "type": "string"
+                              },
+                              "positions": {
+                                "type": "integer"
+                              },
+                              "totalPct": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "subAccounts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "holderId": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "uuid"
+                                    },
+                                    "valueEur": {
+                                      "type": "string"
+                                    },
+                                    "totalPct": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name",
+                                    "holderId",
+                                    "valueEur",
+                                    "totalPct"
+                                  ]
+                                }
+                              },
+                              "deposits": {
+                                "type": "string"
+                              },
+                              "withdrawals": {
+                                "type": "string"
+                              },
+                              "buys": {
+                                "type": "string"
+                              },
+                              "sells": {
+                                "type": "string"
+                              },
+                              "dividends": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "gross": {
+                                    "type": "string"
+                                  },
+                                  "tax": {
+                                    "type": "string"
+                                  },
+                                  "refund": {
+                                    "type": "string"
+                                  },
+                                  "net": {
+                                    "type": "string"
+                                  },
+                                  "net12Months": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "gross",
+                                  "tax",
+                                  "refund",
+                                  "net",
+                                  "net12Months"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "trackCash",
+                              "valueBy",
+                              "valueEur",
+                              "positions",
+                              "totalPct",
+                              "subAccounts",
+                              "deposits",
+                              "withdrawals",
+                              "buys",
+                              "sells",
+                              "dividends"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "name",
+                          "institution",
+                          "iban",
+                          "currency",
+                          "opening",
+                          "openingDate",
+                          "trackCash",
+                          "groupName",
+                          "portfolioId",
+                          "rate",
+                          "xtbAccountNo",
+                          "holderIds",
+                          "subAccounts",
+                          "balance",
+                          "balanceEur",
+                          "movements",
+                          "interest",
+                          "pendingDeposits",
+                          "term",
+                          "brokerage"
+                        ]
+                      }
+                    },
+                    "totalsEur": {
+                      "type": "object",
+                      "properties": {
+                        "checking": {
+                          "type": "string"
+                        },
+                        "savings": {
+                          "type": "string"
+                        },
+                        "term_deposit": {
+                          "type": "string"
+                        },
+                        "brokerage": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "asOf",
+                    "accounts",
+                    "totalsEur"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/accounts/{id}": {
       "get": {
         "operationId": "getAccount",
@@ -5473,6 +6143,15 @@
                     "divs12": {
                       "type": "string"
                     },
+                    "tax": {
+                      "type": "string"
+                    },
+                    "refund": {
+                      "type": "string"
+                    },
+                    "other": {
+                      "type": "string"
+                    },
                     "irr": {
                       "type": [
                         "number",
@@ -5518,6 +6197,9 @@
                     "yld",
                     "yoc",
                     "divs12",
+                    "tax",
+                    "refund",
+                    "other",
                     "irr",
                     "positions"
                   ]
