@@ -90,6 +90,7 @@ export async function SummaryTab({
         <div className="flex flex-wrap items-center gap-3">
           <MonthSelect poolId={poolId} month={month} months={monthOptions(month, today)} />
           <Link
+            prefetch={false}
             href={`/${poolId}/mes/${month}`}
             className="text-md font-semibold text-accent-2 no-underline hover:underline"
           >
@@ -151,6 +152,7 @@ export async function SummaryTab({
                 <Chip>{t('elapsed', { percent: elapsed })}</Chip>
                 {canWriteCategories && (
                   <Link
+                    prefetch={false}
                     href={`/${poolId}/despesas?tab=categorias`}
                     className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line-2 bg-panel-2 px-2.5 text-sm font-semibold text-fg no-underline hover:border-accent-2"
                   >
@@ -183,6 +185,7 @@ export async function SummaryTab({
                         style={{ background: colorOf(row.categoryId) }}
                       />
                       <Link
+                        prefetch={false}
                         href={movementsHref(row.categoryId)}
                         className="mr-auto min-w-0 truncate text-fg no-underline hover:underline"
                       >

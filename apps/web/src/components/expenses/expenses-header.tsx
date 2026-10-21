@@ -49,6 +49,7 @@ export async function ExpensesHeader({
           {EXPENSE_TABS.map((tab) => (
             <li key={tab}>
               <Link
+                prefetch={false}
                 href={`/${poolId}/despesas?tab=${tab}`}
                 aria-current={tab === active ? 'page' : undefined}
                 className={cn(
