@@ -121,7 +121,7 @@ export function HouseholdCard(props: HouseholdCardProps) {
             >
               {BASE_CURRENCIES.map((code) => (
                 <option key={code} value={code}>
-                  {t(`currencies.${code}`)}
+                  {t(`currencies.${code.toLowerCase()}`)}
                 </option>
               ))}
             </Select>

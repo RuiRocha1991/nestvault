@@ -1170,10 +1170,10 @@
     "currency": "Moeda base",
     "currencyHint": "Os valores de outras moedas são convertidos para esta.",
     "currencies": {
-      "EUR": "EUR · Euro",
-      "USD": "USD · Dólar",
-      "GBP": "GBP · Libra",
-      "CHF": "CHF · Franco suíço"
+      "eur": "EUR · Euro",
+      "usd": "USD · Dólar",
+      "gbp": "GBP · Libra",
+      "chf": "CHF · Franco suíço"
     },
     "createdAt": "Criado em",
     "owner": "Proprietário",
