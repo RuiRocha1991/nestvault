@@ -1,5 +1,5 @@
-import { Card, CardHeader, Table, Td, Th, formatDate, formatMoney } from '@nestvault/ui';
 import { NotFoundError } from '@nestvault/services';
+import { Card, CardHeader, Table, Td, Th, formatDate, formatMoney } from '@nestvault/ui';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -101,7 +101,10 @@ export default async function SearchPage({
                     <Td>{formatDate(movement.date)}</Td>
                     <Td>{movement.description}</Td>
                     <Td numeric>
-                      {formatMoney(movement.amount, found.currency.get(movement.accountId) ?? 'EUR')}
+                      {formatMoney(
+                        movement.amount,
+                        found.currency.get(movement.accountId) ?? 'EUR',
+                      )}
                     </Td>
                   </tr>
                 ))}

@@ -58,7 +58,11 @@ function Delta({
   return (
     <>
       <span className={cn('inline-flex items-center gap-0.5 text-sm font-semibold', TONE[tone])}>
-        {number >= 0 ? <ArrowUp aria-hidden className="size-3" /> : <ArrowDown aria-hidden className="size-3" />}
+        {number >= 0 ? (
+          <ArrowUp aria-hidden className="size-3" />
+        ) : (
+          <ArrowDown aria-hidden className="size-3" />
+        )}
         {formatPct(Math.abs(number))}
       </span>{' '}
       <span className="text-sm text-fg-3">{note}</span>
@@ -127,7 +131,10 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
                   </Link>
                 )}
                 {can.addTransaction && (
-                  <Link href={`/${poolId}/despesas`} className={linkButton.replace('h-7', 'h-[34px]')}>
+                  <Link
+                    href={`/${poolId}/despesas`}
+                    className={linkButton.replace('h-7', 'h-[34px]')}
+                  >
                     {t('importStatement')}
                   </Link>
                 )}
@@ -200,11 +207,7 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
           value={money0(kpis.monthExpenses.value)}
           detail={
             budgetUsed === null ? (
-              <Delta
-                value={kpis.monthExpenses.changePct}
-                inverse
-                note={t('kpi.vsPreviousMonth')}
-              />
+              <Delta value={kpis.monthExpenses.changePct} inverse note={t('kpi.vsPreviousMonth')} />
             ) : (
               <span
                 className={cn(
@@ -282,9 +285,12 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
                   <span className="truncate text-sm text-fg-2">{goal.name}</span>
                   <b className="text-lg font-bold">{formatPct(goal.progress, { digits: 0 })}</b>
                   <span className={cn('text-xs', TONE[goalTone(goal.status)])}>
-                    {t(`goals.status.${goal.status}`, {
-                      month: goal.etaMonth ? monthLabel(goal.etaMonth) : '',
-                    })}
+                    {t(
+                      `goals.status.${goal.status.replace(/_([a-z])/g, (_m, c: string) => c.toUpperCase())}`,
+                      {
+                        month: goal.etaMonth ? monthLabel(goal.etaMonth) : '',
+                      },
+                    )}
                   </span>
                   <ProgressBar
                     value={Number(goal.progress)}
@@ -399,7 +405,8 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
             height={150}
           />
           <span className="text-sm text-fg-3">
-            {t('dividends.forecast')} <b className="text-fg-2">{formatMoney(data.dividends.total)}</b>
+            {t('dividends.forecast')}{' '}
+            <b className="text-fg-2">{formatMoney(data.dividends.total)}</b>
           </span>
         </Card>
       </div>

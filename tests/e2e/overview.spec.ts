@@ -57,7 +57,12 @@ test('the overview of the prototype data shows the KPIs, the chart and the cards
   await importPrototype(page);
   await page.reload();
 
-  for (const title of [o.kpi.netWorth, o.kpi.investments, o.kpi.passiveIncome, o.kpi.monthExpenses]) {
+  for (const title of [
+    o.kpi.netWorth,
+    o.kpi.investments,
+    o.kpi.passiveIncome,
+    o.kpi.monthExpenses,
+  ]) {
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   }
   // The fixture's positions are worth 2 114 EUR (the NES-47 reference value).
@@ -99,7 +104,9 @@ test('the search box finds movements by description', async ({ page }) => {
   await page.getByRole('searchbox', { name: o.header.searchLabel }).press('Enter');
   await expect(page).toHaveURL(/\/pesquisa\?q=CONTINENTE/);
   await expect(page.getByRole('heading', { name: messages.search.title })).toBeVisible();
-  await expect(page.getByText(messages.search.resultsFor.replace('{query}', 'CONTINENTE'))).toBeVisible();
+  await expect(
+    page.getByText(messages.search.resultsFor.replace('{query}', 'CONTINENTE')),
+  ).toBeVisible();
 });
 
 // The mockup (01-visao-geral) is the layout reference. Its data is the owner's real one, so pixels
@@ -129,11 +136,25 @@ for (const theme of ['dark', 'light'] as const) {
       [o.kpi.netWorth, o.kpi.investments, o.kpi.passiveIncome, o.kpi.monthExpenses].map(card),
     );
     const [evolution, goals, portfolios, expenses, dividends] = await Promise.all(
-      [o.evolution.title, o.goals.title, o.portfolios.title, o.expenses.title, o.dividends.title].map(
-        card,
-      ),
+      [
+        o.evolution.title,
+        o.goals.title,
+        o.portfolios.title,
+        o.expenses.title,
+        o.dividends.title,
+      ].map(card),
     );
-    if (!net || !inv || !inc || !exp || !evolution || !goals || !portfolios || !expenses || !dividends) {
+    if (
+      !net ||
+      !inv ||
+      !inc ||
+      !exp ||
+      !evolution ||
+      !goals ||
+      !portfolios ||
+      !expenses ||
+      !dividends
+    ) {
       throw new Error('missing card');
     }
 
@@ -149,9 +170,9 @@ for (const theme of ['dark', 'light'] as const) {
     expect(Math.abs(goals.width / total - 1 / 3)).toBeLessThan(0.03);
     // The row below starts under the evolution card, with three equal cards.
     expect(portfolios.y).toBeGreaterThan(evolution.y + evolution.height - 1);
-    expect([portfolios.y, expenses.y, dividends.y].every((y) => Math.abs(y - portfolios.y) <= 4)).toBe(
-      true,
-    );
+    expect(
+      [portfolios.y, expenses.y, dividends.y].every((y) => Math.abs(y - portfolios.y) <= 4),
+    ).toBe(true);
     for (const third of [portfolios, expenses, dividends]) {
       expect(Math.abs(third.width / total - 1 / 3)).toBeLessThan(0.03);
     }

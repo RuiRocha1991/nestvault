@@ -34,7 +34,9 @@ describe('parseRange', () => {
 
 describe('topCategories', () => {
   it('keeps the five largest and sums the rest into one "others" slice', () => {
-    const items = ['60', '50', '40', '30', '20', '7', '3'].map((value, i) => category(i + 1, value));
+    const items = ['60', '50', '40', '30', '20', '7', '3'].map((value, i) =>
+      category(i + 1, value),
+    );
     const slices = topCategories(items);
     expect(slices).toHaveLength(6);
     expect(slices.slice(0, 5).map((slice) => slice.value)).toEqual([60, 50, 40, 30, 20]);

@@ -92,10 +92,10 @@
       "progress": "Progresso de {name}",
       "status": {
         "reached": "Atingido",
-        "on_track": "No ritmo",
+        "onTrack": "No ritmo",
         "behind": "Abaixo do ritmo",
         "eta": "Atinges em {month}",
-        "no_contribution": "Sem contribuição",
+        "noContribution": "Sem contribuição",
         "tracking": "A acompanhar"
       }
     },

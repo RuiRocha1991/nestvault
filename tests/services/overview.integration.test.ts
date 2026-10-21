@@ -139,7 +139,12 @@ describe('overview service', () => {
     // 2 units bought at 80, worth 100: +25 % on the cost.
     expect(result.kpis.investments).toMatchObject({ value: '200', returnPct: '25' });
     expect(result.portfolios).toEqual([
-      expect.objectContaining({ name: 'Longo prazo', currency: 'EUR', value: '200', returnPct: '25' }),
+      expect.objectContaining({
+        name: 'Longo prazo',
+        currency: 'EUR',
+        value: '200',
+        returnPct: '25',
+      }),
     ]);
 
     // October: 120 + 30 of expenses against a 1 000 budget, 25 % less than September's 200.
@@ -162,8 +167,7 @@ describe('overview service', () => {
 
   it('draws the chart over 6, 12 or 24 months, or over everything since the first record', async () => {
     await household();
-    const months = async (range: string) =>
-      (await overview('owner', { range })).evolution.months;
+    const months = async (range: string) => (await overview('owner', { range })).evolution.months;
     expect(await months('6')).toEqual(lastMonths(6, '2026-10-21'));
     expect(await months('24')).toHaveLength(24);
     // The first record is the opening balance of January 2026: ten months up to October.

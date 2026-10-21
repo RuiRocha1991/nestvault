@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { OverviewScreen, type OverviewScreenProps } from '@webapp/components/overview/overview-screen';
+import {
+  OverviewScreen,
+  type OverviewScreenProps,
+} from '@webapp/components/overview/overview-screen';
 
 import messages from '../../apps/web/messages/pt-PT.json';
 import { NextIntlClientProvider } from '../../apps/web/node_modules/next-intl';
@@ -17,7 +20,7 @@ vi.mock('@webapp/components/shell', () => ({
 }));
 
 const POOL = '0192f3a1-aaaa-7000-8000-000000000000';
-const NBSP = ' ';
+const NBSP = '\u00a0';
 
 const wrap = (node: React.ReactNode) =>
   renderToStaticMarkup(

@@ -118,7 +118,10 @@ describe('assets repository', () => {
       ),
     );
     const since = (day: string) => withPool(a.ctx, (tx) => assetPricesRepo.since(tx, a.ctx, day));
-    expect((await since('2026-02-01')).map((row) => row.date)).toEqual(['2026-02-01', '2026-03-01']);
+    expect((await since('2026-02-01')).map((row) => row.date)).toEqual([
+      '2026-02-01',
+      '2026-03-01',
+    ]);
     expect(await since('2026-04-01')).toEqual([]);
     // The day is a bound parameter: a payload is refused by the date type, it never runs as SQL.
     await expect(since("2026-01-01' OR 1=1 --")).rejects.toThrow();

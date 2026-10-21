@@ -85,7 +85,8 @@ const FALLBACK_COLOR = '#8C8FB8';
 const DEFAULT_TAX = '28';
 
 /** `part / whole` as a percentage; 0 without a whole. */
-const percent = (part: Dec, whole: Dec): Dec => (whole.isZero() ? ZERO : part.div(whole).times(HUNDRED));
+const percent = (part: Dec, whole: Dec): Dec =>
+  whole.isZero() ? ZERO : part.div(whole).times(HUNDRED);
 
 /** Change of `current` against `previous` in percent; 0 when there is nothing to compare with. */
 const change = (current: Dec, previous: Dec): Dec =>
@@ -201,7 +202,8 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       systemKey: row.systemKey,
     }));
     const budgets: Record<string, string> = {};
-    for (const row of settingRows) if (row.monthlyBudget) budgets[row.categoryId] = row.monthlyBudget;
+    for (const row of settingRows)
+      if (row.monthlyBudget) budgets[row.categoryId] = row.monthlyBudget;
 
     const data: LedgerData = {
       accounts: accountRows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
@@ -229,7 +231,9 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         amount: movement.amount,
         description: movement.description,
         ...(movement.transfer !== undefined && { transfer: movement.transfer }),
-        ...(movement.depositInterest !== undefined && { depositInterest: movement.depositInterest }),
+        ...(movement.depositInterest !== undefined && {
+          depositInterest: movement.depositInterest,
+        }),
         category: category
           ? { kind: category.kind, name: category.name, systemKey: category.systemKey }
           : null,
@@ -247,7 +251,9 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         today,
         defaultTax,
       );
-      interest12 = interest12.plus(toEur(interestLast12Months(entries, today), row.currency, rates));
+      interest12 = interest12.plus(
+        toEur(interestLast12Months(entries, today), row.currency, rates),
+      );
       return {
         id: row.id,
         currency: row.currency,
