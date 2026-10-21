@@ -7,6 +7,7 @@ import {
   AcceptInviteDto,
   AccountDto,
   AccountListDto,
+  AccountsScreenDto,
   ApplyRulesDto,
   OpDto,
   OpListDto,
@@ -1126,6 +1127,21 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       const other = await accountIn(s, 'B');
       const sub = await subAccountIn(s, 'B');
       return [other.id, other.name, sub.id, sub.name];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/accounts/overview`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/accounts/overview/route')),
+    success: { status: 200, schema: AccountsScreenDto },
+    noForeignBecause: 'reads the URL’s own pool; the leak probe covers pool B’s accounts',
+    leaks: async (s) => {
+      await accountIn(s, 'A');
+      const other = await accountIn(s, 'B');
+      return [other.id, other.name];
     },
   },
   {

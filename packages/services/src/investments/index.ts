@@ -30,3 +30,4 @@ export {
   UpdatePlanInput,
   UpdatePortfolioInput,
 } from './schemas';
+export { buildPortfolioView, HoldingDto, PortfolioViewDto, ViewOpDto } from './portfolio-view';

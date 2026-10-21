@@ -15,10 +15,11 @@ import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
-import { ConflictError, NotFoundError, ValidationError } from '../errors';
+import { ConflictError, NotFoundError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { parseId } from '../investments/checks';
 import { clientIpResolver } from '../rate-limit/client-ip';
+import { zodProblem } from '../zod-problem';
 
 import { assertFundingAccount, assertPeriods, lowerOrNull } from './checks';
 import {
@@ -117,7 +118,7 @@ export function createProductsService(deps: ProductsServiceDeps): ProductsServic
     async create(headers, poolId, input) {
       const session = await requireSession(auth, headers);
       const parsed = CreateProductInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const data = parsed.data;
@@ -146,7 +147,7 @@ export function createProductsService(deps: ProductsServiceDeps): ProductsServic
     async update(headers, poolId, id, input) {
       const session = await requireSession(auth, headers);
       const parsed = UpdateProductInput.safeParse(input);
-      if (!parsed.success) throw new ValidationError();
+      if (!parsed.success) throw zodProblem(parsed.error, input);
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'accounts.write');
       const productId = parseId(id);
