@@ -22,6 +22,8 @@ import {
   portfolioSummary,
   toFxRates,
   toPlain,
+  lastMonths,
+  monthEnd,
   type InvestmentAsset,
   type SummaryAccount,
 } from '@nestvault/domain';
@@ -40,6 +42,7 @@ import { toEngineTransaction } from '../transactions/engine';
 
 import { invalid, parseId } from './checks';
 import { toCashMove, toInvestmentOp } from './domain';
+import { buildPortfolioView, PortfolioViewDto, PERFORMANCE_MONTHS } from './portfolio-view';
 import {
   CreatePortfolioInput,
   DeletePortfolioQuery,
@@ -69,6 +72,12 @@ export interface PortfoliosService {
   remove(headers: Headers, poolId: string, id: string, query?: unknown): Promise<void>;
   /** The domain's summary of one portfolio, or of all of them (any member). */
   summary(headers: Headers, poolId: string, query?: unknown): Promise<PortfolioSummaryDto>;
+  /**
+   * What the Portfolios screen shows beyond the summary: positions, operations, dividends,
+   * monthly performance, allocation and diagnostics (any member). Read by the page, not exposed
+   * as a REST route.
+   */
+  view(headers: Headers, poolId: string, query?: unknown): Promise<PortfolioViewDto>;
 }
 
 export interface PortfoliosServiceDeps {
@@ -173,10 +182,11 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
         ),
       ),
     }));
-    return portfolioSummary(
+    const summary = portfolioSummary(
       { ops, assets, accounts, moves, rates },
       { asOf, today: asOf, ...(portfolioId ? { portfolioIds: [portfolioId] } : {}) },
     );
+    return { summary, rates };
   }
 
   return {
@@ -306,13 +316,66 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       can(ctx, 'pool.read');
       const asOf = parsed.data.asOf ?? today();
       const portfolioId = parsed.data.portfolioId?.toLowerCase();
-      const summary = await run(ctx, async (tx) => {
+      const { summary, rates } = await run(ctx, async (tx) => {
         if (portfolioId && !(await portfoliosRepo.find(tx, ctx, portfolioId))) {
           throw new NotFoundError();
         }
         return loadSummary(tx, ctx, asOf, portfolioId);
       });
-      return PortfolioSummaryDto.parse(toSummaryDto(summary, asOf, portfolioId ?? null));
+      return PortfolioSummaryDto.parse(toSummaryDto(summary, asOf, portfolioId ?? null, rates));
+    },
+
+    async view(headers, poolId, query = {}) {
+      const session = await requireSession(auth, headers);
+      const parsed = SummaryQuery.safeParse(query);
+      if (!parsed.success) throw new ValidationError();
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'pool.read');
+      const asOf = parsed.data.asOf ?? today();
+      const portfolioId = parsed.data.portfolioId?.toLowerCase() ?? null;
+      return run(ctx, async (tx) => {
+        if (portfolioId && !(await portfoliosRepo.find(tx, ctx, portfolioId))) {
+          throw new NotFoundError();
+        }
+        const [opRows, assetRows, prices, resolved] = await Promise.all([
+          investmentOpsRepo.list(tx, ctx),
+          assetsRepo.list(tx, ctx),
+          assetPricesRepo.latestAsOf(tx, ctx, asOf),
+          loadFxRates(tx, ctx, asOf),
+        ]);
+        const latest = new Map(prices.map((price) => [price.assetId, price.price]));
+        const assets = assetRows.map((row) => ({
+          id: row.id,
+          currency: row.currency,
+          price: latest.get(row.id) ?? '0',
+          dps: row.dps,
+          divMonths: row.divMonths,
+          type: row.type,
+          sector: row.sector,
+          region: row.region,
+        }));
+        const historicPrices = new Map<string, Map<string, string>>();
+        // Only the months since the first operation are charted, so only those need prices.
+        const firstMonth = opRows.reduce(
+          (first, row) => (row.date.slice(0, 7) < first ? row.date.slice(0, 7) : first),
+          asOf.slice(0, 7),
+        );
+        for (const month of lastMonths(PERFORMANCE_MONTHS, asOf).filter((m) => m >= firstMonth)) {
+          const end = month === asOf.slice(0, 7) ? asOf : monthEnd(month);
+          const rows = end === asOf ? prices : await assetPricesRepo.latestAsOf(tx, ctx, end);
+          historicPrices.set(month, new Map(rows.map((row) => [row.assetId, row.price])));
+        }
+        return PortfolioViewDto.parse(
+          buildPortfolioView({
+            asOf,
+            portfolioId,
+            opRows,
+            assets,
+            rates: toFxRates(resolved),
+            historicPrices,
+          }),
+        );
+      });
     },
   };
 }
