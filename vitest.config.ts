@@ -20,6 +20,10 @@ const resolve = {
   ],
 };
 
+// Timing tests (the overview benchmark) skip themselves when coverage instrumentation is on: it
+// slows hot loops down by 2x or more. The test workers inherit this variable.
+if (process.argv.includes('--coverage')) process.env.NV_COVERAGE = '1';
+
 export default defineConfig({
   test: {
     coverage: {

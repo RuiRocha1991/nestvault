@@ -7,6 +7,8 @@ import { createApiWorld, type ApiWorld } from '../support/api-world';
 // NES-49 acceptance: the overview answers in under 300 ms for 20 000 movements and 2 000
 // operations. The rows are bulk-inserted with SQL (the services would take minutes); the service is
 // then called once to warm up and five times to measure, and the median is what counts.
+// Timings are only meaningful without V8 coverage instrumentation (it doubles them), so this file
+// skips itself in `pnpm test:coverage`; CI runs it in its own step without coverage.
 
 vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 
@@ -25,7 +27,9 @@ afterAll(async () => {
   await world.close();
 });
 
-describe('overview benchmark', () => {
+const COVERAGE_ON = !!process.env.NV_COVERAGE;
+
+describe.skipIf(COVERAGE_ON)('overview benchmark', () => {
   it(`answers in under ${LIMIT_MS} ms for ${TRANSACTIONS} movements and ${OPERATIONS} operations`, async () => {
     const s = await world.newScenario();
     const owner = await s.as('owner');

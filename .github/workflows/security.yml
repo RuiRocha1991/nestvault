@@ -101,6 +101,9 @@ jobs:
       # (packages/domain 90% lines, packages/services 80% lines).
       - name: Tests with coverage
         run: pnpm test:coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit-vitest.xml
+      # Timing test: it skips itself under coverage, so it runs here on its own (NES-49).
+      - name: Overview benchmark (no coverage)
+        run: pnpm exec vitest run tests/services/overview-benchmark.integration.test.ts
       - name: Publish test results
         if: always()
         uses: mikepenz/action-junit-report@v5
