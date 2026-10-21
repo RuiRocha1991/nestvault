@@ -45,6 +45,16 @@ export const poolsRepo = {
     await db.insert(pools).values({ id: pool.id, name: pool.name });
   },
 
+  /** Changes the name. `false` when the pool does not exist. */
+  async rename(db: IdentityExecutor, poolId: string, name: string): Promise<boolean> {
+    const updated = await db
+      .update(pools)
+      .set({ name })
+      .where(eq(pools.id, poolId))
+      .returning({ id: pools.id });
+    return updated.length > 0;
+  },
+
   /** The pools the user belongs to, most recently active first. */
   async listForUser(db: IdentityDatabase['db'], userId: string): Promise<PoolSummaryRow[]> {
     const rows = await db

@@ -1008,6 +1008,7 @@
       },
       "pool": {
         "created": "Agregado criado",
+        "renamed": "Agregado renomeado",
         "prototypeImported": "Cópia do protótipo importada",
         "ownershipTransferred": "Propriedade transferida"
       },
@@ -1161,6 +1162,31 @@
       "retry": "Tentar novamente"
     },
     "readOnly": "Registo <b>só de leitura</b>: as entradas não podem ser alteradas nem apagadas, nem por proprietários. Só o proprietário vê esta página. Nunca guardamos valores, IBANs, notas nem tokens, só quem fez o quê e quando."
+  },
+  "household": {
+    "title": "Dados do agregado",
+    "name": "Nome do agregado",
+    "nameHint": "1-60 caracteres.",
+    "currency": "Moeda base",
+    "currencyHint": "Os valores de outras moedas são convertidos para esta.",
+    "currencies": {
+      "eur": "EUR · Euro",
+      "usd": "USD · Dólar",
+      "gbp": "GBP · Libra",
+      "chf": "CHF · Franco suíço"
+    },
+    "createdAt": "Criado em",
+    "owner": "Proprietário",
+    "users": "Utilizadores com conta",
+    "holders": "Pessoas (titulares)",
+    "save": "Guardar nome",
+    "saved": "Agregado guardado.",
+    "invalidTitle": "Valores inválidos",
+    "invalidText": "O nome tem de ter entre 1 e 60 caracteres. Só o proprietário pode alterar o agregado.",
+    "errorTitle": "Não foi possível guardar",
+    "errorText": "Tenta novamente dentro de instantes.",
+    "lockedTitle": "Pedidos a mais",
+    "lockedText": "Tenta novamente dentro de <time></time>."
   },
   "parameters": {
     "title": "Parâmetros",

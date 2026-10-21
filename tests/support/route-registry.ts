@@ -1362,6 +1362,32 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     ],
   },
 
+  // ---------------------------------------------------------------- pool scope: rename (NES-137)
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: POOL,
+    permission: 'pool.rename',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/route')),
+    body: () => ({ name: 'Família Renomeada' }),
+    success: { status: 200, schema: PoolSummaryDto },
+    noForeignBecause: 'the pool is the URL’s own; there is no other id in the path',
+    negatives: [
+      { name: 'an empty name', body: { name: '' }, expect: 400 },
+      { name: 'a name of 61 characters', body: { name: 'x'.repeat(61) }, expect: 400 },
+      {
+        name: 'an id in the body',
+        body: { name: 'Casa', id: '00000000-0000-7000-8000-000000000001' },
+        expect: 400,
+      },
+      {
+        name: 'a creation date in the body',
+        body: { name: 'Casa', createdAt: '2020-01-01T00:00:00Z' },
+        expect: 400,
+      },
+    ],
+  },
+
   // ---------------------------------------------------------------- pool scope: settings
   {
     scope: 'pool',

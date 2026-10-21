@@ -3,6 +3,7 @@ export { createPoolsService, MAX_OWNED_POOLS, type PoolsService } from './pools-
 export {
   CreatePoolInput,
   POOL_NAME_MAX,
+  RenamePoolInput,
   PoolListDto,
   PoolSummaryDto,
   toPoolSummaryDto,

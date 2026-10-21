@@ -9,6 +9,7 @@ export const PERMISSIONS = [
   'pool.read',
   'pool.export',
   'pool.delete',
+  'pool.rename',
   'pool.transfer',
   'pool.import',
   'members.invite',

@@ -5,8 +5,8 @@ import messages from '../../apps/web/messages/pt-PT.json' with { type: 'json' };
 import { STORAGE_STATE, poolPath, poolUrl } from './support/user';
 
 // Texts come from the message catalogue, so a copy edit does not break these tests.
-// The document title is a literal in apps/web/src/app/layout.tsx, not a message.
-const TITLE = 'Cofre Familiar';
+// The pool pages take their tab title from the pool name (see the pool layout metadata).
+const TITLE = 'Família E2E';
 const NAV = messages.nav.label;
 
 // These pages need a session: they run as the E2E owner created in global-setup.ts.
