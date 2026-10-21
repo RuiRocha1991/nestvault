@@ -17,7 +17,7 @@ import {
   type PoolTx,
 } from '@nestvault/db';
 import {
-  accountBalances,
+  accountBalancesAt,
   accountInterest,
   dec,
   dividendsForecast,
@@ -58,7 +58,6 @@ import { can, requirePoolAccess } from '../guards/pool-access';
 import { toCashMove, toInvestmentOp } from '../investments/domain';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
-import { toEngineTransaction } from '../transactions/engine';
 
 import { OVERVIEW_MAX_MONTHS, OverviewDto, OverviewQuery, type OverviewRange } from './schemas';
 
@@ -170,7 +169,7 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       accountsRepo.list(tx, ctx),
       investmentOpsRepo.list(tx, ctx),
       portfolioCashMovesRepo.list(tx, ctx),
-      transactionsRepo.listForEngine(tx, ctx),
+      transactionsRepo.listForOverview(tx, ctx),
       categoriesRepo.list(tx, ctx),
       categorySettingsRepo.list(tx, ctx),
       portfoliosRepo.list(tx, ctx),
@@ -181,12 +180,16 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
     const rates: FxRates = toFxRates(resolved);
     const ops = opRows.map(toInvestmentOp);
     const moves = moveRows.map(toCashMove);
-    const transactions: Transaction[] = txRows.map(toEngineTransaction);
+    // The overview reads few columns and no ids; the rows are in no particular order.
+    const transactions: Transaction[] = txRows.map((row) => ({ id: '', ...row }));
+    let firstTransaction: string | null = null;
+    for (const row of txRows)
+      if (firstTransaction === null || row.date < firstTransaction) firstTransaction = row.date;
     const defaultTax = pool?.depositTax ?? DEFAULT_TAX;
 
-    // "All" starts at the first record: movements are sorted by date, the rest is scanned.
+    // "All" starts at the first record, whichever kind of record it is.
     const firstDate = earliest([
-      transactions[0]?.date,
+      firstTransaction,
       ...ops.map((op) => op.date),
       ...accountRows.map((row) => row.openingDate),
     ]);
@@ -219,10 +222,14 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
     };
 
     // Balances and interest of today feed the summaries; interest also gives the 12-month figure.
-    const balances = accountBalances(data, today);
+    // One pass over the movements gives every month end and today (the last date).
+    const balancesAt = accountBalancesAt(data, dates);
+    const balances = balancesAt[balancesAt.length - 1] ?? new Map<string, Dec>();
     const categoryById = new Map(categoryRows.map((row) => [row.id, row]));
     const candidatesOf = new Map<string, InterestCandidate[]>();
     for (const movement of transactions) {
+      // Interest is money coming in: expenses (the bulk of the rows) can be skipped at once.
+      if (String(movement.amount).startsWith('-')) continue;
       const category = movement.categoryId ? categoryById.get(movement.categoryId) : undefined;
       const list = candidatesOf.get(movement.accountId) ?? [];
       list.push({
@@ -274,7 +281,7 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       });
     const all = summaryOf();
 
-    const worth = netWorths(data, dates, today);
+    const worth = netWorths(data, dates, today, balancesAt);
     const totals = worth.map((w) => w.net);
     const investments = worth.map((w) => w.investments);
     const flows = monthFlows(data, months);

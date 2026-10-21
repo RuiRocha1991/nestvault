@@ -215,6 +215,71 @@ interface Accumulator extends CostBook {
   tax: Dec;
 }
 
+/** Applies one operation to the running positions (the loop body shared by every holdings call). */
+function applyOp(
+  groups: Map<string, Accumulator>,
+  op: InvestmentOp,
+  byId: ReadonlyMap<string, InvestmentAsset>,
+  rates: FxRates,
+  byPosition: boolean,
+): void {
+  const asset = byId.get(op.assetId);
+  if (!asset) return;
+  const key = byPosition ? positionKey(op) : op.assetId;
+  let h = groups.get(key);
+  if (!h) {
+    h = {
+      asset,
+      accountId: byPosition ? (op.accountId ?? null) : null,
+      subAccountId: byPosition && op.accountId ? (op.subAccountId ?? null) : null,
+      qty: dec(0),
+      cost: dec(0),
+      realizedN: dec(0),
+      divsN: dec(0),
+      gross: dec(0),
+      tax: dec(0),
+    };
+    groups.set(key, h);
+  }
+  if (op.type === 'div') {
+    h.divsN = h.divsN.plus(num(op.amount));
+    const gross = num(op.gross);
+    const tax = num(op.tax);
+    if (gross.gt(0) && tax.gt(0)) {
+      h.gross = h.gross.plus(gross);
+      h.tax = h.tax.plus(tax);
+    }
+    return;
+  }
+  const qty = num(op.qty);
+  const feeN = num(op.fee).div(fx(asset.currency, rates));
+  if (op.type === 'buy') {
+    h.qty = h.qty.plus(qty);
+    h.cost = h.cost.plus(mul(qty, num(op.price))).plus(feeN);
+  } else {
+    const { sold, removed } = sellAtAverage(h, qty);
+    h.realizedN = h.realizedN
+      .plus(mul(sold, num(op.price)))
+      .minus(feeN)
+      .minus(removed);
+  }
+}
+
+/** Operations of known assets inside the scope, in the order the positions are built. */
+function scopedOps(
+  ops: readonly InvestmentOp[],
+  byId: ReadonlyMap<string, InvestmentAsset>,
+  options: ScopeOptions,
+  until: string | null,
+): InvestmentOp[] {
+  return ops
+    .filter(
+      (op) =>
+        (until === null || op.date <= until) && byId.has(op.assetId) && isInScope(op, options),
+    )
+    .sort(byDateBuysFirst);
+}
+
 /**
  * Average-cost positions in the asset's currency, converted to EUR with the given FX. Operations
  * on assets that are not in `assets` are ignored. A sell larger than the held quantity is capped
@@ -229,53 +294,47 @@ export function computeHoldings(
   const byId = indexAssets(assets);
   const byPosition = options.groupBy === 'position';
   const groups = new Map<string, Accumulator>();
-  const scoped = ops
-    .filter((op) => op.date <= options.asOf && byId.has(op.assetId) && isInScope(op, options))
-    .sort(byDateBuysFirst);
-
-  for (const op of scoped) {
-    const asset = byId.get(op.assetId);
-    if (!asset) continue;
-    const key = byPosition ? positionKey(op) : op.assetId;
-    let h = groups.get(key);
-    if (!h) {
-      h = {
-        asset,
-        accountId: byPosition ? (op.accountId ?? null) : null,
-        subAccountId: byPosition && op.accountId ? (op.subAccountId ?? null) : null,
-        qty: dec(0),
-        cost: dec(0),
-        realizedN: dec(0),
-        divsN: dec(0),
-        gross: dec(0),
-        tax: dec(0),
-      };
-      groups.set(key, h);
-    }
-    if (op.type === 'div') {
-      h.divsN = h.divsN.plus(num(op.amount));
-      const gross = num(op.gross);
-      const tax = num(op.tax);
-      if (gross.gt(0) && tax.gt(0)) {
-        h.gross = h.gross.plus(gross);
-        h.tax = h.tax.plus(tax);
-      }
-      continue;
-    }
-    const qty = num(op.qty);
-    const feeN = num(op.fee).div(fx(asset.currency, rates));
-    if (op.type === 'buy') {
-      h.qty = h.qty.plus(qty);
-      h.cost = h.cost.plus(mul(qty, num(op.price))).plus(feeN);
-    } else {
-      const { sold, removed } = sellAtAverage(h, qty);
-      h.realizedN = h.realizedN
-        .plus(mul(sold, num(op.price)))
-        .minus(feeN)
-        .minus(removed);
-    }
+  for (const op of scopedOps(ops, byId, options, options.asOf)) {
+    applyOp(groups, op, byId, rates, byPosition);
   }
+  return finishHoldings(groups, rates, options);
+}
 
+/**
+ * The holdings on each of the `dates`, in the order given, reading the operations once: they are
+ * applied in date order and the positions are read out at every date. Same result as calling
+ * `computeHoldings` per date, without rebuilding the positions each time.
+ */
+export function computeHoldingsAt(
+  ops: readonly InvestmentOp[],
+  assets: readonly InvestmentAsset[],
+  rates: FxRates,
+  dates: readonly string[],
+  options: Omit<HoldingsOptions, 'asOf'>,
+): Holding[][] {
+  const byId = indexAssets(assets);
+  const byPosition = options.groupBy === 'position';
+  const groups = new Map<string, Accumulator>();
+  const sorted = scopedOps(ops, byId, options, null);
+  const results: Holding[][] = dates.map(() => []);
+  const order = dates.map((date, index) => ({ date, index })).sort(byDate);
+  let next = 0;
+  for (const { date, index } of order) {
+    while (next < sorted.length && (sorted[next] as InvestmentOp).date <= date) {
+      applyOp(groups, sorted[next] as InvestmentOp, byId, rates, byPosition);
+      next++;
+    }
+    results[index] = finishHoldings(groups, rates, { ...options, asOf: date });
+  }
+  return results;
+}
+
+/** Reads the positions out of the running accumulators at `options.asOf` (reads, never writes). */
+function finishHoldings(
+  groups: ReadonlyMap<string, Accumulator>,
+  rates: FxRates,
+  options: HoldingsOptions,
+): Holding[] {
   const holdings = [...groups.entries()].flatMap(([key, h]): Holding[] => {
     const isOpen = h.qty.gt(CLOSED_QTY);
     if (!isOpen && h.realizedN.isZero() && h.divsN.isZero()) return [];

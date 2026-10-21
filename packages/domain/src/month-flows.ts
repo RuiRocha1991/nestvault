@@ -51,7 +51,10 @@ export function monthFlows(data: LedgerData, months: readonly string[]): MonthFl
     if (!a) continue;
     const kind = kindFromCategory(tx, kindById);
     if (kind === 'transfer' && !dec(tx.amount).gt(0)) continue;
-    const eur = toEur(tx.amount, currencyOf.get(tx.accountId), rates);
+    const currency = currencyOf.get(tx.accountId);
+    // EUR needs no conversion (the common case, and thousands of rows): skip the multiplication.
+    const eur =
+      !currency || currency === 'EUR' ? dec(tx.amount) : toEur(tx.amount, currency, rates);
     if (kind === 'expense') a.expense = a.expense.minus(eur);
     else if (kind === 'refund') a.refunds = a.refunds.plus(eur);
     else if (kind === 'income') a.income = a.income.plus(eur);

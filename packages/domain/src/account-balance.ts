@@ -85,7 +85,17 @@ export function accountBalancesAt(
   // Each row is added to one slot only (the earliest date that includes it); the slots are
   // accumulated in date order at the end.
   const order = dates.map((date, index) => ({ date, index })).sort((a, b) => byDate(a, b));
-  const slotOf = (date: string) => order.findIndex((o) => date <= o.date);
+  // First slot whose date is on or after `date` (binary search: the data has thousands of rows).
+  const slotOf = (date: string) => {
+    let low = 0;
+    let high = order.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (date <= (order[mid]?.date ?? '')) high = mid;
+      else low = mid + 1;
+    }
+    return low < order.length ? low : -1;
+  };
   const totals = new Map<string, Totals>(
     accounts.map((a) => [a.id, { lastTransactionDate: '', slots: order.map(() => dec(0)) }]),
   );
