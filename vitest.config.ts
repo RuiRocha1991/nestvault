@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 // Unit tests: one Vitest project per folder under tests/, named after the package it covers.
 // They need nothing running. Files named `*.integration.test.ts` belong to the `integration`
@@ -20,9 +20,11 @@ const resolve = {
   ],
 };
 
-// Timing tests (the overview benchmark) skip themselves when coverage instrumentation is on: it
-// slows hot loops down by 2x or more. The test workers inherit this variable.
-if (process.argv.includes('--coverage')) process.env.NV_COVERAGE = '1';
+// Timing tests (the overview benchmark) are left out of coverage runs: the instrumentation slows
+// hot loops down by 2x or more. CI runs them in their own step (`vitest run <file>`).
+const timingTests = process.argv.includes('--coverage')
+  ? ['tests/**/*-benchmark.integration.test.{ts,tsx}']
+  : [];
 
 export default defineConfig({
   test: {
@@ -53,6 +55,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           include: ['tests/**/*.integration.test.{ts,tsx}'],
+          exclude: [...configDefaults.exclude, ...timingTests],
           // The tests share one Postgres: migrate and reset once per run, then run files in turn.
           globalSetup: ['tests/db/global-setup.ts'],
           setupFiles: ['tests/db/setup-env.ts'],
