@@ -46,6 +46,11 @@ export function MovementFiltersBar({
   // row (typing, then ticking a box) must both survive.
   const latest = useRef(filters);
   const typed = useRef(filters.q);
+  // The boxes answer at once; the URL (and the server) catch up a moment later.
+  const [ticks, setTicks] = useState({
+    withNotes: filters.withNotes,
+    showTransfers: filters.showTransfers,
+  });
 
   // A new URL (back button, "clear") replaces what was typed.
   useEffect(() => {
@@ -54,6 +59,7 @@ export function MovementFiltersBar({
   }, [filters.q]);
   useEffect(() => {
     latest.current = filters;
+    setTicks({ withNotes: filters.withNotes, showTransfers: filters.showTransfers });
   }, [filters]);
   useEffect(
     () => () => {
@@ -193,9 +199,10 @@ export function MovementFiltersBar({
       <label className="inline-flex items-center gap-2 text-md text-fg-2">
         <input
           type="checkbox"
-          checked={filters.withNotes}
+          checked={ticks.withNotes}
           className="size-4 accent-[var(--accent)]"
           onChange={(event) => {
+            setTicks((current) => ({ ...current, withNotes: event.target.checked }));
             change({ withNotes: event.target.checked });
           }}
         />
@@ -204,9 +211,10 @@ export function MovementFiltersBar({
       <label className="inline-flex items-center gap-2 text-md text-fg-2">
         <input
           type="checkbox"
-          checked={filters.showTransfers}
+          checked={ticks.showTransfers}
           className="size-4 accent-[var(--accent)]"
           onChange={(event) => {
+            setTicks((current) => ({ ...current, showTransfers: event.target.checked }));
             change({ showTransfers: event.target.checked });
           }}
         />

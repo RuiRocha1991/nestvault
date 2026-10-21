@@ -148,8 +148,9 @@ test('movements: filters live in the URL, a category change shows at once, notes
   await page.getByLabel(e.movements.withNotes).uncheck();
 
   // A manual movement.
-  await page.getByRole('button', { name: e.newMovement }).click();
+  await page.getByRole('button', { name: e.newMovement, exact: true }).click();
   const dialog = page.getByRole('dialog', { name: e.newMovementDialog.title });
+  await dialog.getByLabel(e.newMovementDialog.date).fill(`${MARCH}-10`);
   await dialog.getByLabel(e.newMovementDialog.description).fill('PADARIA CENTRAL');
   await dialog.getByLabel(new RegExp(e.newMovementDialog.amount)).fill('3,50');
   await dialog.getByRole('button', { name: e.newMovementDialog.submit }).click();
@@ -200,7 +201,7 @@ test('a viewer reads everything and has no write controls', async ({ page }) => 
   await signIn(page, world.viewer, despesas(`tab=movimentos&month=${MARCH}`));
   await hydrated(page);
   await expect(page.getByTestId('movement-row')).toHaveCount(3);
-  await expect(page.getByRole('button', { name: e.newMovement })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: e.newMovement, exact: true })).toHaveCount(0);
   await expect(page.getByTestId('movement-row').first().getByRole('combobox')).toBeDisabled();
 
   await page.goto(despesas('tab=categorias'));
