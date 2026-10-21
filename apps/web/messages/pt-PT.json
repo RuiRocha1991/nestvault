@@ -1703,8 +1703,8 @@
       "emptyText": "Os movimentos com nota e as maiores despesas aparecem aqui.",
       "reasons": {
         "note": "Com nota",
-        "top-expense": "Grande despesa",
-        "top-income": "Maior receita"
+        "topExpense": "Grande despesa",
+        "topIncome": "Maior receita"
       }
     },
     "operations": {

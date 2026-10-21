@@ -23,6 +23,13 @@ import type { NoteState } from '@webapp/lib/note-view';
 import { toneClass, withPlus } from '@webapp/lib/portfolios-view';
 
 /** Every transaction with a note, the largest expenses and the largest income of the month. */
+/** The domain reason ids are kebab-case; the message keys are camelCase. */
+const REASON_KEYS = {
+  note: 'note',
+  'top-expense': 'topExpense',
+  'top-income': 'topIncome',
+} as const;
+
 export function MonthNotable({
   poolId,
   items,
@@ -125,7 +132,7 @@ function NotableRow({
         <span className="flex flex-wrap gap-1">
           {item.reasons.map((reason) => (
             <Chip key={reason} tone={reason === 'top-income' ? 'pos' : 'default'}>
-              {t(`reasons.${reason}`)}
+              {t(`reasons.${REASON_KEYS[reason]}`)}
             </Chip>
           ))}
         </span>
