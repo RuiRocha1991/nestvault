@@ -54,6 +54,10 @@
       "description": "Bank movements with their categories and transfers"
     },
     {
+      "name": "Overview",
+      "description": "The overview screen in one read"
+    },
+    {
       "name": "Expenses",
       "description": "Month summary and totals of the Despesas screen"
     },
@@ -13768,6 +13772,444 @@
                     "operations",
                     "note",
                     "timeline"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/overview": {
+      "get": {
+        "operationId": "getOverview",
+        "summary": "Overview of the pool",
+        "description": "Any member may read. KPIs with sparklines (net worth, investments, passive income, month expenses), the net worth evolution (`range`: 6, 12, 24 months or all, at most 120), portfolios with value and return, this month’s expenses by category and the 12-month dividend forecast. All totals are in EUR, except each portfolio’s value (its own currency). Goals stay empty until the goals module exists.",
+        "tags": [
+          "Overview"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "6",
+                "12",
+                "24",
+                "all"
+              ],
+              "default": "12"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "range": {
+                      "type": "string",
+                      "enum": [
+                        "6",
+                        "12",
+                        "24",
+                        "all"
+                      ]
+                    },
+                    "empty": {
+                      "type": "boolean"
+                    },
+                    "kpis": {
+                      "type": "object",
+                      "properties": {
+                        "netWorth": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "changePct": {
+                              "type": "string"
+                            },
+                            "spark": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "changePct",
+                            "spark"
+                          ]
+                        },
+                        "investments": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "returnPct": {
+                              "type": "string"
+                            },
+                            "spark": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "returnPct",
+                            "spark"
+                          ]
+                        },
+                        "passiveIncome": {
+                          "type": "object",
+                          "properties": {
+                            "annual": {
+                              "type": "string"
+                            },
+                            "monthly": {
+                              "type": "string"
+                            },
+                            "yieldPct": {
+                              "type": "string"
+                            },
+                            "interest12": {
+                              "type": "string"
+                            },
+                            "spark": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "annual",
+                            "monthly",
+                            "yieldPct",
+                            "interest12",
+                            "spark"
+                          ]
+                        },
+                        "monthExpenses": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "budget": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "budgetUsedPct": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "changePct": {
+                              "type": "string"
+                            },
+                            "spark": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "value",
+                            "budget",
+                            "budgetUsedPct",
+                            "changePct",
+                            "spark"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "netWorth",
+                        "investments",
+                        "passiveIncome",
+                        "monthExpenses"
+                      ]
+                    },
+                    "evolution": {
+                      "type": "object",
+                      "properties": {
+                        "months": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "total": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "investments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "months",
+                        "total",
+                        "investments"
+                      ]
+                    },
+                    "goals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string"
+                          },
+                          "progress": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "reached",
+                              "on_track",
+                              "behind",
+                              "eta",
+                              "no_contribution",
+                              "tracking"
+                            ]
+                          },
+                          "etaMonth": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "color",
+                          "progress",
+                          "status",
+                          "etaMonth"
+                        ]
+                      }
+                    },
+                    "portfolios": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "returnPct": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "color",
+                          "currency",
+                          "value",
+                          "returnPct"
+                        ]
+                      }
+                    },
+                    "expenses": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "string"
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "categoryId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "systemKey": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "color": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "categoryId",
+                              "systemKey",
+                              "name",
+                              "color",
+                              "value"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "total",
+                        "categories"
+                      ]
+                    },
+                    "dividends": {
+                      "type": "object",
+                      "properties": {
+                        "months": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "total": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "months",
+                        "values",
+                        "total"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "asOf",
+                    "range",
+                    "empty",
+                    "kpis",
+                    "evolution",
+                    "goals",
+                    "portfolios",
+                    "expenses",
+                    "dividends"
                   ]
                 }
               }

@@ -136,6 +136,20 @@ export interface EngineTransaction {
   transfer: boolean;
   pairId: string | null;
   transferLocked: boolean;
+  /** Already counted as the interest of a deposit. */
+  depositInterest: boolean;
+}
+
+/** What the overview's figures read from a movement: the narrowest set of columns. */
+export interface OverviewTransaction {
+  accountId: string;
+  date: string;
+  amount: string;
+  categoryId: string | null;
+  transfer: boolean;
+  depositInterest: boolean;
+  /** Only filled for an uncategorized incoming movement (the interest check reads it); else ''. */
+  description: string;
 }
 
 const engineColumns = {
@@ -149,6 +163,7 @@ const engineColumns = {
   transfer: transactions.transfer,
   pairId: transactions.pairId,
   transferLocked: transactions.transferLocked,
+  depositInterest: transactions.depositInterest,
 };
 
 export interface EngineChange {
@@ -388,6 +403,25 @@ export const transactionsRepo = {
           lte(transactions.date, to),
         ),
       );
+  },
+
+  /**
+   * Every movement of the pool with only the columns the overview's totals need, in no particular
+   * order: with 20 000 rows the width of the read and the sort are most of the time it takes.
+   */
+  async listForOverview(tx: PoolTx, ctx: PoolContext): Promise<OverviewTransaction[]> {
+    return tx
+      .select({
+        accountId: transactions.accountId,
+        date: transactions.date,
+        amount: transactions.amount,
+        categoryId: transactions.categoryId,
+        transfer: transactions.transfer,
+        depositInterest: transactions.depositInterest,
+        description: sql<string>`case when ${transactions.categoryId} is null and ${transactions.amount} > 0 then ${transactions.description} else '' end`,
+      })
+      .from(transactions)
+      .where(eq(transactions.poolId, ctx.poolId));
   },
 
   /** Every movement of the pool as the engine needs it (rules applied to the existing ones). */

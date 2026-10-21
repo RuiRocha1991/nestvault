@@ -1,6 +1,6 @@
 export { cn } from './cn';
 export { formatDate, formatMoney, formatPct } from './format';
-export type { DecimalInput, FormatPctOptions } from './format';
+export type { DecimalInput, FormatMoneyOptions, FormatPctOptions } from './format';
 export { Button } from './components/button';
 export type { ButtonProps } from './components/button';
 export { Card, CardHeader, Eyebrow } from './components/card';

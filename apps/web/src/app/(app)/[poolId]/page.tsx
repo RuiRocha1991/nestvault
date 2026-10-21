@@ -1,17 +1,5 @@
-import { Card, EmptyState } from '@nestvault/ui';
-import { getTranslations } from 'next-intl/server';
+// `/[poolId]` is where sign-in, the pool switcher and invites land: it shows the overview, the same
+// screen as `/[poolId]/visao-geral` (PRD FR — Overview dashboard).
+export { default } from './visao-geral/page';
 
-import { Topbar } from '@webapp/components/topbar';
-
-export default async function OverviewPage() {
-  const t = await getTranslations();
-
-  return (
-    <>
-      <Topbar title={t('nav.items.overview')} />
-      <Card>
-        <EmptyState title={t('overview.emptyTitle')} description={t('overview.emptyText')} />
-      </Card>
-    </>
-  );
-}
+export const dynamic = 'force-dynamic';

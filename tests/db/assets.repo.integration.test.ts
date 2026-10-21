@@ -102,6 +102,31 @@ describe('assets repository', () => {
     expect(await asOf('2026-12-31')).toEqual([]);
   });
 
+  it('lists the prices dated on or after a day, oldest first, and treats a payload as data', async () => {
+    const { a } = createTwoPools();
+    const created = await withPool(a.ctx, (tx) => asset(tx, a.ctx));
+    await withPool(a.ctx, (tx) =>
+      assetPricesRepo.upsertMany(
+        tx,
+        a.ctx,
+        [
+          { assetId: created.id, date: '2026-03-01', price: '3' },
+          { assetId: created.id, date: '2026-01-01', price: '1' },
+          { assetId: created.id, date: '2026-02-01', price: '2' },
+        ],
+        'manual',
+      ),
+    );
+    const since = (day: string) => withPool(a.ctx, (tx) => assetPricesRepo.since(tx, a.ctx, day));
+    expect((await since('2026-02-01')).map((row) => row.date)).toEqual([
+      '2026-02-01',
+      '2026-03-01',
+    ]);
+    expect(await since('2026-04-01')).toEqual([]);
+    // The day is a bound parameter: a payload is refused by the date type, it never runs as SQL.
+    await expect(since("2026-01-01' OR 1=1 --")).rejects.toThrow();
+  });
+
   it('writes many prices in one statement: one bad row stores none', async () => {
     const { a } = createTwoPools();
     const created = await withPool(a.ctx, (tx) => asset(tx, a.ctx));
@@ -160,6 +185,8 @@ describe('isolation between pools (repository filter and RLS)', () => {
     check((tx, ctxA, s) => assetPricesRepo.history(tx, ctxA, s.id, { limit: 10 })));
   it('prices: latestAsOf finds nothing of pool B', () =>
     check((tx, ctxA) => assetPricesRepo.latestAsOf(tx, ctxA, '2999-01-01')));
+  it('prices: since finds nothing of pool B', () =>
+    check((tx, ctxA) => assetPricesRepo.since(tx, ctxA, '2000-01-01')));
   it('prices: remove deletes nothing of pool B', () =>
     check((tx, ctxA, s) => assetPricesRepo.remove(tx, ctxA, s.id, '2026-01-10')));
 

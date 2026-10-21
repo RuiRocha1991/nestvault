@@ -41,7 +41,101 @@
   },
   "overview": {
     "emptyTitle": "Ainda não há dados",
-    "emptyText": "A visão geral enche-se quando houver contas, portfolios e movimentos."
+    "emptyText": "A visão geral enche-se quando houver contas, portfolios e movimentos.",
+    "welcomeTitle": "Vamos começar",
+    "welcomeText": "Cria a primeira conta do agregado ou regista o primeiro investimento num portfolio. Depois importa um extrato para controlar as despesas.",
+    "createAccount": "Criar conta",
+    "importStatement": "Importar extrato",
+    "monthsShort": {
+      "jan": "Jan",
+      "feb": "Fev",
+      "mar": "Mar",
+      "apr": "Abr",
+      "may": "Mai",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Ago",
+      "sep": "Set",
+      "oct": "Out",
+      "nov": "Nov",
+      "dec": "Dez"
+    },
+    "kpi": {
+      "netWorth": "Património líquido",
+      "investments": "Investimentos",
+      "passiveIncome": "Rendimento passivo",
+      "monthExpenses": "Despesas do mês",
+      "perYear": "/ano",
+      "vsPreviousMonth": "vs. mês anterior",
+      "totalReturn": "retorno total",
+      "incomeDetail": "{monthly}/mês · yield {yield}",
+      "interest12": " · + {interest} juros em 12 m",
+      "ofBudget": "{percent} do orçamento"
+    },
+    "evolution": {
+      "title": "Evolução do património",
+      "total": "Total",
+      "investments": "Investimentos",
+      "period": "Período",
+      "months6": "6 meses",
+      "months12": "12 meses",
+      "months24": "24 meses",
+      "all": "Tudo",
+      "chartLabel": "Evolução do património líquido e dos investimentos",
+      "periodHeader": "Mês",
+      "empty": "Ainda não há dados para o gráfico."
+    },
+    "goals": {
+      "title": "Objetivos",
+      "seeAll": "Ver todos",
+      "empty": "Ainda não há objetivos.",
+      "progress": "Progresso de {name}",
+      "status": {
+        "reached": "Atingido",
+        "onTrack": "No ritmo",
+        "behind": "Abaixo do ritmo",
+        "eta": "Atinges em {month}",
+        "noContribution": "Sem contribuição",
+        "tracking": "A acompanhar"
+      }
+    },
+    "portfolios": {
+      "title": "Portfolios",
+      "new": "Novo",
+      "empty": "Ainda não há portfolios."
+    },
+    "expenses": {
+      "title": "Despesas por categoria",
+      "detail": "Detalhe",
+      "empty": "Sem despesas este mês.",
+      "chartLabel": "Despesas do mês por categoria",
+      "others": "Outras",
+      "uncategorized": "Sem categoria"
+    },
+    "dividends": {
+      "title": "Próximos dividendos",
+      "calendar": "Calendário",
+      "chartLabel": "Dividendos previstos nos próximos 12 meses",
+      "periodHeader": "Mês",
+      "empty": "Sem dividendos previstos.",
+      "forecast": "Previsão bruta para 12 meses:"
+    },
+    "header": {
+      "searchLabel": "Pesquisar tickers e movimentos",
+      "holders": "Titulares do agregado"
+    }
+  },
+  "search": {
+    "title": "Pesquisa",
+    "resultsFor": "Resultados para “{query}”",
+    "noQuery": "Escreve um ticker ou parte da descrição de um movimento.",
+    "assets": "Ativos",
+    "transactions": "Movimentos",
+    "noAssets": "Nenhum ativo encontrado.",
+    "noTransactions": "Nenhum movimento encontrado.",
+    "date": "Data",
+    "description": "Descrição",
+    "amount": "Valor"
   },
   "portfolios": {
     "all": "Todos",

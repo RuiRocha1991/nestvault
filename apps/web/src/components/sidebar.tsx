@@ -46,7 +46,9 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
 
   const isActive = (path: string) => {
     const href = `${base}${path}`;
-    return path === '' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+    // The overview answers at the pool root and at `/visao-geral`.
+    if (path === '') return pathname === href || pathname === `${href}/visao-geral`;
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (

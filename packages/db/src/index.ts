@@ -45,6 +45,7 @@ export {
 export type {
   EngineChange,
   EngineTransaction,
+  OverviewTransaction,
   ImportedTransactionValues,
   TransactionCursor,
   TransactionFilter,

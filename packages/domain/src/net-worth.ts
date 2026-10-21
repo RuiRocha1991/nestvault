@@ -2,7 +2,7 @@ import { accountBalancesAt, type LedgerData } from './account-balance';
 import { sum, type Money } from './decimal';
 import { addTo, sumToEur, toEur, type ByCurrency } from './fx';
 import { portfolioCash } from './portfolio-cash';
-import { computeHoldings } from './positions';
+import { computeHoldingsAt } from './positions';
 
 export interface NetWorth {
   /** Checking and brokerage accounts plus the cash kept in portfolios. */
@@ -22,11 +22,18 @@ export interface NetWorth {
  * even when linked to a portfolio. `today` decides which prices are used: the price history for
  * dates before it, the current price from it.
  */
-export function netWorths(data: LedgerData, dates: readonly string[], today: string): NetWorth[] {
+export function netWorths(
+  data: LedgerData,
+  dates: readonly string[],
+  today: string,
+  /** The account balances on `dates` when the caller already has them (`accountBalancesAt`). */
+  balancesAt: readonly Map<string, Money>[] = accountBalancesAt(data, dates),
+): NetWorth[] {
   const { rates } = data;
   const accountById = new Map(data.accounts.map((a) => [a.id, a]));
   const cashAccounts = data.accounts.map((a) => ({ id: a.id, trackCash: a.trackCash !== false }));
-  return accountBalancesAt(data, dates).map((balances, i) => {
+  const holdings = computeHoldingsAt(data.ops, data.assets, rates, dates, { today });
+  return balancesAt.map((balances, i) => {
     const asOf = dates[i] ?? '';
     const byCurrency: ByCurrency = {};
     const cashParts: Money[] = [];
@@ -43,7 +50,7 @@ export function netWorths(data: LedgerData, dates: readonly string[], today: str
     addTo(byCurrency, 'EUR', pfCash);
 
     const investmentsByCurrency: ByCurrency = {};
-    for (const h of computeHoldings(data.ops, data.assets, rates, { asOf, today })) {
+    for (const h of holdings[i] ?? []) {
       addTo(investmentsByCurrency, h.currency, h.valueN);
     }
     for (const [currency, value] of Object.entries(investmentsByCurrency)) {

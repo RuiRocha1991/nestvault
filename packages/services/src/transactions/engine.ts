@@ -75,4 +75,5 @@ export const toEngineTransaction = (row: EngineTransaction): Transaction => ({
   transfer: row.transfer,
   pairId: row.pairId,
   transferLocked: row.transferLocked,
+  depositInterest: row.depositInterest,
 });

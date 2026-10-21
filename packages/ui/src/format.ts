@@ -44,11 +44,22 @@ function currencySymbol(currency: string): string {
   return parts.find((part) => part.type === 'currency')?.value ?? currency;
 }
 
+export interface FormatMoneyOptions {
+  /** Fraction digits, default 2 (0 for the big totals of the overview). */
+  digits?: number;
+}
+
 /** `formatMoney('1234.56', 'EUR')` → `1 234,56 €` (non-breaking spaces); `USD` → `US$`. */
-export function formatMoney(value: DecimalInput, currency = 'EUR'): string {
-  const { negative, int, frac } = roundDecimal(value, 2);
+export function formatMoney(
+  value: DecimalInput,
+  currency = 'EUR',
+  options: FormatMoneyOptions = {},
+): string {
+  const digits = options.digits ?? 2;
+  const { negative, int, frac } = roundDecimal(value, digits);
   const sign = negative ? '-' : '';
-  return `${sign}${groupThousands(int)},${frac}${NBSP}${currencySymbol(currency)}`;
+  const fraction = digits > 0 ? `,${frac}` : '';
+  return `${sign}${groupThousands(int)}${fraction}${NBSP}${currencySymbol(currency)}`;
 }
 
 /** `formatDate('2026-10-11')` → `11/10/2026`. A `Date` is read in UTC (database dates are UTC). */
