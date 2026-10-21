@@ -1,4 +1,4 @@
-import { ExpensesSummaryDto, MovementTotalsDto } from '@nestvault/services';
+import { ExpensesSummaryDto, ExpensesUsageDto, MovementTotalsDto } from '@nestvault/services';
 import { z } from 'zod';
 
 import { errorResponses, json, registry } from './registry';
@@ -46,5 +46,20 @@ registry.registerPath({
   responses: {
     200: { description: 'The totals', ...json(MovementTotalsDto) },
     ...errorResponses(400, 401, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/expenses/usage',
+  operationId: 'getExpensesUsage',
+  summary: 'How much each category and rule is used',
+  description:
+    'Any member may read. `categories` counts the movements of each category; `rules` counts, per rule, the movements it is the first match for (the "Corresp." column of the rules table). Ids with a count of zero are left out.',
+  tags: ['Expenses'],
+  request: { params: z.object({ poolId: PoolId }) },
+  responses: {
+    200: { description: 'The counts', ...json(ExpensesUsageDto) },
+    ...errorResponses(401, 404, 429, 500),
   },
 });

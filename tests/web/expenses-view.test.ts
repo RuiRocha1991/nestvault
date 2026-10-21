@@ -4,6 +4,7 @@ import type { CategoryDto, MovementTotalsDto } from '@nestvault/services';
 
 import {
   budgetRows,
+  budgetToText,
   budgetTotals,
   elapsedPercent,
   filtersToApiQuery,
@@ -15,6 +16,8 @@ import {
   moveId,
   moveInTotals,
   NO_FILTERS,
+  parseAmountText,
+  parseBudgetText,
   parseFilters,
   parseTab,
   shiftMonth,
@@ -74,7 +77,7 @@ describe('filters in the URL', () => {
     };
     const params = filtersToParams(filters);
     expect(params.toString()).toBe(
-      `mes=2026-03&conta=${UUID}&categoria=none&tipo=expense&q=lidl&notas=1&transferencias=0`,
+      `month=2026-03&account=${UUID}&category=none&kind=expense&q=lidl&notes=1&transfers=0`,
     );
     expect(parseFilters(Object.fromEntries(params))).toEqual({ ...filters, q: 'lidl' });
   });
@@ -82,12 +85,12 @@ describe('filters in the URL', () => {
   it('drops values that are not valid instead of passing them on', () => {
     expect(
       parseFilters({
-        mes: '2026-13',
-        conta: "1' OR 1=1",
-        categoria: 'x',
-        tipo: 'drop',
+        month: '2026-13',
+        account: "1' OR 1=1",
+        category: 'x',
+        kind: 'drop',
         q: ['a', 'b'],
-        notas: '2',
+        notes: '2',
       }),
     ).toEqual({ ...NO_FILTERS, q: 'a' });
   });
@@ -239,5 +242,33 @@ describe('moveId', () => {
     expect(moveId(['a', 'b'], 1, 1)).toEqual(['a', 'b']);
     expect(moveId(['a', 'b'], 0, 5)).toEqual(['a', 'b']);
     expect(moveId(['a', 'b'], -1, 0)).toEqual(['a', 'b']);
+  });
+});
+
+describe('typed amounts', () => {
+  it('reads a positive amount the way people write it', () => {
+    expect(parseAmountText('12,50')).toBe('12.50');
+    expect(parseAmountText(' 1 234.5 ')).toBe('1234.5');
+    expect(parseAmountText('0')).toBeNull();
+    expect(parseAmountText('0,00')).toBeNull();
+    expect(parseAmountText('-3')).toBeNull();
+    expect(parseAmountText('1e3')).toBeNull();
+    expect(parseAmountText('1,23456')).toBeNull();
+    expect(parseAmountText("1' OR 1=1")).toBeNull();
+  });
+
+  it('reads a budget, where empty clears and zero is allowed', () => {
+    expect(parseBudgetText('')).toBeNull();
+    expect(parseBudgetText('120,5')).toBe('120.5');
+    expect(parseBudgetText('0')).toBe('0');
+    expect(parseBudgetText('abc')).toBeUndefined();
+    expect(parseBudgetText('-1')).toBeUndefined();
+  });
+
+  it('writes a stored budget back as text', () => {
+    expect(budgetToText(null)).toBe('');
+    expect(budgetToText('120.5000')).toBe('120,5');
+    expect(budgetToText('700.0000')).toBe('700');
+    expect(budgetToText('700')).toBe('700');
   });
 });

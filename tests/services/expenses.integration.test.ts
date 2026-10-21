@@ -186,3 +186,31 @@ describe('expenses service: totals', () => {
     await expect(totals('outsider')).rejects.toBeInstanceOf(NotFoundError);
   });
 });
+
+describe('expenses service: usage', () => {
+  it('counts the movements of each category and the first-match rules', async () => {
+    const { account, groceries } = await seedMarch();
+    const owner = await s.as('owner');
+    const rule = await world.rules.create(owner, s.poolA, {
+      keyword: 'LIDL',
+      categoryId: groceries.id,
+    });
+    await world.rules.create(owner, s.poolA, { keyword: 'NUNCA', categoryId: groceries.id });
+    const result = await world.expenses.usage(owner, s.poolA);
+    expect(result.categories[groceries.id]).toBe(2);
+    expect(result.rules).toEqual({ [rule.id]: 1 });
+    expect(account.id).toBeTruthy();
+  });
+
+  it('refuses non-members (404) and never counts another pool', async () => {
+    const other = await makeAccount('B account', s.poolB);
+    await record(other.id, { date: '2026-03-06', description: 'LIDL B', amount: '-9' }, s.poolB);
+    await expect(world.expenses.usage(await s.as('outsider'), s.poolA)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(await world.expenses.usage(await s.as('owner'), s.poolA)).toEqual({
+      categories: {},
+      rules: {},
+    });
+  });
+});

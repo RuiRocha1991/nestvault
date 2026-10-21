@@ -1,5 +1,4 @@
-import type { CategoryDto, ExpensesSummaryDto, MovementTotalsDto } from '@nestvault/services';
-
+import type { CategoryView, SummaryView, TotalsView } from '@webapp/lib/expenses-types';
 // View logic of the Despesas screen (NES-52): the URL state, the budget rows and the optimistic
 // totals. Pure functions, so the page and the client components share them and tests cover them.
 // Money is arithmetic on integer cents (never a float of an amount): the values arrive as decimal
@@ -106,31 +105,31 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Reads the filters from the query string; anything that is not a valid value is dropped. */
 export function parseFilters(params: Params): MovementFilters {
-  const month = one(params.mes);
-  const account = one(params.conta);
-  const category = one(params.categoria);
-  const kind = one(params.tipo);
+  const month = one(params.month);
+  const account = one(params.account);
+  const category = one(params.category);
+  const kind = one(params.kind);
   return {
     month: isMonth(month) ? month : '',
     accountId: UUID.test(account) ? account : '',
     categoryId: category === 'none' || UUID.test(category) ? category : '',
     kind: MOVEMENT_KINDS.find((entry) => entry === kind) ?? '',
     q: one(params.q).slice(0, 100),
-    withNotes: one(params.notas) === '1',
-    showTransfers: one(params.transferencias) !== '0',
+    withNotes: one(params.notes) === '1',
+    showTransfers: one(params.transfers) !== '0',
   };
 }
 
 /** The filters as the query string of the page (defaults left out, so the URL stays short). */
 export function filtersToParams(filters: MovementFilters): URLSearchParams {
   const params = new URLSearchParams();
-  if (filters.month) params.set('mes', filters.month);
-  if (filters.accountId) params.set('conta', filters.accountId);
-  if (filters.categoryId) params.set('categoria', filters.categoryId);
-  if (filters.kind) params.set('tipo', filters.kind);
+  if (filters.month) params.set('month', filters.month);
+  if (filters.accountId) params.set('account', filters.accountId);
+  if (filters.categoryId) params.set('category', filters.categoryId);
+  if (filters.kind) params.set('kind', filters.kind);
   if (filters.q.trim()) params.set('q', filters.q.trim());
-  if (filters.withNotes) params.set('notas', '1');
-  if (!filters.showTransfers) params.set('transferencias', '0');
+  if (filters.withNotes) params.set('notes', '1');
+  if (!filters.showTransfers) params.set('transfers', '0');
   return params;
 }
 
@@ -180,8 +179,8 @@ export const BUDGET_WARN_AT = 80;
  * out.
  */
 export function budgetRows(
-  categories: readonly CategoryDto[],
-  spent: ExpensesSummaryDto['categories'],
+  categories: readonly CategoryView[],
+  spent: SummaryView['categories'],
 ): BudgetRow[] {
   const rows = new Map<string | null, BudgetRow>();
   const add = (categoryId: string | null, value: string, budget: string | null) => {
@@ -248,11 +247,11 @@ function eurCents(amount: string, currency: string, rates: Readonly<Record<strin
 
 /** Adds (`direction` 1) or takes out (-1) a movement of `cents` (signed) in the bucket of its kind. */
 function bucket(
-  totals: MovementTotalsDto,
+  totals: TotalsView,
   kind: MovementKind,
   cents: bigint,
   direction: 1n | -1n,
-): MovementTotalsDto {
+): TotalsView {
   const delta = cents * direction;
   const add = (value: string, by: bigint) => fromCents(toCents(value) + by);
   switch (kind) {
@@ -276,16 +275,29 @@ function bucket(
  * replace this guess as soon as they arrive.
  */
 export function moveInTotals(
-  totals: MovementTotalsDto,
+  totals: TotalsView,
   movement: TotalsMovement,
   next: { kind: MovementKind; uncategorized: boolean },
-): MovementTotalsDto {
+): TotalsView {
   const cents = eurCents(movement.amount, movement.currency, totals.rates);
   const left = bucket(totals, movement.kind, cents, -1n);
   const moved = bucket(left, next.kind, cents, 1n);
   const uncategorized =
     totals.uncategorized + (next.uncategorized ? 1 : 0) - (movement.uncategorized ? 1 : 0);
   return { ...moved, uncategorized: Math.max(0, uncategorized) };
+}
+
+/**
+ * The kind a movement counts as, the way the server decides it: the transfer flag first, then the
+ * category's kind, then the sign of the amount.
+ */
+export function kindFor(
+  category: Pick<CategoryView, 'kind'> | undefined,
+  amount: string,
+  transfer: boolean,
+): MovementKind {
+  if (transfer) return 'transfer';
+  return category?.kind ?? (amount.startsWith('-') ? 'expense' : 'income');
 }
 
 /** Keeps a row of the table or not, given the "show internal transfers" checkbox. */
@@ -303,4 +315,30 @@ export function moveId(ids: readonly string[], from: number, to: number): string
   const [moved] = next.splice(from, 1);
   if (moved !== undefined) next.splice(to, 0, moved);
   return next;
+}
+
+// ------------------------------------------------------------------------------------- typed amounts
+
+/**
+ * A positive amount typed by a person (`12,50`, `1 234.5`) as the API's decimal string, or `null`
+ * when it is not one. At most 4 decimals, never zero.
+ */
+export function parseAmountText(text: string): string | null {
+  const plain = text.replace(/[\s\u00a0]/g, '').replace(',', '.');
+  if (!/^\d{1,14}(\.\d{1,4})?$/.test(plain) || /^0+(\.0+)?$/.test(plain)) return null;
+  return plain;
+}
+
+/** A budget typed by a person: empty clears it (`null`), otherwise zero or more euros; `undefined` when invalid. */
+export function parseBudgetText(text: string): string | null | undefined {
+  const plain = text.replace(/[\s\u00a0]/g, '').replace(',', '.');
+  if (plain === '') return null;
+  return /^\d{1,14}(\.\d{1,4})?$/.test(plain) ? plain : undefined;
+}
+
+/** A decimal string as the text a budget field starts with (`120.5000` becomes `120,5`). */
+export function budgetToText(budget: string | null): string {
+  if (budget === null) return '';
+  const trimmed = budget.includes('.') ? budget.replace(/\.?0+$/, '') : budget;
+  return trimmed.replace('.', ',');
 }

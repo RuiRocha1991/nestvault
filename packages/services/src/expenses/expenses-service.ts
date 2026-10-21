@@ -14,6 +14,7 @@ import {
   type TransactionFilter,
 } from '@nestvault/db';
 import {
+  applyRules,
   expensesByCategory,
   lastMonths,
   monthFlows,
@@ -35,12 +36,13 @@ import { can, requirePoolAccess } from '../guards/pool-access';
 import { toInvestmentOp } from '../investments/domain';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
-import { toEngineTransaction } from '../transactions/engine';
+import { loadEngineContext, toEngineTransaction } from '../transactions/engine';
 import { monthRange } from '../transactions/schemas';
 
 import {
   ExpensesSummaryDto,
   ExpensesSummaryQuery,
+  ExpensesUsageDto,
   MovementTotalsDto,
   MovementTotalsQuery,
 } from './schemas';
@@ -54,6 +56,8 @@ export interface ExpensesService {
   summary(headers: Headers, poolId: string, query?: unknown): Promise<ExpensesSummaryDto>;
   /** Totals of the movements a Movimentos filter selects, in EUR (any member). */
   totals(headers: Headers, poolId: string, query?: unknown): Promise<MovementTotalsDto>;
+  /** Movements per category and, per rule, the movements it is the first match for (any member). */
+  usage(headers: Headers, poolId: string): Promise<ExpensesUsageDto>;
 }
 
 export interface ExpensesServiceDeps {
@@ -215,6 +219,25 @@ export function createExpensesService(deps: ExpensesServiceDeps): ExpensesServic
           foreign.map((currency) => [currency, toPlain(toEur(1, currency, rates))]),
         ),
       });
+    },
+
+    async usage(headers, poolId) {
+      const session = await requireSession(auth, headers);
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'pool.read');
+      const { engine, rows } = await run(ctx, async (tx) => ({
+        engine: await loadEngineContext(tx, ctx),
+        rows: await transactionsRepo.listForEngine(tx, ctx),
+      }));
+      const categories: Record<string, number> = {};
+      const rules: Record<string, number> = {};
+      for (const row of rows) {
+        if (row.categoryId) categories[row.categoryId] = (categories[row.categoryId] ?? 0) + 1;
+        // `force`: the rule that would match even where the category was chosen by hand.
+        const result = applyRules(toEngineTransaction(row), engine.rules, { force: true });
+        if (result?.ruleId) rules[result.ruleId] = (rules[result.ruleId] ?? 0) + 1;
+      }
+      return ExpensesUsageDto.parse({ categories, rules });
     },
   };
 }

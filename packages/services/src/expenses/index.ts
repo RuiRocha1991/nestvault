@@ -3,6 +3,7 @@ export type { ExpensesService, ExpensesServiceDeps } from './expenses-service';
 export {
   CategoryExpenseDto,
   ExpensesSummaryDto,
+  ExpensesUsageDto,
   ExpensesSummaryQuery,
   MonthFlowDto,
   MonthPointDto,

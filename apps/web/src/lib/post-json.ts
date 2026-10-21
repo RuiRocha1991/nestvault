@@ -12,9 +12,9 @@ export function postJson(
   });
 }
 
-/** Same as `postJson` for other methods (PATCH, DELETE); without a body for DELETE. */
+/** Same as `postJson` for other methods (PATCH, PUT, DELETE); without a body for DELETE. */
 export function sendJson(
-  method: 'PATCH' | 'DELETE',
+  method: 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<Response> {

@@ -6,6 +6,7 @@ import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
+import { createExpensesService, type ExpensesService } from '../expenses';
 import { createHoldersService, type HoldersService } from '../holders';
 import {
   createCashMovesService,
@@ -34,7 +35,6 @@ import {
   type ProductsService,
 } from '../savings';
 import { createSettingsService, type SettingsService } from '../settings';
-import { createExpensesService, type ExpensesService } from '../expenses';
 import { createTransactionsService, type TransactionsService } from '../transactions';
 
 import { createAuth, type Auth } from './create-auth';

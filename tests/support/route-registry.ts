@@ -33,6 +33,7 @@ import {
   CategoryDto,
   CategoryListDto,
   ExpensesSummaryDto,
+  ExpensesUsageDto,
   MovementTotalsDto,
   AssetDto,
   AssetListDto,
@@ -910,6 +911,20 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       { name: 'an unknown filter', query: '?accountId=1&poolId=2', expect: 400 },
       { name: 'a sort (not a filter of the totals)', query: '?sort=amount', expect: 400 },
     ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/expenses/usage`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/expenses/usage/route')),
+    success: { status: 200, schema: ExpensesUsageDto },
+    noForeignBecause: 'counts the URL’s own pool; the leak probe covers pool B’s ids',
+    leaks: async (s) => {
+      await transactionIn(s, 'A');
+      const other = await transactionIn(s, 'B');
+      return [other.id, other.accountId];
+    },
   },
   // ---------------------------------------------------------------- pool scope: transactions
   {

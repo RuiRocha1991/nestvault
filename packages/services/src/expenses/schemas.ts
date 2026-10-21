@@ -84,3 +84,12 @@ export const MovementTotalsDto = z.object({
   rates: z.record(z.string(), z.string()),
 });
 export type MovementTotalsDto = z.infer<typeof MovementTotalsDto>;
+
+/** How many movements each category holds and how many each rule is the first match for. */
+export const ExpensesUsageDto = z.object({
+  /** By category id; categories without movements are left out. */
+  categories: z.record(z.uuid(), z.number().int()),
+  /** By rule id; rules matching nothing are left out. */
+  rules: z.record(z.uuid(), z.number().int()),
+});
+export type ExpensesUsageDto = z.infer<typeof ExpensesUsageDto>;
