@@ -9,6 +9,7 @@ import {
   createPool,
   createPoolsService,
   MAX_OWNED_POOLS,
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -210,5 +211,100 @@ describe('open', () => {
 
   it('answers 401 without a session', async () => {
     await expect(pools.open(new Headers(), newId())).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+describe('rename', () => {
+  const addMember = async (poolId: string, email: string, role: string) => {
+    await identity.db.execute(
+      sql`insert into pool_members (pool_id, user_id, role) values (${poolId}, ${await userIdOf(email)}, ${role})`,
+    );
+  };
+
+  it('lets the owner rename, keeps the id and date, and audits the pool id but never the name', async () => {
+    const ana = await signedIn('ana@example.test');
+    const created = await pools.create(ana, { name: 'Casa' });
+    const before = await pools.open(ana, created.id);
+    const renamed = await pools.rename(ana, created.id, { name: '  Família Rocha ' });
+
+    expect(renamed).toMatchObject({ id: created.id, name: 'Família Rocha', role: 'owner' });
+    expect(renamed.createdAt).toBe(before.createdAt);
+    expect((await pools.open(ana, created.id)).name).toBe('Família Rocha');
+    const entries = await rows<{ target: string; meta: unknown }>(
+      sql`select target, meta from audit_log where action = 'pool.renamed'`,
+    );
+    expect(entries).toEqual([{ target: created.id, meta: {} }]);
+    expect(JSON.stringify(await rows(sql`select * from audit_log`))).not.toContain('Rocha');
+  });
+
+  it.each(['admin', 'member', 'viewer'])(
+    'answers 403 to a %s and changes nothing',
+    async (role) => {
+      const ana = await signedIn('ana@example.test');
+      const other = await signedIn('rui@example.test');
+      const created = await pools.create(ana, { name: 'Casa' });
+      await addMember(created.id, 'rui@example.test', role);
+      await expect(pools.rename(other, created.id, { name: 'Roubada' })).rejects.toBeInstanceOf(
+        ForbiddenError,
+      );
+      expect((await pools.open(ana, created.id)).name).toBe('Casa');
+      expect(await rows(sql`select id from audit_log where action = 'pool.renamed'`)).toEqual([]);
+    },
+  );
+
+  it('answers 404 to a non-member and never touches the other pool', async () => {
+    const ana = await signedIn('ana@example.test');
+    const rui = await signedIn('rui@example.test');
+    const anas = await pools.create(ana, { name: 'Da Ana' });
+    const ruis = await pools.create(rui, { name: 'Do Rui' });
+    await expect(pools.rename(rui, anas.id, { name: 'Roubada' })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(pools.rename(rui, newId(), { name: 'Nada' })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect((await pools.open(ana, anas.id)).name).toBe('Da Ana');
+    expect((await pools.open(rui, ruis.id)).name).toBe('Do Rui');
+  });
+
+  it.each([
+    {},
+    { name: '' },
+    { name: '   ' },
+    { name: 'x'.repeat(61) },
+    { name: 'a\nb' },
+    { name: 42 },
+    { name: 'Casa', id: newId() },
+    { name: 'Casa', createdAt: '2020-01-01T00:00:00.000Z' },
+    { name: 'Casa', role: 'owner' },
+    null,
+  ])('refuses the input %j with 400 and changes nothing', async (input) => {
+    const ana = await signedIn('ana@example.test');
+    const created = await pools.create(ana, { name: 'Casa' });
+    await expect(pools.rename(ana, created.id, input)).rejects.toBeInstanceOf(ValidationError);
+    expect((await pools.open(ana, created.id)).name).toBe('Casa');
+  });
+
+  it('stores an SQL injection payload as plain text', async () => {
+    const ana = await signedIn('ana@example.test');
+    const created = await pools.create(ana, { name: 'Casa' });
+    const payload = `' OR 1=1; DROP TABLE pools; --`;
+    await pools.rename(ana, created.id, { name: payload });
+    expect((await pools.open(ana, created.id)).name).toBe(payload);
+    expect(await rows(sql`select count(*)::int as n from pools`)).toEqual([{ n: 1 }]);
+  });
+
+  it('answers 401 without a session', async () => {
+    await expect(pools.rename(new Headers(), newId(), { name: 'Casa' })).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+  });
+
+  it('keeps the old name when the audit entry cannot be written (one transaction)', async () => {
+    const ana = await signedIn('ana@example.test');
+    const created = await pools.create(ana, { name: 'Casa' });
+    vi.spyOn(auditLogRepo, 'insert').mockRejectedValueOnce(new Error('audit down'));
+    await expect(pools.rename(ana, created.id, { name: 'Nova' })).rejects.toThrow('audit down');
+    expect((await pools.open(ana, created.id)).name).toBe('Casa');
   });
 });

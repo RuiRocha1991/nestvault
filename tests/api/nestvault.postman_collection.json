@@ -902,6 +902,48 @@
               }
             }
           ]
+        },
+        {
+          "name": "Rename pool",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}"
+              ]
+            },
+            "description": "Owner only (pool.rename): admin, member and viewer answer 403, a non-member 404. The name is trimmed, 1-60 characters, no control characters. Strict body: id, createdAt, role or any other field answers 400. Audited as pool.renamed with the pool id only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Família Rocha\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('answers the pool summary', () => pm.expect(pm.response.json().name).to.eql('Família Rocha'));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
