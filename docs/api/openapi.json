@@ -5469,6 +5469,15 @@
                     "divs12": {
                       "type": "string"
                     },
+                    "tax": {
+                      "type": "string"
+                    },
+                    "refund": {
+                      "type": "string"
+                    },
+                    "other": {
+                      "type": "string"
+                    },
                     "irr": {
                       "type": [
                         "number",
@@ -5514,6 +5523,9 @@
                     "yld",
                     "yoc",
                     "divs12",
+                    "tax",
+                    "refund",
+                    "other",
                     "irr",
                     "positions"
                   ]

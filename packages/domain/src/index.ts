@@ -19,6 +19,7 @@ export * from './month-flows';
 export * from './month-review';
 export * from './net-worth';
 export * from './portfolio-summary';
+export * from './portfolio-analysis';
 export * from './text';
 export * from './goals';
 export * from './transactions';
