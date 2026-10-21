@@ -2,6 +2,7 @@ import {
   ListMonthsQuery,
   MonthNoteDto,
   MonthNoteListDto,
+  MonthReviewDto,
   NoteDto,
   PutMonthNoteInput,
   SetNoteInput,
@@ -95,6 +96,21 @@ registry.registerPath({
   request: { params: pool, query: ListMonthsQuery },
   responses: {
     200: { description: 'The notes', ...json(MonthNoteListDto) },
+    ...errorResponses(400, 401, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/months/{month}/review',
+  operationId: 'getMonthReview',
+  summary: 'The monthly review of a month',
+  description:
+    'Any member may read (`pool.read`). KPIs (income, expenses, savings, net worth change, invested, dividends, interest), expenses by category with budget and three-month average, the notable transactions (largest expenses, largest income and every transaction with a note), the month’s investment operations per portfolio, the month note and a 12-month timeline. Money is EUR as decimal strings. `month` is `yyyy-mm` (`2026-13` answers 400).',
+  tags: ['Notes'],
+  request: { params: month },
+  responses: {
+    200: { description: 'The review', ...json(MonthReviewDto) },
     ...errorResponses(400, 401, 404, 429, 500),
   },
 });

@@ -12800,6 +12800,480 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/months/{month}/review": {
+      "get": {
+        "operationId": "getMonthReview",
+        "summary": "The monthly review of a month",
+        "description": "Any member may read (`pool.read`). KPIs (income, expenses, savings, net worth change, invested, dividends, interest), expenses by category with budget and three-month average, the notable transactions (largest expenses, largest income and every transaction with a note), the month’s investment operations per portfolio, the month note and a 12-month timeline. Money is EUR as decimal strings. `month` is `yyyy-mm` (`2026-13` answers 400).",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "example": "2026-03"
+            },
+            "required": true,
+            "name": "month",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "month": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "previousMonth": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "nextMonth": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    "income": {
+                      "type": "string"
+                    },
+                    "expenses": {
+                      "type": "string"
+                    },
+                    "savings": {
+                      "type": "string"
+                    },
+                    "savingsRatePct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "netWorthEnd": {
+                      "type": "string"
+                    },
+                    "netWorthPrevious": {
+                      "type": "string"
+                    },
+                    "netWorthChange": {
+                      "type": "string"
+                    },
+                    "invested": {
+                      "type": "string"
+                    },
+                    "dividendsReceived": {
+                      "type": "string"
+                    },
+                    "interestReceived": {
+                      "type": "string"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "categoryId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "budget": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "budgetUsedPct": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "previousAverage": {
+                            "type": "string"
+                          },
+                          "difference": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "categoryId",
+                          "value",
+                          "budget",
+                          "budgetUsedPct",
+                          "previousAverage",
+                          "difference"
+                        ]
+                      }
+                    },
+                    "notable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountName": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "income",
+                              "expense",
+                              "refund",
+                              "transfer",
+                              "investment"
+                            ]
+                          },
+                          "reasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "note",
+                                "top-expense",
+                                "top-income"
+                              ]
+                            }
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "noteUpdatedBy": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "noteUpdatedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "accountId",
+                          "accountName",
+                          "date",
+                          "description",
+                          "amount",
+                          "kind",
+                          "reasons",
+                          "note",
+                          "noteUpdatedBy",
+                          "noteUpdatedAt"
+                        ]
+                      }
+                    },
+                    "operations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "portfolioId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "portfolioName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "operations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "date": {
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "buy",
+                                    "sell",
+                                    "div"
+                                  ]
+                                },
+                                "assetId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "ticker": {
+                                  "type": "string"
+                                },
+                                "qty": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "cashEffect": {
+                                  "type": "string"
+                                },
+                                "note": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "noteUpdatedBy": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uuid"
+                                },
+                                "noteUpdatedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "date",
+                                "type",
+                                "assetId",
+                                "ticker",
+                                "qty",
+                                "cashEffect",
+                                "note",
+                                "noteUpdatedBy",
+                                "noteUpdatedAt"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "portfolioId",
+                          "portfolioName",
+                          "operations"
+                        ]
+                      }
+                    },
+                    "note": {
+                      "type": "object",
+                      "properties": {
+                        "month": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                        },
+                        "id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "body": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "createdBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "updatedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "updatedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "id",
+                        "body",
+                        "createdBy",
+                        "updatedBy",
+                        "updatedAt"
+                      ]
+                    },
+                    "timeline": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "month": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                          },
+                          "income": {
+                            "type": "string"
+                          },
+                          "expenses": {
+                            "type": "string"
+                          },
+                          "savings": {
+                            "type": "string"
+                          },
+                          "netWorth": {
+                            "type": "string"
+                          },
+                          "hasNote": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "month",
+                          "income",
+                          "expenses",
+                          "savings",
+                          "netWorth",
+                          "hasNote"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "month",
+                    "previousMonth",
+                    "nextMonth",
+                    "income",
+                    "expenses",
+                    "savings",
+                    "savingsRatePct",
+                    "netWorthEnd",
+                    "netWorthPrevious",
+                    "netWorthChange",
+                    "invested",
+                    "dividendsReceived",
+                    "interestReceived",
+                    "categories",
+                    "notable",
+                    "operations",
+                    "note",
+                    "timeline"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/assets": {
       "get": {
         "operationId": "listAssets",

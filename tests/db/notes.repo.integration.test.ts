@@ -252,6 +252,38 @@ describe('notes on movements and operations', () => {
   });
 });
 
+describe('notes of a date range', () => {
+  it('lists only the noted movements of the range and of the pool', async () => {
+    const { a, b } = createTwoPools();
+    const inRange = await withPool(a.ctx, (tx) => movement(tx, a.ctx));
+    const plain = await withPool(a.ctx, (tx) => movement(tx, a.ctx));
+    const other = await withPool(b.ctx, (tx) => movement(tx, b.ctx));
+    await withPool(a.ctx, (tx) =>
+      notesRepo.setTransactionNote(tx, a.ctx, inRange.id, 'Nota A', USER, NOW),
+    );
+    await withPool(b.ctx, (tx) =>
+      notesRepo.setTransactionNote(tx, b.ctx, other.id, 'Nota B', USER, NOW),
+    );
+    const list = (from: string, to: string) =>
+      withPool(a.ctx, (tx) => notesRepo.listTransactionNotes(tx, a.ctx, from, to));
+    const found = await list('2026-03-01', '2026-03-31');
+    expect(found.map((row) => row.id)).toEqual([inRange.id]);
+    expect(found.map((row) => row.id)).not.toContain(plain.id);
+    expect(await list('2026-04-01', '2026-04-30')).toEqual([]);
+  });
+
+  it('treats injection payloads in the range as data', async () => {
+    const { a } = createTwoPools();
+    await expect(
+      failureCodeOf(
+        withPool(a.ctx, (tx) =>
+          notesRepo.listTransactionNotes(tx, a.ctx, "' OR 1=1 --", '2026-03-31'),
+        ),
+      ),
+    ).resolves.toBe('22007');
+  });
+});
+
 describe('month notes repository', () => {
   it('inserts, finds, lists in order, updates and removes by version', async () => {
     const { a } = createTwoPools();

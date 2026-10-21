@@ -11,6 +11,7 @@ import {
   type ProductsService,
   type DepositsService,
   type InterestService,
+  type MonthsService,
   type NotesService,
   type PortfoliosService,
   type PrototypeImportService,
@@ -155,4 +156,8 @@ export async function getCashMovesService(): Promise<CashMovesService> {
 
 export async function getPrototypeImportService(): Promise<PrototypeImportService> {
   return (await getRuntime()).prototypeImport;
+}
+
+export async function getMonthsService(): Promise<MonthsService> {
+  return (await getRuntime()).months;
 }

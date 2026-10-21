@@ -1632,5 +1632,98 @@
     "refunds": "Reembolsos",
     "internalTransfer": "Transferência interna",
     "investment": "Investimento"
+  },
+  "months": {
+    "title": "Revisão do mês",
+    "navLabel": "Mês",
+    "previous": "Mês anterior",
+    "next": "Mês seguinte",
+    "kpis": {
+      "label": "Números do mês",
+      "income": "Receitas",
+      "expenses": "Despesas",
+      "savings": "Poupança",
+      "savingsRate": "Taxa de poupança",
+      "noIncome": "Sem receitas",
+      "netWorthChange": "Variação do património",
+      "invested": "Investido",
+      "dividends": "Dividendos",
+      "interest": "Juros"
+    },
+    "timeline": {
+      "title": "Últimos 12 meses",
+      "subtitle": "Património e despesas; os meses com nota têm um balão.",
+      "netWorth": "Património",
+      "netWorthChart": "Património no fim de cada mês",
+      "expensesChart": "Despesas por mês",
+      "period": "Mês",
+      "empty": "Sem dados para mostrar.",
+      "months": "Meses",
+      "hasNote": "Tem nota"
+    },
+    "categories": {
+      "title": "Despesas por categoria",
+      "subtitle": "Comparadas com a média dos 3 meses anteriores.",
+      "chart": "Despesas por categoria",
+      "total": "Total",
+      "category": "Categoria",
+      "spent": "Gasto",
+      "budget": "Orçamento",
+      "average": "Média 3 meses",
+      "difference": "Diferença",
+      "uncategorized": "Sem categoria",
+      "emptyTitle": "Sem despesas",
+      "emptyText": "Este mês não tem despesas."
+    },
+    "note": {
+      "title": "Nota do mês",
+      "subtitle": "O que se passou este mês, para vos lembrar mais tarde.",
+      "label": "Nota do mês",
+      "placeholder": "Escreve o que aconteceu este mês",
+      "counter": "{count} / {max}",
+      "readOnlyEmpty": "Este mês não tem nota.",
+      "editedBy": "Editado por {name} · {date}",
+      "someone": "alguém",
+      "save": "Guardar nota",
+      "conflict": "Outra pessoa guardou a nota entretanto. As tuas alterações não foram gravadas.",
+      "useTheirs": "Usar a versão guardada",
+      "forbidden": "Não tens permissão para editar notas.",
+      "error": "Não foi possível guardar a nota. Tenta novamente."
+    },
+    "notable": {
+      "title": "Movimentos em destaque",
+      "subtitle": "Maiores despesas, maior receita e movimentos com nota.",
+      "date": "Data",
+      "description": "Descrição",
+      "account": "Conta",
+      "why": "Porquê",
+      "amount": "Valor",
+      "note": "Nota",
+      "emptyTitle": "Sem movimentos em destaque",
+      "emptyText": "Os movimentos com nota e as maiores despesas aparecem aqui.",
+      "reasons": {
+        "note": "Com nota",
+        "top-expense": "Grande despesa",
+        "top-income": "Maior receita"
+      }
+    },
+    "operations": {
+      "title": "Operações de investimento",
+      "subtitle": "Compras, vendas e dividendos do mês.",
+      "date": "Data",
+      "asset": "Ativo",
+      "kind": "Tipo",
+      "qty": "Quantidade",
+      "cash": "Efeito em caixa",
+      "note": "Nota",
+      "noPortfolio": "Sem portfolio",
+      "emptyTitle": "Sem operações",
+      "emptyText": "Este mês não tem operações de investimento.",
+      "kinds": {
+        "buy": "Compra",
+        "sell": "Venda",
+        "div": "Dividendo"
+      }
+    }
   }
 }
