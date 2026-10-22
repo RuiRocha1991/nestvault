@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, ilike, inArray, isNull, lte, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
@@ -305,6 +305,48 @@ export const transactionsRepo = {
       })
       .returning({ id: transactions.id });
     return rows.length > 0;
+  },
+
+  /**
+   * Which of these hashes the account already has (an import preview marks those lines as
+   * duplicates). Hashes are bound parameters, looked up in chunks.
+   */
+  async existingHashes(
+    tx: PoolTx,
+    ctx: PoolContext,
+    accountId: string,
+    hashes: readonly string[],
+  ): Promise<Set<string>> {
+    const found = new Set<string>();
+    for (let at = 0; at < hashes.length; at += 1000) {
+      const rows = await tx
+        .select({ hash: transactions.hash })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.poolId, ctx.poolId),
+            eq(transactions.accountId, accountId),
+            inArray(transactions.hash, hashes.slice(at, at + 1000)),
+          ),
+        );
+      for (const row of rows) found.add(row.hash);
+    }
+    return found;
+  },
+
+  /** The sum of the account's movements dated up to `upTo` (included), as a decimal string. */
+  async sumUpTo(tx: PoolTx, ctx: PoolContext, accountId: string, upTo: string): Promise<string> {
+    const [row] = await tx
+      .select({ total: sql<string>`coalesce(sum(${transactions.amount}), 0)::text` })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          eq(transactions.accountId, accountId),
+          lte(transactions.date, upTo),
+        ),
+      );
+    return row?.total ?? '0';
   },
 
   /**
