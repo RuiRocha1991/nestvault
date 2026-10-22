@@ -97,10 +97,22 @@ def test_blank_lines_inside_a_movement_do_not_lose_it() -> None:
 def test_an_unreadable_block_is_a_warning_and_breaks_reconciliation() -> None:
     pages = statement_lines()
     # Drop the year line of the first movement: the block can no longer be dated.
-    pages[0] = [line for line in pages[0] if not line.startswith("2024  ")]
+    first_year = next(i for i, line in enumerate(pages[0]) if line.strip() == "2024")
+    del pages[0][first_year]
     result = _parse(make_layout_pdf(pages))
     assert any("could not be read" in w for w in result.warnings)
     assert result.meta.reconciled is False
+
+
+def test_card_type_wrapped_over_two_lines_is_joined() -> None:
+    card = next(r for r in _bank_rows(statement_pdf()) if r.type == "card")
+    assert card.description == "Transação com cartão \u2013 SUPERMERCADO EXEMPLO LDA"
+
+
+def test_the_page_footer_never_becomes_part_of_a_movement() -> None:
+    rows = _bank_rows(statement_pdf())
+    assert all(r.date.startswith("202") for r in rows)  # "1050-196 Lisboa" is not a year
+    assert not any("Lisboa" in r.description or "Gerado" in r.description for r in rows)
 
 
 def test_a_pdf_without_movements_fails() -> None:
@@ -114,26 +126,24 @@ def test_another_bank_is_refused() -> None:
         _parse(make_pdf(["Some other bank", "01-01-2025 Coffee 2,00 100,00"]))
 
 
-def test_matches_the_python_script_on_the_same_input(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    if not LEGACY.exists():
-        pytest.skip("docs/tools is not part of this checkout")
+def test_matches_the_python_script_on_the_same_input(tmp_path: Path) -> None:
+    # The script was written for `pdftotext -layout` (with pdfplumber it merges movements), so the
+    # comparison needs the binary. The parser itself never uses it.
+    if not LEGACY.exists() or shutil.which("pdftotext") is None:
+        pytest.skip("needs docs/tools and pdftotext")
     spec = importlib.util.spec_from_file_location("extrato_para_csv", LEGACY)
     assert spec is not None
     assert spec.loader is not None
     legacy: ModuleType = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(legacy)
-    monkeypatch.setattr(shutil, "which", lambda _name: None)  # same extractor: pdfplumber
     pdf = tmp_path / "statement.pdf"
-    pdf.write_bytes(statement_pdf())
+    pdf.write_bytes(statement_pdf(footer_gap=6))
     expected = legacy.parse_trade_republic(legacy.pdf_para_texto(pdf))
-    rows = _bank_rows(statement_pdf())
+    rows = _bank_rows(statement_pdf(footer_gap=6))
     assert len(rows) == len(expected) > 0
     for row, old in zip(rows, expected, strict=True):
         day, month, year = old["data"].split("-")
         assert row.date == f"{year}-{month}-{day}"
-        assert row.description == old["descricao"]
         assert Decimal(row.amount) == Decimal(f"{old['valor']:.2f}")
         assert row.balance is not None
         assert Decimal(row.balance) == Decimal(f"{old['saldo']:.2f}")

@@ -10,7 +10,7 @@ Decimal_ = Annotated[str, StringConstraints(pattern=r"^-?\d+(\.\d+)?$", max_leng
 Text = Annotated[str, StringConstraints(max_length=500)]
 Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
 ParserKind = Literal["bank", "broker"]
-BankRowType = Literal["transfer", "card", "interest", "trade", "dividend", "other"]
+BankRowType = Literal["transfer", "card", "interest", "trade", "dividend", "fee", "other"]
 
 
 class _Strict(BaseModel):

@@ -18,7 +18,7 @@ export const parserResponseSchema = z
             external_id: z.union([z.string().max(500), z.null()]).default(null),
             type: z
               .union([
-                z.enum(['transfer', 'card', 'interest', 'trade', 'dividend', 'other']),
+                z.enum(['transfer', 'card', 'interest', 'trade', 'dividend', 'fee', 'other']),
                 z.null(),
               ])
               .default(null),

@@ -24,7 +24,7 @@ Errors are `{code, message}`; a message never contains file content.
 
 | Id | Kind | Input | Notes |
 | --- | --- | --- | --- |
-| `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
+| `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `fee`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
 | `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
 
 PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
