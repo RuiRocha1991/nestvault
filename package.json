@@ -24,7 +24,8 @@
     "env:check": "tsx scripts/env-check.ts",
     "env:sync": "tsx scripts/env-check.ts --sync",
     "gen:secret": "node scripts/gen-secret.mjs",
-    "db:up": "docker compose --env-file .env.local up -d --wait",
+    "db:up": "docker compose --env-file .env.local up -d --wait postgres mailpit",
+    "parser:up": "docker compose --env-file .env.local up -d --build --wait parser parser-gateway",
     "db:down": "docker compose --env-file .env.local down",
     "db:reset": "bash scripts/db-reset.sh",
     "db:check": "bash scripts/db-check.sh",
@@ -34,7 +35,11 @@
     "db:generate:app": "pnpm --filter @nestvault/db db:generate:app",
     "db:migrate": "pnpm --filter @nestvault/db db:migrate",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
-    "openapi": "tsx scripts/openapi.ts"
+    "openapi": "tsx scripts/openapi.ts",
+    "gen:parser-schema": "tsx scripts/gen-parser-schema.ts",
+    "parser:schema": "cd services/parser && uv run python scripts/export_schema.py",
+    "test:parser": "cd services/parser && uv run pytest",
+    "lint:parser": "cd services/parser && uv run ruff check . && uv run ruff format --check . && uv run mypy"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -56,6 +61,7 @@
     "eslint": "^10.12.0",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import-x": "^4.17.1",
+    "json-schema-to-zod": "^2.8.1",
     "pg": "^8.23.1",
     "prettier": "^3.9.10",
     "react": "^19.3.0",

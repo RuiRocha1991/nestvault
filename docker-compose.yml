@@ -32,5 +32,48 @@ services:
       - '127.0.0.1:1025:1025' # SMTP
       - '127.0.0.1:8025:8025' # web UI
 
+  # Statement parser (NES-56, security control 21). It sits on a network with no route out, has no
+  # volumes and no database credentials, a read-only root filesystem, a small tmpfs, no capabilities
+  # and hard CPU/memory/process limits. Build: docker compose build parser.
+  parser:
+    build: ./services/parser
+    image: nestvault-parser:dev
+    restart: unless-stopped
+    user: '10001:10001'
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,uid=10001,gid=10001,mode=0700
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    environment:
+      PARSER_SECRET: ${PARSER_SECRET:?run pnpm env:sync to add it to .env.local}
+    networks:
+      - parser-internal
+
+  # The only way in: a TCP forwarder published on 127.0.0.1 only. The parser itself is never
+  # published and cannot open connections out, so only this forwarder can be reached from the host.
+  parser-gateway:
+    image: alpine/socat:1.8.0.3
+    restart: unless-stopped
+    command: ['TCP-LISTEN:8000,fork,reuseaddr', 'TCP:parser:8000']
+    ports:
+      - '127.0.0.1:8100:8000'
+    depends_on:
+      parser:
+        condition: service_healthy
+    networks:
+      - parser-internal
+      - default
+
+networks:
+  # internal: true = no gateway, so containers on it cannot reach the internet (or the host).
+  parser-internal:
+    internal: true
+
 volumes:
   postgres-data:

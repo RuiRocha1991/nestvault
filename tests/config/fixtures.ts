@@ -7,6 +7,8 @@ export const VALID_ENV: Record<string, string> = {
   DATABASE_URL_APP: 'postgres://app_rw:fake-pw@127.0.0.1:5433/nestvault_app',
   BETTER_AUTH_SECRET: 'fake-auth-secret-0123456789-abcdefghijklmnop',
   APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+  PARSER_URL: 'http://127.0.0.1:8100',
+  PARSER_SECRET: 'fake-parser-secret-0123456789-abcdefghijk',
   SMTP_HOST: '127.0.0.1',
   SMTP_PORT: '1025',
   SMTP_USER: '',

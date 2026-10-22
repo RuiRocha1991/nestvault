@@ -10,12 +10,13 @@ Jira project NES.
 
 ## Prerequisites
 
-| Tool    | Version | Notes                                                               |
-| ------- | ------- | ------------------------------------------------------------------- |
-| Node.js | 22.x    | `.nvmrc` pins it. Recommended: [nvm](https://github.com/nvm-sh/nvm) |
-| pnpm    | 12.x    | `packageManager` in `package.json`; install with `npm i -g pnpm@12` |
-| Git     | any     |                                                                     |
-| Docker  | recent  | Compose plugin; Postgres and Mailpit run in containers              |
+| Tool    | Version | Notes                                                                                                             |
+| ------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| Node.js | 22.x    | `.nvmrc` pins it. Recommended: [nvm](https://github.com/nvm-sh/nvm)                                               |
+| pnpm    | 12.x    | `packageManager` in `package.json`; install with `npm i -g pnpm@12`                                               |
+| Git     | any     |                                                                                                                   |
+| Docker  | recent  | Compose plugin; Postgres, Mailpit and the parser run in containers                                                |
+| uv      | recent  | Only to work on `services/parser` (Python 3.12, installed by uv): [docs.astral.sh/uv](https://docs.astral.sh/uv/) |
 
 ## Setup (from a fresh clone)
 
@@ -36,6 +37,7 @@ Create the local environment and start the services (details: [`docs/dev-setup.m
 ```bash
 pnpm env:init   # creates .env.local with random passwords (never committed)
 pnpm db:up      # Postgres 16 (two databases) + Mailpit, bound to 127.0.0.1
+pnpm parser:up  # statement parser (builds the image); only needed to import statements
 pnpm db:check   # verifies database isolation
 pnpm db:migrate # applies the migrations to both databases
 ```
@@ -48,30 +50,34 @@ pnpm lint && pnpm typecheck && pnpm test
 
 ## Commands
 
-| Command                                 | What it does                                                                                    |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `pnpm install`                          | Install dependencies for all workspaces                                                         |
-| `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules)                                 |
-| `pnpm typecheck`                        | `tsc` in every package and for the root files                                                   |
-| `pnpm test`                             | Vitest: unit + integration tests. **Needs `pnpm db:up`**                                        |
-| `pnpm test:unit`                        | Unit tests only: nothing needs to be running                                                    |
-| `pnpm test:integration`                 | Integration tests only (Postgres, production build for headers)                                 |
-| `pnpm test:coverage`                    | `pnpm test` with the coverage report and the thresholds (CI)                                    |
-| `pnpm format` / `pnpm format:check`     | Prettier write / check                                                                          |
-| `pnpm build`                            | Build every package (placeholders for now)                                                      |
-| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)                                     |
-| `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`                                     |
-| `pnpm env:check` / `pnpm env:sync`      | List / add the variables your `.env.local` lacks (names only)                                   |
-| `pnpm gen:secret`                       | Print a random 32-byte base64 secret (auth secret, encryption key)                              |
-| `pnpm db:up` / `db:down`                | Start / stop Postgres and Mailpit in Docker                                                     |
-| `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it                                         |
-| `pnpm db:check`                         | Verify database isolation and network exposure                                                  |
-| `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                                                    |
-| `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user                                   |
-| `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                                                    |
-| `pnpm db:seed`                          | Create the first owner (`SEED_OWNER_EMAIL`/`_PASSWORD`, else prompted); idempotent              |
-| `pnpm test:e2e`                         | Playwright (Chromium): sign-in, smoke + CSP checks on the production build (needs `pnpm db:up`) |
-| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)                               |
+| Command                                 | What it does                                                                                             |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                          | Install dependencies for all workspaces                                                                  |
+| `pnpm lint`                             | ESLint (typescript-eslint strict, import order, security rules)                                          |
+| `pnpm typecheck`                        | `tsc` in every package and for the root files                                                            |
+| `pnpm test`                             | Vitest: unit + integration tests. **Needs `pnpm db:up`**                                                 |
+| `pnpm test:unit`                        | Unit tests only: nothing needs to be running                                                             |
+| `pnpm test:integration`                 | Integration tests only (Postgres, production build for headers)                                          |
+| `pnpm test:coverage`                    | `pnpm test` with the coverage report and the thresholds (CI)                                             |
+| `pnpm format` / `pnpm format:check`     | Prettier write / check                                                                                   |
+| `pnpm build`                            | Build every package (placeholders for now)                                                               |
+| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)                                              |
+| `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`                                              |
+| `pnpm env:check` / `pnpm env:sync`      | List / add the variables your `.env.local` lacks (names only)                                            |
+| `pnpm gen:secret`                       | Print a random 32-byte base64 secret (auth secret, encryption key)                                       |
+| `pnpm db:up` / `db:down`                | Start Postgres and Mailpit in Docker / stop every container of the project                               |
+| `pnpm parser:up`                        | Build and start the parser container and its local forwarder (`http://127.0.0.1:8100`)                   |
+| `pnpm test:parser` / `pnpm lint:parser` | pytest / ruff + mypy for `services/parser` (needs uv; `uv run pytest -m docker` runs the image tests)    |
+| `pnpm gen:parser-schema`                | Regenerate the zod schema of the parser output from `services/parser/schemas/`; `--check` fails if stale |
+| `pnpm parser:schema`                    | Regenerate `services/parser/schemas/rows.schema.json` from the pydantic models                           |
+| `pnpm db:reset`                         | Delete the database volume (asks first) and recreate it                                                  |
+| `pnpm db:check`                         | Verify database isolation and network exposure                                                           |
+| `pnpm db:psql:identity` / `db:psql:app` | Open `psql` on that database                                                                             |
+| `pnpm db:migrate`                       | Apply both migration sets (idempotent), as the migration user                                            |
+| `pnpm db:generate:app` / `:identity`    | Generate a migration from the Drizzle schema                                                             |
+| `pnpm db:seed`                          | Create the first owner (`SEED_OWNER_EMAIL`/`_PASSWORD`, else prompted); idempotent                       |
+| `pnpm test:e2e`                         | Playwright (Chromium): sign-in, smoke + CSP checks on the production build (needs `pnpm db:up`)          |
+| `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)                                        |
 
 Browser checks (`tests/e2e/`) need Chromium once: `pnpm exec playwright install chromium`
 (on a fresh Ubuntu add `--with-deps`). `pnpm test:e2e` builds the web app and serves it on port 4010,
@@ -187,6 +193,15 @@ folder and one migrations folder each, in `packages/db`).
   `_test` databases, which are dropped and migrated again at the start of each run, so
   **`pnpm db:up` must be running**; if not, the run stops with a message saying so.
 
+## Parser service
+
+Statement parsing (CSV, xlsx, PDF) happens in `services/parser`, a Python 3.12 FastAPI service in its
+own container ([`services/parser/README.md`](services/parser/README.md)). `pnpm parser:up` builds and
+starts it. The container has no route to the internet and no volumes, runs as a non-root user with a
+read-only filesystem and CPU/memory limits; only a forwarder published on `127.0.0.1:8100` reaches it.
+Every call needs the `X-Parser-Secret` header (`PARSER_SECRET`, created by `pnpm env:init`; after
+pulling run `pnpm env:sync`). Work on it with uv: `cd services/parser && uv sync && uv run pytest`.
+
 ## Repository layout
 
 ```
@@ -199,6 +214,7 @@ packages/db/         Drizzle schemas, migrations, repositories (identity + app d
 packages/ui/         base components (shadcn-style, token based) and pt-PT formatters
 packages/config/     validated environment variables (the only place that reads process.env):
                      `@nestvault/config` is server-only, `@nestvault/config/public` is browser-safe
+services/parser/     Python parser service (FastAPI): isolated container, parsers, shared schemas
 design/  docs/
 tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/api)
 ```

@@ -16,6 +16,24 @@ Vitest has one **unit project per package** (`web`, `worker`, `domain`, `service
 `config`, `lint`, so `pnpm test --project services` works) and one `integration` project. The
 rule that decides where a test goes is the file name: `*.integration.test.ts` is integration.
 
+## Parser service tests (Python, NES-56)
+
+`services/parser` has its own toolchain (uv, pytest, ruff, mypy strict) and its tests live next to it
+in `services/parser/tests/`; Vitest does not run them. `pnpm test:parser` runs pytest and
+`pnpm lint:parser` runs ruff and mypy. Tests marked `docker` build the real image and check the
+isolation (no outbound network, non-root, read-only filesystem, the hardening in
+`docker-compose.yml`); they need a Docker daemon and run with `cd services/parser && uv run pytest -m docker`.
+
+- The detection matrix (`test_detection_matrix.py`) runs every registered parser against every
+  fixture and compares the set that detects it with the expected one. A new parser adds its fixtures
+  there and its entry in `default_registry()`.
+- `services/parser/schemas/test-vectors.json` is shared by pytest (`test_helpers.py`) and Vitest
+  (`tests/domain/parser-vectors.test.ts`), so `parseNum`, `parseDate` and `normalizeText` cannot
+  drift between Python and TypeScript.
+- `services/parser/schemas/rows.schema.json` is generated from the pydantic models; the zod schema in
+  `packages/services/src/imports/parser-rows.generated.ts` is generated from it. Both have a
+  `--check` run in CI.
+
 ## Integration tests
 
 - Run on the `nestvault_identity_test` and `nestvault_app_test` databases, with the **same roles
@@ -149,6 +167,9 @@ totals in the job summary. React pages and components are covered by Playwright,
   (the same `docker-compose.yml` as local development: two databases, three roles), migrations,
   lint, typecheck, `pnpm openapi --check`, `pnpm test:coverage`.
 - **Browser checks (Playwright)**: separate job, Chromium cached by Playwright version.
+- **Parser service (ruff, mypy, pytest, isolation)**: runs when a PR touches `services/parser/`,
+  `docker-compose.yml` or the workflow: `pip-audit`, ruff, mypy strict, the schema check, pytest and the
+  Docker isolation tests on the built image.
 - **Secret scan (gitleaks)**.
 - **JUnit XML**: both test jobs write `reports/junit-vitest.xml` / `reports/junit-e2e.xml`, upload them
   as the `junit-vitest` / `junit-e2e` artifacts and publish a per-test check on the pull request

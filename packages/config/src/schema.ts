@@ -55,6 +55,16 @@ const appUrl = concrete(z.string())
   }, 'must be an origin like https://app.example.com (http only for localhost)')
   .transform((value) => new URL(value).origin);
 
+/** Base URL of the internal parser service: http(s) origin, no credentials, path or query. */
+const serviceUrl = concrete(z.string())
+  .refine((value) => {
+    const url = parseUrl(value);
+    if (url === undefined || url.username !== '' || url.password !== '') return false;
+    if (url.pathname !== '/' || url.search !== '' || url.hash !== '') return false;
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  }, 'must be an origin like http://127.0.0.1:8100')
+  .transform((value) => new URL(value).origin);
+
 const strictBoolean = z
   .enum(['true', 'false'], { error: 'must be "true" or "false"' })
   .default('false')
@@ -90,6 +100,9 @@ const runtimeShape = {
   DATABASE_URL_APP: postgresUrl,
   BETTER_AUTH_SECRET: secret(32),
   APP_ENCRYPTION_KEY: encryptionKey,
+  // Internal statement parser (services/parser): base URL and the shared secret sent with every call.
+  PARSER_URL: serviceUrl,
+  PARSER_SECRET: secret(32),
   SMTP_HOST: concrete(z.string().min(1)),
   SMTP_PORT: port,
   SMTP_USER: optionalText,
