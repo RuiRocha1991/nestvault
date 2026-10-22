@@ -1,5 +1,8 @@
 from collections.abc import Iterable
+from pathlib import Path
 
+from .engine.parser import SpecParser
+from .engine.spec import load_specs
 from .errors import UnknownParserError
 from .models import DetectResult, ParserInfo
 from .parsers.base import Parser
@@ -7,6 +10,7 @@ from .sniff import SniffedFile
 
 # Below this score the file is treated as unrecognised and the user is asked to choose.
 DETECT_THRESHOLD = 0.5
+SPECS_DIR = Path(__file__).resolve().parents[2] / "specs"
 
 
 class Registry:
@@ -47,5 +51,7 @@ class Registry:
 
 
 def default_registry() -> Registry:
-    """The parsers shipped with the service. Each parser task (NES-57 ...) adds its own here."""
-    return Registry([])
+    """The parsers shipped with the service: the code parsers (each parser task adds its own here)
+    and every spec in `specs/`, validated now so a broken spec stops the start-up."""
+    specs = [SpecParser(spec) for spec in load_specs(SPECS_DIR)] if SPECS_DIR.is_dir() else []
+    return Registry(specs)

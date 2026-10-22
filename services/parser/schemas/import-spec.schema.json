@@ -1,0 +1,362 @@
+{
+  "$defs": {
+    "Columns": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Date",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "debit": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Debit"
+        },
+        "credit": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Credit"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Balance"
+        },
+        "valueDate": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valuedate"
+        },
+        "extId": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extid"
+        }
+      },
+      "required": [
+        "date",
+        "description"
+      ],
+      "title": "Columns",
+      "type": "object"
+    },
+    "Filters": {
+      "additionalProperties": false,
+      "properties": {
+        "skipIfDescriptionMatches": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Skipifdescriptionmatches",
+          "type": "array"
+        }
+      },
+      "title": "Filters",
+      "type": "object"
+    },
+    "Fingerprint": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "xlsx",
+            "csv"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet"
+        },
+        "headers": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 40,
+          "minItems": 1,
+          "title": "Headers",
+          "type": "array"
+        },
+        "headerRowHint": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headerrowhint"
+        },
+        "delimiter": {
+          "anyOf": [
+            {
+              "enum": [
+                ";",
+                ",",
+                "\t",
+                "|"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delimiter"
+        },
+        "encoding": {
+          "anyOf": [
+            {
+              "enum": [
+                "utf-8",
+                "cp1252"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encoding"
+        }
+      },
+      "required": [
+        "type",
+        "headers"
+      ],
+      "title": "Fingerprint",
+      "type": "object"
+    },
+    "Formats": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "enum": [
+            "dd-mm-yyyy",
+            "dd/mm/yyyy",
+            "dd.mm.yyyy",
+            "yyyy-mm-dd",
+            "yyyy/mm/dd",
+            "mm/dd/yyyy",
+            "dd-mm-yy",
+            "dd/mm/yy"
+          ],
+          "title": "Date",
+          "type": "string"
+        },
+        "decimal": {
+          "default": ",",
+          "enum": [
+            ",",
+            "."
+          ],
+          "title": "Decimal",
+          "type": "string"
+        },
+        "thousands": {
+          "default": ".",
+          "enum": [
+            ".",
+            ",",
+            " ",
+            ""
+          ],
+          "title": "Thousands",
+          "type": "string"
+        },
+        "negative": {
+          "default": "sign",
+          "enum": [
+            "sign",
+            "parentheses",
+            "debitColumn"
+          ],
+          "title": "Negative",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date"
+      ],
+      "title": "Formats",
+      "type": "object"
+    },
+    "Table": {
+      "additionalProperties": false,
+      "properties": {
+        "headerRow": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headerrow"
+        },
+        "findHeader": {
+          "default": false,
+          "title": "Findheader",
+          "type": "boolean"
+        },
+        "stopAt": {
+          "default": "empty-row",
+          "enum": [
+            "empty-row",
+            "no-date",
+            "end"
+          ],
+          "title": "Stopat",
+          "type": "string"
+        }
+      },
+      "title": "Table",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "default": 1,
+      "title": "Schemaversion",
+      "type": "integer"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "version": {
+      "maximum": 1000,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "bank",
+      "title": "Kind",
+      "type": "string"
+    },
+    "fingerprint": {
+      "$ref": "#/$defs/Fingerprint"
+    },
+    "table": {
+      "$ref": "#/$defs/Table"
+    },
+    "columns": {
+      "$ref": "#/$defs/Columns"
+    },
+    "formats": {
+      "$ref": "#/$defs/Formats"
+    },
+    "filters": {
+      "$ref": "#/$defs/Filters"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "kind",
+    "fingerprint",
+    "columns",
+    "formats"
+  ],
+  "title": "ImportSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nestvault.local/schemas/import-spec.v1.json"
+}
