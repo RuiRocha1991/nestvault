@@ -50,6 +50,26 @@
           ],
           "default": null,
           "title": "External Id"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "transfer",
+                "card",
+                "interest",
+                "trade",
+                "dividend",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
         }
       },
       "required": [

@@ -20,6 +20,16 @@ Errors are `{code, message}`; a message never contains file content.
 3. Inside it: type sniffing (`xlsx`, `pdf`, `csv`), zip limits (entries, expanded size, ratio → 422),
    then the parsers. Output is re-validated against the row models before it leaves.
 
+## Shipped parsers
+
+| Id | Kind | Input | Notes |
+| --- | --- | --- | --- |
+| `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
+| `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
+
+PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
+fixture statement; the golden test runs `docs/tools/extrato_para_csv.py` on it and compares.
+
 ## Adding a parser
 
 Implement the `Parser` protocol (`parsers/base.py`), register it in `default_registry()`
