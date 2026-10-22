@@ -8,7 +8,11 @@ export default async function OnePortfolioPage({
   searchParams,
 }: {
   params: Promise<{ poolId: string; portfolioId: string }>;
-  searchParams: Promise<{ tab?: string | string[]; group?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    group?: string | string[];
+    moeda?: string | string[];
+  }>;
 }) {
   const { poolId, portfolioId } = await params;
   return (

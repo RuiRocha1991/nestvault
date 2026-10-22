@@ -37,7 +37,7 @@ export function MoveCashDialog({
   const action = useMemberAction(onDone);
   const tooMuch = action.problem?.status === 409 || action.problem?.status === 400;
 
-  const tooMuchText = tooMuch ? t('tooMuch', { cash: formatMoney(ctx.summary.cash) }) : null;
+  const tooMuchText = tooMuch ? t('tooMuch', { cash: formatMoney(ctx.summary.cashEur) }) : null;
 
   function submit() {
     const value = normalizeDecimal(amount);
@@ -65,7 +65,9 @@ export function MoveCashDialog({
       onClose={onClose}
       onSubmit={submit}
     >
-      <p className="text-md text-fg-2">{t('available', { cash: formatMoney(ctx.summary.cash) })}</p>
+      <p className="text-md text-fg-2">
+        {t('available', { cash: formatMoney(ctx.summary.cashEur) })}
+      </p>
       <Field
         id={ids.account}
         label={t('account')}
@@ -85,7 +87,7 @@ export function MoveCashDialog({
           ))}
         </Select>
       </Field>
-      <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+      <div className="grid grid-cols-2 gap-4 one:grid-cols-1">
         <Field id={ids.date} label={t('date')}>
           <Input
             id={ids.date}

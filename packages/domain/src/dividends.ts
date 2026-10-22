@@ -99,3 +99,18 @@ export function dividendsLast12Months(
     byCurrency,
   };
 }
+
+/**
+ * Whether a portfolio has anything to say about dividends: a dividend operation inside the scope,
+ * or an open position expected to pay one (income or a forecast). The screens show nothing about
+ * dividends when this is false.
+ */
+export function hasDividends(
+  ops: readonly InvestmentOp[],
+  assets: readonly InvestmentAsset[],
+  open: readonly Holding[],
+  scope: ScopeOptions = {},
+): boolean {
+  const received = dividendOps(ops, indexAssets(assets), scope).length > 0;
+  return received || open.some((h) => h.isOpen && (h.income.gt(0) || h.incomeN.gt(0)));
+}

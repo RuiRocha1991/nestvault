@@ -81,3 +81,13 @@ describe('formatPct', () => {
     expect(formatPct(0, { signed: true })).toBe('0,0%');
   });
 });
+
+describe('formatNumber', () => {
+  it('groups thousands and uses a decimal comma, without a currency', async () => {
+    const { formatNumber } = await import('@nestvault/ui');
+    expect(formatNumber('1234.5')).toBe(`1${NBSP}234,50`);
+    expect(formatNumber('16.3')).toBe('16,30');
+    expect(formatNumber('-0.004')).toBe('0,00');
+    expect(formatNumber('12.3456', 4)).toBe('12,3456');
+  });
+});

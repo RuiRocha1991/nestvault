@@ -137,7 +137,7 @@ export function PortfolioDialog({
         )
       }
     >
-      <div className="grid grid-cols-[1fr_auto_auto] gap-4 max-[560px]:grid-cols-1">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-4 one:grid-cols-1">
         <Field
           id={ids.name}
           label={t('name')}

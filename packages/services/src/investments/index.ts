@@ -31,3 +31,4 @@ export {
   UpdatePortfolioInput,
 } from './schemas';
 export { buildPortfolioView, HoldingDto, PortfolioViewDto, ViewOpDto } from './portfolio-view';
+export { DisplayDto, DisplayMode, DisplayRateDto, toDisplay } from './display-currency';

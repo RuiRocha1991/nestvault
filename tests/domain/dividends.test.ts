@@ -6,6 +6,7 @@ import {
   dividendsForecast,
   dividendsLast12Months,
   dividendsReceived,
+  hasDividends,
   nextMonths,
   toPlain,
   type InvestmentAsset,
@@ -114,5 +115,56 @@ describe('unknown assets', () => {
     expect(toPlain(dividendsLast12Months([ghost], [quarterly], DEFAULT_FX_RATES, asOf).eur)).toBe(
       '0',
     );
+  });
+});
+
+describe('hasDividends', () => {
+  const assets = [quarterly, noMonths];
+  const buy = (assetId: string) =>
+    makeOp({ type: 'buy', assetId, date: '2025-01-01', qty: '10', price: '10' });
+  const open = (ops: ReturnType<typeof buy>[]) =>
+    computeHoldings(ops, assets, DEFAULT_FX_RATES, opts);
+
+  it('is false for a portfolio without operations (accounts only)', () => {
+    expect(hasDividends([], assets, [])).toBe(false);
+  });
+
+  it('is false when the positions are not expected to pay and nothing was received', () => {
+    const none: InvestmentAsset = {
+      id: 'z',
+      currency: 'EUR',
+      price: '10',
+      dps: '0',
+      divMonths: [],
+    };
+    const ops = [buy('z')];
+    expect(hasDividends(ops, [none], computeHoldings(ops, [none], DEFAULT_FX_RATES, opts))).toBe(
+      false,
+    );
+  });
+
+  it('is true for an open position that is expected to pay', () => {
+    const ops = [buy('q')];
+    expect(hasDividends(ops, assets, open(ops))).toBe(true);
+  });
+
+  it('is true once a dividend was received, even from a closed position', () => {
+    const ops = [
+      buy('n'),
+      makeOp({ type: 'div', assetId: 'n', date: '2025-06-01', amount: '1' }),
+      makeOp({ type: 'sell', assetId: 'n', date: '2025-07-01', qty: '10', price: '10' }),
+    ];
+    const noIncome: InvestmentAsset = { id: 'n', currency: 'EUR', price: '10', dps: '0' };
+    expect(
+      hasDividends(ops, [noIncome], computeHoldings(ops, [noIncome], DEFAULT_FX_RATES, opts)),
+    ).toBe(true);
+  });
+
+  it('only counts the operations inside the scope it is given', () => {
+    const ops = [
+      makeOp({ type: 'div', assetId: 'n', date: '2025-06-01', amount: '1', portfolioId: 'p1' }),
+    ];
+    expect(hasDividends(ops, assets, [], { portfolioIds: ['p2'] })).toBe(false);
+    expect(hasDividends(ops, assets, [], { portfolioIds: ['p1'] })).toBe(true);
   });
 });

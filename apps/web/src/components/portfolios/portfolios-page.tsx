@@ -5,7 +5,8 @@ import { PortfoliosScreen } from '@webapp/components/portfolios/portfolios-scree
 import { Topbar } from '@webapp/components/topbar';
 import { todayInLisbon } from '@webapp/lib/lisbon-date';
 import { isPoolSegment } from '@webapp/lib/pool';
-import { parseGroup, parseTab } from '@webapp/lib/portfolios-view';
+import { parseCurrencyMode, parseGroup, parseTab } from '@webapp/lib/portfolios-view';
+import { getAccountsScreen } from '@webapp/server/accounts-screen';
 import { getHolders } from '@webapp/server/holders';
 import { getPoolPermissions } from '@webapp/server/pool';
 import {
@@ -13,6 +14,7 @@ import {
   getAssets,
   getPlans,
   getPortfolios,
+  linkedAccountRows,
   getPortfolioSummary,
   getPortfolioView,
 } from '@webapp/server/portfolios';
@@ -21,7 +23,7 @@ export interface PortfoliosPageProps {
   poolId: string;
   /** The portfolio of the URL; undefined for "Todos". */
   portfolioId?: string;
-  searchParams: { tab?: string | string[]; group?: string | string[] };
+  searchParams: { tab?: string | string[]; group?: string | string[]; moeda?: string | string[] };
 }
 
 /**
@@ -33,6 +35,7 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
     notFound();
   }
   const selected = portfolioId?.toLowerCase() ?? '';
+  const mode = parseCurrencyMode(searchParams.moeda);
   const [t, permissions, { portfolios }] = await Promise.all([
     getTranslations(),
     getPoolPermissions(poolId),
@@ -40,32 +43,46 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
   ]);
   if (selected && !portfolios.some((p) => p.id === selected)) notFound();
 
-  const [summary, data, { assets }, { accounts }, { plans }, { holders }, totals] =
+  const [summary, data, { assets }, { accounts }, { plans }, { holders }, totals, screen] =
     await Promise.all([
-      getPortfolioSummary(poolId, selected),
-      getPortfolioView(poolId, selected),
+      getPortfolioSummary(poolId, selected, mode),
+      getPortfolioView(poolId, selected, mode),
       getAssets(poolId),
       getAccounts(poolId),
       getPlans(poolId),
       getHolders(poolId),
-      // The value shown on each chip: the summary of every portfolio (and of all of them).
-      Promise.all(portfolios.map((p) => getPortfolioSummary(poolId, p.id))),
+      // The value on each chip, in the portfolio's own currency like the prototype.
+      Promise.all(portfolios.map((p) => getPortfolioSummary(poolId, p.id, 'portfolio'))),
+      getAccountsScreen(poolId),
     ]);
-  const allValue = selected ? (await getPortfolioSummary(poolId, '')).valueAll : summary.valueAll;
+  const allValue = (await getPortfolioSummary(poolId, '', 'base')).valueAll;
+
+  // A portfolio without dividends has no Dividendos tab; its URL shows the Resumo instead.
+  const requested = parseTab(searchParams.tab);
+  const tab = requested === 'dividends' && !data.hasDividends ? 'summary' : requested;
 
   const chips = [
-    { id: null, name: t('portfolios.all'), color: '', value: allValue },
+    {
+      id: null,
+      name: t('portfolios.all'),
+      color: '',
+      value: allValue,
+      currency: data.display.baseCurrency,
+    },
     ...portfolios.map((p, index) => ({
       id: p.id,
       name: p.name,
       color: p.color,
       value: totals[index]?.valueAll ?? '0',
+      currency: p.currency,
     })),
   ];
 
   return (
     <>
-      <Topbar title={t('nav.items.portfolios')} />
+      <Topbar
+        title={portfolios.find((p) => p.id === selected)?.name ?? t('nav.items.portfolios')}
+      />
       <PortfoliosScreen
         ctx={{
           poolId,
@@ -73,6 +90,8 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
           portfolios,
           summary,
           data,
+          currencyMode: mode,
+          linkedAccounts: linkedAccountRows(screen.accounts, selected || null, data.display),
           assets,
           assetsById: new Map(assets.map((asset) => [asset.id, asset])),
           accounts,
@@ -85,7 +104,7 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
           },
         }}
         chips={chips}
-        tab={parseTab(searchParams.tab)}
+        tab={tab}
         group={parseGroup(searchParams.group)}
         today={todayInLisbon()}
       />

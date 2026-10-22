@@ -6,6 +6,7 @@ import {
   Chip,
   EmptyState,
   formatMoney,
+  formatNumber,
   Segmented,
   Table,
   Td,
@@ -14,21 +15,37 @@ import {
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import { AssetCell } from '@webapp/components/portfolios/asset-badge';
 import { NativeMoney } from '@webapp/components/portfolios/money';
 import type { OpenDialog, TabContext } from '@webapp/components/portfolios/types';
 import type { HoldingView } from '@webapp/lib/portfolios-types';
 import {
+  daysBetween,
   fractionPct,
   groupByAccount,
   portfoliosPath,
+  STALE_PRICE_DAYS,
+  sumMoney,
   toneClass,
   type PositionsGroup,
 } from '@webapp/lib/portfolios-view';
 import { postJson } from '@webapp/lib/post-json';
 
-const COLUMNS = 10;
+const COLUMNS = 11;
+type SortKey =
+  | 'asset'
+  | 'qty'
+  | 'avg'
+  | 'price'
+  | 'value'
+  | 'day'
+  | 'gain'
+  | 'divs'
+  | 'total'
+  | 'yld'
+  | 'weight';
 
 /** Mockups 03, 04 and 08: positions merged per asset, or per account and sub-account. */
 export function PositionsTab({
@@ -43,9 +60,38 @@ export function PositionsTab({
   const t = useTranslations('portfolios.positions');
   const router = useRouter();
   const { data, poolId, portfolioId } = ctx;
+  const cur = data.display.currency;
+  const dividends = data.hasDividends;
 
   const source = group === 'asset' ? data.holdings : data.positions;
-  const rows = source.filter((h) => h.isOpen).sort((a, b) => Number(b.value) - Number(a.value));
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'value', dir: -1 });
+  const tickerOf = (h: HoldingView) => ctx.assetsById.get(h.assetId)?.ticker ?? '';
+  const rows = source
+    .filter((h) => h.isOpen)
+    .sort((a, b) => {
+      if (sort.key === 'asset') return tickerOf(a).localeCompare(tickerOf(b)) * sort.dir;
+      return (Number(a[sort.key]) - Number(b[sort.key])) * sort.dir;
+    });
+  /** A column header that sorts by its column (a second click flips the direction). */
+  const sortTh = (key: SortKey, label: string, numeric = true) => (
+    <Th numeric={numeric}>
+      <button
+        type="button"
+        className="inline-flex cursor-pointer items-center gap-1 hover:text-fg"
+        aria-sort={sort.key === key ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}
+        onClick={() => {
+          setSort((current) =>
+            current.key === key
+              ? { key, dir: current.dir === 1 ? -1 : 1 }
+              : { key, dir: key === 'asset' ? 1 : -1 },
+          );
+        }}
+      >
+        {label}
+        {sort.key === key && (sort.dir === 1 ? ' ↑' : ' ↓')}
+      </button>
+    </Th>
+  );
   const total = rows.reduce((sum, h) => sum + Math.round(Number(h.value) * 100), 0) / 100;
 
   const accountName = (id: string | null) =>
@@ -68,47 +114,98 @@ export function PositionsTab({
         }}
       >
         <Td>
-          <AssetCell ticker={asset?.ticker ?? ''} name={asset?.name} />
+          <AssetCell ticker={asset?.ticker ?? ''} name={asset?.name} type={asset?.type} />
           {group === 'account' && !!subAccountName(h) && (
             <small className="ml-[42px] block text-xs text-fg-3">{subAccountName(h)}</small>
           )}
         </Td>
         <Td numeric>{Number(h.qty).toLocaleString('pt-PT', { maximumFractionDigits: 4 })}</Td>
-        <Td numeric>{formatMoney(h.avg, h.currency)}</Td>
-        <Td numeric>{formatMoney(h.price, h.currency)}</Td>
+        <Td numeric>
+          {formatNumber(h.avg)} <small className="inline text-xs text-fg-3">{h.currency}</small>
+        </Td>
+        <Td numeric>
+          {formatNumber(h.price)} <small className="inline text-xs text-fg-3">{h.currency}</small>
+          {!!asset?.priceDate && daysBetween(asset.priceDate, data.asOf) > STALE_PRICE_DAYS && (
+            <small className="block text-xs text-warn">{t('stale')}</small>
+          )}
+        </Td>
         <Td numeric>
           <b>
-            <NativeMoney native={h.valueN} eur={h.value} currency={h.currency} />
+            <NativeMoney
+              native={h.valueN}
+              converted={h.value}
+              displayCurrency={cur}
+              currency={h.currency}
+            />
           </b>
         </Td>
         <Td numeric>
-          <NativeMoney native={h.gainN} eur={h.gain} currency={h.currency} signed />
+          <NativeMoney
+            native={h.dayN}
+            converted={h.day}
+            displayCurrency={cur}
+            currency={h.currency}
+            signed
+          />
+          <small className={`block text-xs ${toneClass(h.day)}`}>
+            {fractionPct(h.dayPct, true)}
+          </small>
+        </Td>
+        <Td numeric>
+          <NativeMoney
+            native={h.gainN}
+            converted={h.gain}
+            displayCurrency={cur}
+            currency={h.currency}
+            signed
+          />
           <small className={`block text-xs ${toneClass(h.gain)}`}>
             {fractionPct(h.gainPct, true)}
           </small>
         </Td>
+        {dividends && (
+          <Td numeric>
+            {Number(h.divsN) === 0 ? (
+              <span className="text-fg-3">{t('none')}</span>
+            ) : (
+              <NativeMoney
+                native={h.divsN}
+                converted={h.divs}
+                displayCurrency={cur}
+                currency={h.currency}
+              />
+            )}
+          </Td>
+        )}
         <Td numeric>
-          {Number(h.divsN) === 0 ? (
-            <span className="text-fg-3">{t('none')}</span>
-          ) : (
-            <NativeMoney native={h.divsN} eur={h.divs} currency={h.currency} />
-          )}
+          <NativeMoney
+            native={h.totalN}
+            converted={h.total}
+            displayCurrency={cur}
+            currency={h.currency}
+            signed
+          />
+          <small className={`block text-xs ${toneClass(h.total)}`}>
+            {fractionPct(
+              Number(h.cost) === 0 ? '0' : String(Number(h.total) / Number(h.cost)),
+              true,
+            )}
+          </small>
         </Td>
-        <Td numeric>
-          <NativeMoney native={h.totalN} eur={h.total} currency={h.currency} signed />
-        </Td>
-        <Td numeric>
-          {Number(h.income) === 0 ? (
-            <span className="text-fg-3">{t('none')}</span>
-          ) : (
-            <>
-              {fractionPct(h.yld)}
-              <small className="block text-xs text-fg-3">
-                {t('yoc', { value: fractionPct(h.yoc) })}
-              </small>
-            </>
-          )}
-        </Td>
+        {dividends && (
+          <Td numeric>
+            {Number(h.income) === 0 ? (
+              <span className="text-fg-3">{t('none')}</span>
+            ) : (
+              <>
+                {fractionPct(h.yld)}
+                <small className="block text-xs text-fg-3">
+                  {t('yoc', { value: fractionPct(h.yoc) })}
+                </small>
+              </>
+            )}
+          </Td>
+        )}
         <Td numeric>{fractionPct(h.weight)}</Td>
       </tr>
     );
@@ -122,7 +219,9 @@ export function PositionsTab({
             label={t('group')}
             value={group}
             onChange={(value) => {
-              router.push(portfoliosPath(poolId, portfolioId, 'positions', value));
+              router.push(
+                portfoliosPath(poolId, portfolioId, 'positions', value, ctx.currencyMode),
+              );
             }}
             options={[
               { value: 'asset', label: t('byAsset') },
@@ -132,7 +231,7 @@ export function PositionsTab({
           <span className="mr-auto text-sm text-fg-3">
             {t(group === 'asset' ? 'countByAsset' : 'countByAccount', {
               count: rows.length,
-              total: formatMoney(total),
+              total: formatMoney(total, cur),
             })}
           </span>
           {ctx.permissions.portfolios && (
@@ -158,21 +257,25 @@ export function PositionsTab({
           )}
         </div>
         {rows.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyText')} />
+          <EmptyState
+            title={t('emptyTitle')}
+            description={t(dividends ? 'emptyText' : 'emptyTextNoDividends')}
+          />
         ) : (
           <Table>
             <thead>
               <tr>
-                <Th>{t('asset')}</Th>
-                <Th numeric>{t('qty')}</Th>
-                <Th numeric>{t('avgPrice')}</Th>
-                <Th numeric>{t('price')}</Th>
-                <Th numeric>{t('value')}</Th>
-                <Th numeric>{t('capitalGain')}</Th>
-                <Th numeric>{t('dividends')}</Th>
-                <Th numeric>{t('totalReturn')}</Th>
-                <Th numeric>{t('yield')}</Th>
-                <Th numeric>{t('weight')}</Th>
+                {sortTh('asset', t('asset'), false)}
+                {sortTh('qty', t('qty'))}
+                {sortTh('avg', t('avgPrice'))}
+                {sortTh('price', t('price'))}
+                {sortTh('value', t('value'))}
+                {sortTh('day', t('day'))}
+                {sortTh('gain', t('capitalGain'))}
+                {dividends && sortTh('divs', t('dividends'))}
+                {sortTh('total', t('totalReturn'))}
+                {dividends && sortTh('yld', t('yield'))}
+                {sortTh('weight', t('weight'))}
               </tr>
             </thead>
             <tbody>
@@ -180,7 +283,10 @@ export function PositionsTab({
                 ? rows.map(row)
                 : groupByAccount(rows).flatMap((accountGroup) => [
                     <tr key={`head-${accountGroup.accountId ?? 'none'}`}>
-                      <Td colSpan={COLUMNS} className="bg-panel-2 text-sm font-semibold text-fg-2">
+                      <Td
+                        colSpan={dividends ? COLUMNS : COLUMNS - 2}
+                        className="bg-panel-2 text-sm font-semibold text-fg-2"
+                      >
                         {accountName(accountGroup.accountId)}
                       </Td>
                     </tr>,
@@ -242,6 +348,7 @@ function PlansCard({ ctx, open }: { ctx: TabContext; open: OpenDialog }) {
               <Th numeric>{t('amount')}</Th>
               <Th numeric>{t('day')}</Th>
               <Th>{t('thisMonth')}</Th>
+              <Th numeric>{t('invested')}</Th>
               <Th>
                 <span className="sr-only">{t('actions')}</span>
               </Th>
@@ -254,7 +361,7 @@ function PlansCard({ ctx, open }: { ctx: TabContext; open: OpenDialog }) {
               return (
                 <tr key={plan.id}>
                   <Td>
-                    <AssetCell ticker={asset?.ticker ?? ''} compact />
+                    <AssetCell ticker={asset?.ticker ?? ''} type={asset?.type} compact />
                   </Td>
                   <Td className="text-fg-2">
                     {ctx.portfolios.find((p) => p.id === plan.portfolioId)?.name ?? ''}
@@ -265,6 +372,18 @@ function PlansCard({ ctx, open }: { ctx: TabContext; open: OpenDialog }) {
                     <Chip tone={done ? 'pos' : 'default'}>
                       {t(!plan.active ? 'paused' : done ? 'registered' : 'scheduled')}
                     </Chip>
+                  </Td>
+                  <Td numeric>
+                    {formatMoney(
+                      sumMoney(
+                        ctx.data.ops
+                          .filter((op) => op.planId === plan.id && op.type === 'buy')
+                          .map((op) =>
+                            op.converted.startsWith('-') ? op.converted.slice(1) : op.converted,
+                          ),
+                      ),
+                      ctx.data.display.currency,
+                    )}
                   </Td>
                   <Td className="whitespace-nowrap text-right">
                     {ctx.permissions.ops && plan.active && !done && (

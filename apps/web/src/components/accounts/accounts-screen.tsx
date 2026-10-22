@@ -7,7 +7,6 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { HolderDialog, type HolderView } from '@webapp/components/holders/holder-dialog';
-import { HoldersCard } from '@webapp/components/holders/holders-card';
 import type {
   AccountsScreenData as AccountsScreenDto,
   PortfolioOption as PortfolioDto,
@@ -36,12 +35,11 @@ export interface AccountsScreenProps {
   portfolios: readonly PortfolioDto[];
   holders: readonly HolderView[];
   suggestedColor: string;
-  transferDays: number;
   /** Hiding is cosmetic: every service call checks `accounts.write` again. */
   canWrite: boolean;
 }
 
-/** "Contas e poupanças" (mockup 13): products, the accounts by type and the household's people. */
+/** "Contas e poupanças" (mockup 13): products and the accounts by type (people live in Definições). */
 export function AccountsScreen({
   poolId,
   screen,
@@ -49,7 +47,6 @@ export function AccountsScreen({
   portfolios,
   holders,
   suggestedColor,
-  transferDays,
   canWrite,
 }: AccountsScreenProps) {
   const t = useTranslations('accounts');
@@ -191,14 +188,6 @@ export function AccountsScreen({
             </section>
           );
         })}
-
-        <HoldersCard
-          poolId={poolId}
-          holders={holders}
-          suggestedColor={suggestedColor}
-          transferDays={transferDays}
-          canWrite={canWrite}
-        />
       </div>
 
       {dialog?.kind === 'account' && (!dialog.accountId || !!editing) && (

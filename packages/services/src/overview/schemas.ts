@@ -110,6 +110,8 @@ export const OverviewDto = z.object({
     /** Gross forecast per month. */
     values: z.array(Decimal),
     total: Decimal,
+    /** False when the pool has no dividend at all (received or expected): the card is not shown. */
+    hasDividends: z.boolean(),
   }),
 });
 export type OverviewDto = z.infer<typeof OverviewDto>;

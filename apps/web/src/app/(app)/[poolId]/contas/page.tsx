@@ -12,26 +12,22 @@ import {
 } from '@webapp/server/accounts-screen';
 import { getHolders } from '@webapp/server/holders';
 import { getPoolPermissions } from '@webapp/server/pool';
-import { getSettings } from '@webapp/server/settings';
 
 export const dynamic = 'force-dynamic';
 
-// "Contas e poupanças" (NES-51): every account with its balance, the savings products and the
-// household's people. Reading needs `pool.read`; the management buttons need `accounts.write`
+// "Contas e poupanças" (NES-51): every account with its balance, and the savings products. Reading needs `pool.read`; the management buttons need `accounts.write`
 // (the services check it again on every call).
 export default async function AccountsPage({ params }: { params: Promise<{ poolId: string }> }) {
   const { poolId } = await params;
   if (!isPoolSegment(poolId)) notFound();
-  const [t, permissions, screen, { products }, { portfolios }, { holders }, settings] =
-    await Promise.all([
-      getTranslations('nav.items'),
-      getPoolPermissions(poolId),
-      getAccountsScreen(poolId),
-      getSavingsProducts(poolId),
-      getPortfolioList(poolId),
-      getHolders(poolId),
-      getSettings(poolId),
-    ]);
+  const [t, permissions, screen, { products }, { portfolios }, { holders }] = await Promise.all([
+    getTranslations('nav.items'),
+    getPoolPermissions(poolId),
+    getAccountsScreen(poolId),
+    getSavingsProducts(poolId),
+    getPortfolioList(poolId),
+    getHolders(poolId),
+  ]);
 
   return (
     <>
@@ -43,7 +39,6 @@ export default async function AccountsPage({ params }: { params: Promise<{ poolI
         portfolios={portfolios}
         holders={holders}
         suggestedColor={nextHolderColor(holders.map((holder) => holder.color))}
-        transferDays={settings.transferWindowDays}
         canWrite={permissions.includes('accounts.write')}
       />
     </>

@@ -140,6 +140,9 @@ function termCard(
     gross: plain(gross),
     withheld: plain(gross.minus(net)),
     net: plain(net),
+    net12Months: scheduled
+      ? plain(interestLast12Months(accountInterest({ deposit }, today, defaultTax), today))
+      : null,
     accrued: plain(value.accrued),
     annualEstimate: plain(
       dec(row.capital)

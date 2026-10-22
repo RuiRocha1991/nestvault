@@ -55,6 +55,8 @@ export const TermDepositDto = z.object({
   gross: Amount,
   withheld: Amount,
   net: Amount,
+  /** Net interest paid in the last 12 months; null for a deposit that pays only at the end. */
+  net12Months: Amount.nullable(),
   /** Interest accrued since the last payment (scheduled deposits). */
   accrued: Amount,
   /** Expected net interest over a year (capital x rate x (1 - tax)). */

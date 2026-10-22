@@ -18,6 +18,7 @@ import {
 import {
   accountBalances,
   accountInterest,
+  addDays,
   interestTotal,
   portfolioSummary,
   toFxRates,
@@ -40,7 +41,9 @@ import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 import { toEngineTransaction } from '../transactions/engine';
 
+import { accountSeries, accountsFrom } from './account-series';
 import { invalid, parseId } from './checks';
+import { resolveDisplay } from './display-currency';
 import { toCashMove, toInvestmentOp } from './domain';
 import { buildPortfolioView, PortfolioViewDto, PERFORMANCE_MONTHS } from './portfolio-view';
 import {
@@ -87,6 +90,20 @@ export interface PortfoliosServiceDeps {
   run?: PoolRunner;
   trustedProxyHops?: number;
   now?: () => Date;
+}
+
+/** Each asset's second newest price in `rows` (oldest first), when it has two. */
+function previousPriceOf(
+  rows: readonly { assetId: string; date: string; price: string }[],
+): Map<string, string> {
+  const last = new Map<string, string[]>();
+  for (const row of rows) last.set(row.assetId, [...(last.get(row.assetId) ?? []), row.price]);
+  const previous = new Map<string, string>();
+  for (const [assetId, prices] of last) {
+    const before = prices.at(-2);
+    if (before !== undefined) previous.set(assetId, before);
+  }
+  return previous;
 }
 
 export function createPortfoliosService(deps: PortfoliosServiceDeps): PortfoliosService {
@@ -186,7 +203,7 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       { ops, assets, accounts, moves, rates },
       { asOf, today: asOf, ...(portfolioId ? { portfolioIds: [portfolioId] } : {}) },
     );
-    return { summary, rates };
+    return { summary, rates, resolved, baseCurrency: settings?.displayCurrency ?? 'EUR' };
   }
 
   return {
@@ -316,13 +333,26 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       can(ctx, 'pool.read');
       const asOf = parsed.data.asOf ?? today();
       const portfolioId = parsed.data.portfolioId?.toLowerCase();
-      const { summary, rates } = await run(ctx, async (tx) => {
-        if (portfolioId && !(await portfoliosRepo.find(tx, ctx, portfolioId))) {
-          throw new NotFoundError();
-        }
-        return loadSummary(tx, ctx, asOf, portfolioId);
+      return run(ctx, async (tx) => {
+        const portfolio = portfolioId ? await portfoliosRepo.find(tx, ctx, portfolioId) : null;
+        if (portfolioId && !portfolio) throw new NotFoundError();
+        const { summary, rates, resolved, baseCurrency } = await loadSummary(
+          tx,
+          ctx,
+          asOf,
+          portfolioId,
+        );
+        const { display } = resolveDisplay({
+          mode: parsed.data.currency,
+          portfolioCurrency: portfolio?.currency ?? null,
+          baseCurrency,
+          resolved,
+          involved: [],
+        });
+        return PortfolioSummaryDto.parse(
+          toSummaryDto(summary, asOf, portfolioId ?? null, rates, display.currency),
+        );
       });
-      return PortfolioSummaryDto.parse(toSummaryDto(summary, asOf, portfolioId ?? null, rates));
     },
 
     async view(headers, poolId, query = {}) {
@@ -334,14 +364,28 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       const asOf = parsed.data.asOf ?? today();
       const portfolioId = parsed.data.portfolioId?.toLowerCase() ?? null;
       return run(ctx, async (tx) => {
-        if (portfolioId && !(await portfoliosRepo.find(tx, ctx, portfolioId))) {
-          throw new NotFoundError();
-        }
-        const [opRows, assetRows, prices, resolved] = await Promise.all([
+        const portfolio = portfolioId ? await portfoliosRepo.find(tx, ctx, portfolioId) : null;
+        if (portfolioId && !portfolio) throw new NotFoundError();
+        const [
+          opRows,
+          assetRows,
+          prices,
+          resolved,
+          settings,
+          accountRows,
+          savings,
+          txRows,
+          moveRows,
+        ] = await Promise.all([
           investmentOpsRepo.list(tx, ctx),
           assetsRepo.list(tx, ctx),
           assetPricesRepo.latestAsOf(tx, ctx, asOf),
           loadFxRates(tx, ctx, asOf),
+          poolSettingsRepo.find(tx, ctx),
+          accountsRepo.list(tx, ctx),
+          loadSavingsLedger(tx, ctx),
+          transactionsRepo.listForEngine(tx, ctx),
+          portfolioCashMovesRepo.list(tx, ctx),
         ]);
         const latest = new Map(prices.map((price) => [price.assetId, price.price]));
         const assets = assetRows.map((row) => ({
@@ -356,23 +400,61 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
         }));
         const historicPrices = new Map<string, Map<string, string>>();
         // Only the months since the first operation are charted, so only those need prices.
+        const engineTransactions = txRows.map(toEngineTransaction);
+        const seriesBase = {
+          accounts: accountRows,
+          deposits: savings.deposits,
+          transactions: engineTransactions,
+          portfolioId,
+        };
+        const from = accountsFrom(seriesBase);
         const firstMonth = opRows.reduce(
           (first, row) => (row.date.slice(0, 7) < first ? row.date.slice(0, 7) : first),
-          asOf.slice(0, 7),
+          from && from.slice(0, 7) < asOf.slice(0, 7) ? from.slice(0, 7) : asOf.slice(0, 7),
         );
         for (const month of lastMonths(PERFORMANCE_MONTHS, asOf).filter((m) => m >= firstMonth)) {
           const end = month === asOf.slice(0, 7) ? asOf : monthEnd(month);
           const rows = end === asOf ? prices : await assetPricesRepo.latestAsOf(tx, ctx, end);
           historicPrices.set(month, new Map(rows.map((row) => [row.assetId, row.price])));
         }
+        const rates = toFxRates(resolved);
+        // The daily change compares each asset's newest price with the one before it. A fortnight
+        // of history is enough: a price older than that is stale and shows no daily change.
+        const recent = await assetPricesRepo.since(tx, ctx, addDays(asOf, -14));
+        const previousPrices = previousPriceOf(recent.filter((row) => row.date <= asOf));
+        const chartMonths = lastMonths(PERFORMANCE_MONTHS, asOf).filter((m) => m >= firstMonth);
+        const accountsSeries = accountSeries({
+          ...seriesBase,
+          interestEntries: savings.interestEntries,
+          ops: opRows.map(toInvestmentOp),
+          assets,
+          moves: moveRows.map(toCashMove),
+          rates,
+          defaultTax: settings?.depositTax ?? '28',
+          months: chartMonths,
+          asOf,
+        });
         return PortfolioViewDto.parse(
           buildPortfolioView({
             asOf,
             portfolioId,
             opRows,
             assets,
-            rates: toFxRates(resolved),
+            rates,
             historicPrices,
+            previousPrices,
+            accountSeries: accountsSeries,
+            accountsFrom: from,
+            resolved,
+            mode: parsed.data.currency,
+            portfolioCurrency: portfolio?.currency ?? null,
+            baseCurrency: settings?.displayCurrency ?? 'EUR',
+            // Accounts linked to the scope are shown with their balances in the display currency.
+            accountCurrencies: accountRows
+              .filter((row) =>
+                portfolioId ? row.portfolioId === portfolioId : row.portfolioId !== null,
+              )
+              .map((row) => row.currency),
           }),
         );
       });

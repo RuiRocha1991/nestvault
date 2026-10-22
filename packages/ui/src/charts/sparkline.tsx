@@ -1,7 +1,5 @@
 import { useId } from 'react';
 
-import { cn } from '../cn';
-
 import { smoothPath } from './geometry';
 import type { Point } from './geometry';
 
@@ -42,7 +40,7 @@ export function Sparkline({
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="none"
       aria-hidden="true"
-      className={cn('h-16 w-full', className)}
+      className={className ?? 'h-16 w-full'}
     >
       <defs>
         <linearGradient id={`${id}s`} x1="0" x2="1">

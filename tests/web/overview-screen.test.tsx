@@ -115,6 +115,7 @@ const DATA: OverviewScreenProps['data'] = {
     months: months.map((_, i) => `2026-${String(((i + 9) % 12) + 1).padStart(2, '0')}`),
     values: months.map((_, i) => (i % 3 === 0 ? '12.5' : '0')),
     total: '50',
+    hasDividends: true,
   },
 };
 
@@ -214,6 +215,15 @@ describe('overview screen', () => {
     });
     expect(none).not.toContain('do orçamento');
     expect(none).toContain('vs. mês anterior');
+  });
+
+  it('hides the dividends card for a pool without any dividend', () => {
+    const html = screen({
+      data: { ...DATA, dividends: { ...DATA.dividends, hasDividends: false } },
+    });
+    expect(html).not.toContain('Próximos dividendos');
+    expect(html).not.toContain('Previsão bruta para 12 meses:');
+    expect(html).toContain('Despesas por categoria');
   });
 
   it('explains an empty goals card and an empty month', () => {

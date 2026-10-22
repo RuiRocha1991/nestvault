@@ -188,7 +188,7 @@ describe('Donut', () => {
     expect(html).toContain('1\u00a0000,00\u00a0€');
     expect(html).toContain('75,0%');
     expect(html).toContain('25,0%');
-    expect(html).toContain('stroke-width="18"');
+    expect(html).toContain('stroke-width="16"');
   });
 
   it('handles an empty or all-zero distribution', () => {
@@ -250,13 +250,13 @@ describe('BarChart', () => {
     expect(html).toContain('fev: 8,00\u00a0€ (est.)');
   });
 
-  it('shows the empty message with no data or only zeros', () => {
+  it('shows the empty message with no months, and the empty tracks with only zeros', () => {
     expect(renderToStaticMarkup(<BarChart {...props} labels={[]} values={[]} />)).toContain(
       'Nothing',
     );
-    expect(renderToStaticMarkup(<BarChart {...props} labels={['a']} values={[0]} />)).toContain(
-      'Nothing',
-    );
+    const zeros = renderToStaticMarkup(<BarChart {...props} labels={['a']} values={[0]} />);
+    expect(zeros).not.toContain('Nothing');
+    expect(zeros).toContain('fill="var(--inset)"');
   });
 
   it('treats negative values as zero', () => {

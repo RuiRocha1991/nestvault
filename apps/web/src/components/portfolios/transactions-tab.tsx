@@ -5,6 +5,7 @@ import {
   Card,
   Chip,
   EmptyState,
+  Eyebrow,
   formatDate,
   formatMoney,
   Input,
@@ -16,7 +17,7 @@ import {
 } from '@nestvault/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 import { NoteIndicator } from '@webapp/components/notes/note-indicator';
 import { NoteSheet } from '@webapp/components/notes/note-sheet';
@@ -29,16 +30,23 @@ import type { OpView } from '@webapp/lib/portfolios-types';
 import {
   EMPTY_OP_FILTERS,
   filterOps,
+  negate,
   type OpFilters,
+  sumMoney,
+  toneClass,
+  withPlus,
   type OpTypeFilter,
 } from '@webapp/lib/portfolios-view';
 
 const PAGE = 100;
 const TYPES: readonly OpTypeFilter[] = ['all', 'buy', 'sell', 'dividend'];
+/** Without any dividend there is no "Dividendos" filter and no dividends figure. */
+const typesFor = (dividends: boolean) => TYPES.filter((type) => dividends || type !== 'dividend');
 
 /** Mockup 06: the operations of the scope with filters, plan chip, note indicator and actions. */
 export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDialog }) {
   const t = useTranslations('portfolios.transactions');
+  const cur = ctx.data.display.currency;
   const [filters, setFilters] = useState<OpFilters>(EMPTY_OP_FILTERS);
   const [shown, setShown] = useState(PAGE);
   // Notes saved from the side panel, so the indicator changes before the page data is refreshed.
@@ -51,8 +59,14 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
   const visible = ops.slice(0, shown);
   const accountName = (id: string | null) =>
     id === null ? '' : (ctx.accounts.find((a) => a.id === id)?.name ?? '');
+  const subAccountName = (id: string | null) =>
+    id === null
+      ? null
+      : (ctx.accounts.flatMap((a) => a.subAccounts).find((sub) => sub.id === id)?.name ?? null);
   const portfolioName = (id: string) => ctx.portfolios.find((p) => p.id === id)?.name ?? '';
   const brokerageAccounts = ctx.accounts.filter((a) => a.type === 'brokerage' || a.trackCash);
+
+  const sells = ops.filter((op) => op.type === 'sell');
 
   const set = (patch: Partial<OpFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));
@@ -68,7 +82,10 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
           onChange={(type) => {
             set({ type });
           }}
-          options={TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
+          options={typesFor(ctx.data.hasDividends).map((value) => ({
+            value,
+            label: t(`types.${value}`),
+          }))}
         />
         <Select
           aria-label={t('asset')}
@@ -142,6 +159,35 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
         )}
       </div>
 
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+        <Strip label={t('strip.bought')}>
+          <b className="text-xl">
+            {formatMoney(
+              sumMoney(ops.filter((op) => op.type === 'buy').map((op) => negate(op.converted))),
+              cur,
+            )}
+          </b>
+        </Strip>
+        <Strip label={t('strip.sold')} hint={t('strip.soldCount', { count: sells.length })}>
+          <b className="text-xl">{formatMoney(sumMoney(sells.map((op) => op.converted)), cur)}</b>
+        </Strip>
+        <Strip label={t('strip.realized')} hint={t('strip.realizedHint')}>
+          <b className={`text-xl ${toneClass(ctx.summary.realized)}`}>
+            {withPlus(formatMoney(ctx.summary.realized, cur), ctx.summary.realized)}
+          </b>
+        </Strip>
+        {ctx.data.hasDividends && (
+          <Strip label={t('strip.dividends')}>
+            <b className="text-xl">
+              {formatMoney(
+                sumMoney(ops.filter((op) => op.type === 'dividend').map((op) => op.converted)),
+                cur,
+              )}
+            </b>
+          </Strip>
+        )}
+      </div>
+
       {ops.length === 0 ? (
         <EmptyState title={t('emptyTitle')} description={t('emptyText')} />
       ) : (
@@ -155,6 +201,7 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
               <Th>{t('account')}</Th>
               <Th numeric>{t('qty')}</Th>
               <Th numeric>{t('price')}</Th>
+              <Th numeric>{t('fee')}</Th>
               <Th numeric>{t('amount')}</Th>
               <Th>
                 <span className="sr-only">{t('note')}</span>
@@ -172,6 +219,7 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
                 note={noteOf(op)}
                 ctx={ctx}
                 accountName={accountName(op.accountId)}
+                subAccountName={subAccountName(op.subAccountId)}
                 portfolioName={portfolioName(op.portfolioId)}
                 open={open}
                 onNote={() => {
@@ -195,7 +243,7 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <span className="text-sm text-fg-2">
-          {t('cash')} <b className="text-fg">{formatMoney(ctx.summary.cash)}</b>
+          {t('cash')} <b className="text-fg">{formatMoney(ctx.summary.cash, cur)}</b>
         </span>
         {!!ctx.portfolioId && ctx.permissions.ops && (
           <Button
@@ -239,6 +287,7 @@ function OpRow({
   note,
   ctx,
   accountName,
+  subAccountName,
   portfolioName,
   open,
   onNote,
@@ -247,6 +296,7 @@ function OpRow({
   note: string | null;
   ctx: TabContext;
   accountName: string;
+  subAccountName: string | null;
   portfolioName: string;
   open: OpenDialog;
   onNote: () => void;
@@ -256,13 +306,14 @@ function OpRow({
   const rowProps = useNoteRow(onNote);
   const asset = ctx.assetsById.get(op.assetId);
   const currency = asset?.currency ?? 'EUR';
+  const cur = ctx.data.display.currency;
   const tone = op.type === 'buy' ? 'accent' : op.type === 'sell' ? 'warn' : 'pos';
 
   return (
     <tr {...rowProps} className="hover:bg-panel-2 focus-visible:outline focus-visible:outline-2">
       <Td className="whitespace-nowrap">{formatDate(op.date)}</Td>
       <Td>
-        <AssetCell ticker={asset?.ticker ?? ''} compact />
+        <AssetCell ticker={asset?.ticker ?? ''} type={asset?.type} compact />
       </Td>
       <Td>
         <Chip tone={tone}>{t(`kinds.${op.type}`)}</Chip>
@@ -273,15 +324,25 @@ function OpRow({
         )}
       </Td>
       <Td className="text-fg-2">{portfolioName}</Td>
-      <Td className="text-fg-2">{accountName}</Td>
+      <Td className="text-fg-2">
+        {accountName}
+        {!!subAccountName && <small className="block text-xs text-fg-3">{subAccountName}</small>}
+      </Td>
       <Td numeric>
         {op.qty === null
-          ? ''
+          ? '—'
           : Number(op.qty).toLocaleString('pt-PT', { maximumFractionDigits: 4 })}
       </Td>
-      <Td numeric>{op.price === null ? '' : formatMoney(op.price, currency)}</Td>
+      <Td numeric>{op.price === null ? '—' : formatMoney(op.price, currency)}</Td>
+      <Td numeric>{op.fee === null ? '—' : formatMoney(op.fee, currency)}</Td>
       <Td numeric>
-        <NativeMoney native={op.native} eur={op.eur} currency={currency} signed />
+        <NativeMoney
+          native={op.native}
+          converted={op.converted}
+          displayCurrency={cur}
+          currency={currency}
+          signed
+        />
       </Td>
       <Td>
         <NoteIndicator note={note} label={tn('view')} onOpen={onNote} />
@@ -315,5 +376,16 @@ function OpRow({
         )}
       </Td>
     </tr>
+  );
+}
+
+/** One figure of the strip above the table: eyebrow, the value and an optional hint. */
+function Strip({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <Eyebrow>{label}</Eyebrow>
+      {children}
+      {!!hint && <span className="text-sm text-fg-3">{hint}</span>}
+    </div>
   );
 }

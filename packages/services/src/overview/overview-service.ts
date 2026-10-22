@@ -22,6 +22,7 @@ import {
   dec,
   dividendsForecast,
   dividendsReceived,
+  hasDividends,
   expensesByCategory,
   fx,
   interestLast12Months,
@@ -363,6 +364,7 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         months: forecastMonths,
         values: plain(forecast.map((month) => month.value)),
         total: toPlain(sum(forecast.map((month) => month.value))),
+        hasDividends: hasDividends(ops, assets, all.holdings),
       },
     });
   }

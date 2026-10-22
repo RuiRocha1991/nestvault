@@ -44,6 +44,12 @@ function currencySymbol(currency: string): string {
   return parts.find((part) => part.type === 'currency')?.value ?? currency;
 }
 
+/** `formatNumber('16.3')` → `16,30`: a decimal with grouped thousands and no currency (prices). */
+export function formatNumber(value: DecimalInput, digits = 2): string {
+  const { negative, int, frac } = roundDecimal(value, digits);
+  return `${negative ? '-' : ''}${groupThousands(int)}${digits > 0 ? `,${frac}` : ''}`;
+}
+
 export interface FormatMoneyOptions {
   /** Fraction digits, default 2 (0 for the big totals of the overview). */
   digits?: number;

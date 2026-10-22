@@ -15,17 +15,19 @@ export interface BarChartProps {
   currency?: string;
   /** Accessible name of the chart. */
   label: string;
-  /** Shown instead of the chart when there is nothing to plot. */
+  /** Shown instead of the chart when there are no months at all. */
   empty: ReactNode;
   /** Suffix of the tooltip of an estimated bar (e.g. "(previsto)"). */
   forecastNote?: string;
   /** Header of the label column in the hidden data table. */
   periodHeader: string;
   height?: number;
+  /** Width of the drawing in viewBox units (the bars scale with it); default 440. */
+  width?: number;
   className?: string;
 }
 
-const WIDTH = 440;
+const DEFAULT_WIDTH = 440;
 const TOP = 34;
 const BOTTOM = 26;
 const BUBBLE_W = 76;
@@ -45,13 +47,15 @@ export function BarChart({
   forecastNote = '',
   periodHeader,
   height = 200,
+  width: WIDTH = DEFAULT_WIDTH,
   className,
 }: BarChartProps) {
   const id = useId();
   const real = labels.map((_, i) => positive(values[i]));
   const estimated = labels.map((_, i) => (real[i] ? 0 : positive(forecast?.[i])));
-  const max = Math.max(...real, ...estimated);
-  if (!labels.length || max <= 0) {
+  // Nothing to plot still draws the empty tracks, like the prototype; only no months shows the text.
+  const max = Math.max(...real, ...estimated, 1);
+  if (!labels.length) {
     return <p className={cn('py-8 text-center text-sm text-fg-3', className)}>{empty}</p>;
   }
 

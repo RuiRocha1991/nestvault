@@ -110,7 +110,7 @@ export function OpDialog({
         }}
         options={KINDS.map((value) => ({ value, label: t(`types.${value}`) }))}
       />
-      <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+      <div className="grid grid-cols-2 gap-4 one:grid-cols-1">
         <Field id={ids.portfolio} label={t('portfolio')} error={error('portfolioId')}>
           <Select
             id={ids.portfolio}
