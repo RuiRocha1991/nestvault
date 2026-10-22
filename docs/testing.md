@@ -42,6 +42,10 @@ isolation (no outbound network, non-root, read-only filesystem, the hardening in
 - `tests/db/harness.ts`: `openTestDatabase()`, `withPool`, `asMigrator`, `truncateAll`,
   `createTwoPools()`, `pgErrorCode()`. Truncate between tests, not between files.
 - If Postgres is down the run stops with `Start them with: pnpm db:up` (it never skips silently).
+- Statement imports: `tests/support/imports.ts` has `FakeParser`, a stand-in for the parser service
+  (set `candidates`, `response`, `proposal`; read `calls`), wired into `api-world` as `world.imports`
+  with a temporary encrypted file store (`world.importsKit`). `tests/crypto/` covers the AES-GCM
+  package; the real parsers are covered by pytest.
 - `tests/web/headers.integration.test.ts` builds the web app and serves it on port 4010 to read
   the real response headers.
 
@@ -76,7 +80,10 @@ Cases generated for a route under `/pools/:poolId` (scope `pool`):
 
 Routes of the signed-in user (scope `user`: `/me`, `/me/sessions`, `POST /pools`, accepting an
 invite) get 1, 4 (an id of another user), 5, 6, 7 and 8. Routes with no pool data (`/auth/*`,
-`/health`) are `exempt` and must say why.
+`/health`) are `exempt` and must say why. So is `POST /pools/:poolId/imports`: it takes
+`multipart/form-data`, which the generated cases (JSON bodies) cannot send, so
+`tests/web/imports-route.integration.test.ts` runs the same checks (401, 404, 403, 400 for extra
+fields, Origin, 413, 415 and the strict success body) against the real handler.
 
 Adding a route (the `protected-route` skill does this step):
 

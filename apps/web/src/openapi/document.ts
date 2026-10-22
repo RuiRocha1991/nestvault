@@ -2,6 +2,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
 import './auth';
 import './health';
+import './imports';
 import './accounts';
 import './transactions';
 import './expenses';
@@ -58,6 +59,10 @@ export function buildOpenApiDocument() {
       { name: 'Products', description: 'Savings products (rate, period, term, tax)' },
       { name: 'Deposits', description: 'Term deposits with their schedule and maturity' },
       { name: 'Interest', description: 'Interest received by savings accounts, entered by hand' },
+      {
+        name: 'Imports',
+        description: 'Bank and broker statements: upload, preview and idempotent commit',
+      },
       { name: 'Notes', description: 'Notes on movements and operations, and month notes' },
       { name: 'Rules', description: 'Keyword rules that categorize movements' },
       { name: 'Holders', description: 'The people of the household who own accounts' },

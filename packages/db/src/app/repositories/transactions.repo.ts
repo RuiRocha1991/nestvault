@@ -19,6 +19,8 @@ export interface TransactionValues {
   transferLocked: boolean;
   manualCategory: boolean;
   hash: string;
+  /** The statement import that wrote the line, when one did. */
+  importBatchId?: string | null;
 }
 
 /** A movement of a prototype import (NES-47): the id is chosen by the importer, the pair is set later. */
@@ -299,6 +301,7 @@ export const transactionsRepo = {
         transferLocked: data.transferLocked,
         manualCategory: data.manualCategory,
         hash: data.hash,
+        importBatchId: data.importBatchId ?? null,
       })
       .onConflictDoNothing({
         target: [transactions.poolId, transactions.accountId, transactions.hash],

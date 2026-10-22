@@ -38,13 +38,11 @@ const json = (body: unknown, status = 200) =>
   });
 
 function client(answer: () => Response | Promise<Response>) {
-  const fetchMock = vi.fn((_url: string | URL | Request, _init?: RequestInit) =>
-    Promise.resolve(answer()),
-  );
+  const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(answer()));
   const parser = createParserClient({
     url: 'http://127.0.0.1:8100/',
     secret: SECRET,
-    fetch: fetchMock as unknown as typeof fetch,
+    fetch: fetchMock,
   });
   return { parser, fetchMock };
 }
@@ -123,7 +121,7 @@ describe('parser client', () => {
       );
       const failure = await parser.parse(Buffer.from('x'), 'p').catch((e: unknown) => e);
       expect(failure, `${status} ${code}`).toBeInstanceOf(error);
-      expect(String((failure as Error).message)).not.toContain('PT50');
+      expect((failure as Error).message).not.toContain('PT50');
     }
   });
 
@@ -131,7 +129,7 @@ describe('parser client', () => {
     const down = createParserClient({
       url: 'http://127.0.0.1:8100',
       secret: SECRET,
-      fetch: (() => Promise.reject(new TypeError('fetch failed'))) as unknown as typeof fetch,
+      fetch: () => Promise.reject(new TypeError('fetch failed')),
     });
     await expect(down.detect(Buffer.from('x'))).rejects.toBeInstanceOf(UpstreamError);
 
@@ -141,9 +139,9 @@ describe('parser client', () => {
       timeoutMs: 20,
       fetch: ((_url: string, init: RequestInit) =>
         new Promise((_resolve, reject) => {
-          init.signal?.addEventListener('abort', () =>
-            reject(new DOMException('aborted', 'TimeoutError')),
-          );
+          init.signal?.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'TimeoutError'));
+          });
         })) as unknown as typeof fetch,
     });
     await expect(slow.detect(Buffer.from('x'))).rejects.toBeInstanceOf(UpstreamError);

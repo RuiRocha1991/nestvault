@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
+import { describe, expect, it } from 'vitest';
+
 import {
   CryptoError,
   decrypt,
@@ -9,7 +11,6 @@ import {
   parseKeyRing,
   rotate,
 } from '@nestvault/crypto';
-import { describe, expect, it } from 'vitest';
 
 const key = () => randomBytes(32).toString('base64');
 

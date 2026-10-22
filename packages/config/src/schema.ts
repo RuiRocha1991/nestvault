@@ -111,6 +111,11 @@ const runtimeShape = {
   // Internal statement parser (services/parser): base URL and the shared secret sent with every call.
   PARSER_URL: serviceUrl,
   PARSER_SECRET: secret(32),
+  // Where uploaded statements are kept, encrypted (relative paths are from the repository root).
+  IMPORT_STORAGE_DIR: concrete(z.string().min(1).max(300)).refine(
+    (value) => !value.includes('\0'),
+    'must be a directory path',
+  ),
   SMTP_HOST: concrete(z.string().min(1)),
   SMTP_PORT: port,
   SMTP_USER: optionalText,

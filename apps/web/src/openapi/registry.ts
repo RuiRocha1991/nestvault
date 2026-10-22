@@ -41,8 +41,11 @@ const ERROR_DESCRIPTIONS = {
   404: 'Not found (also returned to non-members of a pool)',
   409: 'Conflict with the current state',
   413: 'Request body too large',
+  415: 'Unsupported file type (decided from the content, not the name)',
+  422: 'The content could not be processed (no format matches the file)',
   429: 'Too many requests (see Retry-After)',
   500: 'Unexpected error',
+  502: 'The parser service this request depends on is not available',
 } as const;
 
 type ErrorStatus = keyof typeof ERROR_DESCRIPTIONS;

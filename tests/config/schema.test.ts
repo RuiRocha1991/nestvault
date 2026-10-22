@@ -94,7 +94,9 @@ describe('loadEnv', () => {
     it('accepts a list of id:base64 keys for rotation, and still one plain key', () => {
       const first = Buffer.alloc(32, 1).toString('base64');
       const second = Buffer.alloc(32, 2).toString('base64');
-      expect(loadEnv({ ...VALID_ENV, APP_ENCRYPTION_KEY: `new:${first},old:${second}` })).toBeTruthy();
+      expect(
+        loadEnv({ ...VALID_ENV, APP_ENCRYPTION_KEY: `new:${first},old:${second}` }),
+      ).toBeTruthy();
       expect(loadEnv({ ...VALID_ENV, APP_ENCRYPTION_KEY: first })).toBeTruthy();
       expect(messageFor({ ...VALID_ENV, APP_ENCRYPTION_KEY: `a:${first},a:${second}` })).toContain(
         'APP_ENCRYPTION_KEY',

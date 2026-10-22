@@ -12,3 +12,21 @@ export {
   type ParserClient,
   type ParserClientOptions,
 } from './parser-client';
+export {
+  createImportsService,
+  type CommittedImport,
+  type ImportsService,
+  type ImportsServiceDeps,
+  type UploadInput,
+} from './imports-service';
+export {
+  CommitImportInput,
+  CommitImportResultDto,
+  GetImportQuery,
+  ImportChooseParserDto,
+  ImportNeedsMappingDto,
+  ImportPreviewDto,
+  ImportStartDto,
+  PREVIEW_ROWS_MAX,
+  UploadFields,
+} from './schemas';
