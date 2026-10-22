@@ -31,8 +31,10 @@ export const parserResponseSchema = z
               'deposit',
               'withdrawal',
               'fee',
+              'interest',
             ]),
             symbol: z.union([z.string().max(500), z.null()]).default(null),
+            name: z.union([z.string().max(500), z.null()]).default(null),
             quantity: z
               .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
               .default(null),
@@ -59,9 +61,23 @@ export const parserResponseSchema = z
           .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
           .default(null),
         reconciled: z.union([z.boolean(), z.null()]).default(null),
+        account_hint: z.union([z.string().max(500), z.null()]).default(null),
       })
       .strict(),
     warnings: z.array(z.string().max(500)),
+    prices: z
+      .array(
+        z
+          .object({
+            symbol: z.string().max(500),
+            date: z.string().regex(new RegExp('^\\d{4}-\\d{2}-\\d{2}$')),
+            price: z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40),
+            currency: z.string().regex(new RegExp('^[A-Z]{3}$')),
+          })
+          .strict()
+          .describe('A quote the file states (for example the fund price on the report date).'),
+      )
+      .optional(),
   })
   .strict();
 export type ParserResponseSchema = z.infer<typeof parserResponseSchema>;
