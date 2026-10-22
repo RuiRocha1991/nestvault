@@ -5,7 +5,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 // Unit tests: one Vitest project per folder under tests/, named after the package it covers.
 // They need nothing running. Files named `*.integration.test.ts` belong to the `integration`
 // project instead: they need the Docker Postgres (tests/db) or a production build (headers).
-const unitProjects = ['web', 'worker', 'domain', 'services', 'db', 'ui', 'config', 'lint'];
+const unitProjects = ['web', 'worker', 'domain', 'services', 'db', 'ui', 'config', 'lint', 'crypto'];
 
 // `server-only` throws outside a React Server build, so tests replace it with an empty module.
 const serverOnlyStub = fileURLToPath(new URL('./tests/stubs/server-only.ts', import.meta.url));

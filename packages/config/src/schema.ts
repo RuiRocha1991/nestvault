@@ -1,5 +1,6 @@
 // Pure environment parsing: no `server-only`, no `process.env`, so it can be unit tested.
 // `index.ts` feeds it `process.env` once at boot.
+import { parseKeyRing } from '@nestvault/crypto';
 import { z, type ZodError } from 'zod';
 
 /** Values copied from `.env.example` without running `pnpm env:init`. */
@@ -39,11 +40,18 @@ const postgresUrl = concrete(z.string()).refine((value) => {
 
 const secret = (minLength: number) => concrete(z.string().min(minLength));
 
-/** AES-256 key: base64 of exactly 32 bytes (what `pnpm gen:secret` prints). */
+/**
+ * AES-256 key: base64 of exactly 32 bytes (what `pnpm gen:secret` prints), or, to rotate, a comma
+ * separated list of `id:base64` where the first one is the key new data is encrypted with.
+ */
 const encryptionKey = concrete(z.string()).refine((value) => {
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return false;
-  return Buffer.from(value, 'base64').length === 32;
-}, 'must be base64 for exactly 32 bytes; generate one with pnpm gen:secret');
+  try {
+    parseKeyRing(value);
+    return true;
+  } catch {
+    return false;
+  }
+}, 'must be base64 for exactly 32 bytes (or a list of id:base64 keys); generate one with pnpm gen:secret');
 
 const appUrl = concrete(z.string())
   .refine((value) => {
