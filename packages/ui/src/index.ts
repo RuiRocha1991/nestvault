@@ -1,5 +1,5 @@
 export { cn } from './cn';
-export { formatDate, formatMoney, formatPct } from './format';
+export { formatDate, formatMoney, formatNumber, formatPct } from './format';
 export type { DecimalInput, FormatMoneyOptions, FormatPctOptions } from './format';
 export { Button } from './components/button';
 export type { ButtonProps } from './components/button';

@@ -45,6 +45,8 @@ async function openAccounts(page: Page, person: MembersPerson) {
 test('an admin adds a checking account and sees its balance (modal 18)', async ({ page }) => {
   await openAccounts(page, world.admin);
   await expect(page.getByRole('heading', { name: messages.nav.items.accounts })).toBeVisible();
+  // People are managed in Definições, not on this page (NES-143).
+  await expect(page.getByText(messages.holders.title)).toHaveCount(0);
 
   await page.getByRole('button', { name: a.add }).click();
   const add = dialog(page, a.dialog.newTitle);

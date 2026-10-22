@@ -527,6 +527,240 @@ describe('portfolio summary (XTB account 50611139 fixture)', () => {
   });
 });
 
+describe('portfolio figures in the portfolio or the base currency (NES-143)', () => {
+  // The XTB fixture again: a USD portfolio worth 1361.87 US$ (positions 1350.62 + cash 11.25).
+  async function xtbUsd() {
+    const p = await portfolio('owner', { name: 'XTB', currency: 'USD' });
+    const x = await asset('owner', { ticker: 'ETFUSD', currency: 'USD' });
+    await world.assets.setPrice(await s.as('owner'), s.poolA, x.id, {
+      date: '2026-01-02',
+      price: '135.062',
+    });
+    const acc = await account('brokerage', 'XTB', { currency: 'USD', opening: '1146.95' });
+    const base = { portfolioId: p.id, assetId: x.id, accountId: acc.id };
+    await createOp('owner', { ...base, type: 'buy', date: '2025-01-10', qty: '10', price: '120' });
+    for (const [date, amount, gross, tax] of [
+      ['2025-06-10', '34', '40', '6'],
+      ['2025-12-10', '26.06', '30.75', '4.69'],
+      ['2026-02-10', '4.24', '0', '-4.24'],
+    ] as const) {
+      await createOp('owner', { ...base, type: 'dividend', date, amount, gross, tax });
+    }
+    return { p, x };
+  }
+  const asOf = '2026-09-01';
+  const view = async (query: object, as: Persona = 'viewer') =>
+    world.portfolios.view(await s.as(as), s.poolA, { asOf, ...query });
+  const summary = async (query: object, as: Persona = 'viewer') =>
+    world.portfolios.summary(await s.as(as), s.poolA, { asOf, ...query });
+
+  it('shows a USD portfolio in US$ by default and in the base currency on request', async () => {
+    const { p, x } = await xtbUsd();
+
+    const own = await summary({ portfolioId: p.id });
+    expect(own).toMatchObject({
+      currency: 'USD',
+      value: '1350.62',
+      valueAll: '1361.87',
+      divGross: '70.75',
+      profit: '214.92',
+    });
+    const ownView = await view({ portfolioId: p.id });
+    expect(ownView.display).toMatchObject({
+      mode: 'portfolio',
+      currency: 'USD',
+      baseCurrency: 'EUR',
+      portfolioCurrency: 'USD',
+      fixed: false,
+    });
+    expect(ownView.display.rates).toEqual([
+      expect.objectContaining({
+        currency: 'USD',
+        rate: '0.92',
+        source: 'seed',
+        date: '2026-01-01',
+      }),
+    ]);
+    const holding = ownView.holdings.find((h) => h.assetId === x.id);
+    expect(holding).toMatchObject({ value: '1350.62', valueN: '1350.62', cost: '1200' });
+    expect(ownView.performance.value.at(-1)).toBe('1350.62');
+
+    const base = await summary({ portfolioId: p.id, currency: 'base' });
+    expect(base).toMatchObject({
+      currency: 'EUR',
+      value: '1242.5704',
+      valueAll: '1252.9204',
+      cost: '1104',
+      cashEur: base.cash,
+    });
+    const baseView = await view({ portfolioId: p.id, currency: 'base' });
+    expect(baseView.display).toMatchObject({ mode: 'base', currency: 'EUR', fixed: false });
+    expect(baseView.holdings.find((h) => h.assetId === x.id)).toMatchObject({
+      value: '1242.5704',
+      valueN: '1350.62',
+      cost: '1104',
+    });
+    expect(baseView.performance.value.at(-1)).toBe('1242.5704');
+    // The same dividend, in US$ and in EUR.
+    const june = (v: typeof ownView) => v.ops.find((op) => op.date === '2025-06-10');
+    expect(june(ownView)?.converted).toBe('34');
+    expect(june(baseView)?.converted).toBe('31.28');
+  });
+
+  it('keeps all portfolios in the base currency, and follows the pool’s base currency', async () => {
+    await xtbUsd();
+    await world.portfolios.create(await s.as('owner'), s.poolA, {
+      name: 'Fundo',
+      color: '#445566',
+      currency: 'EUR',
+    });
+    // "Todos" mixes currencies: the choice cannot change it.
+    for (const currency of [undefined, 'portfolio', 'base'] as const) {
+      const all = await view(currency ? { currency } : {});
+      expect(all.display).toMatchObject({ mode: 'base', currency: 'EUR', fixed: true });
+      expect(all.display.portfolioCurrency).toBeNull();
+      expect((await summary(currency ? { currency } : {})).valueAll).toBe('1252.9204');
+    }
+
+    // Base currency USD: "Todos" is in US$ and the EUR portfolio follows the base choice.
+    await world.settings.update(await s.as('owner'), s.poolA, { displayCurrency: 'USD' });
+    const allUsd = await summary({});
+    expect(allUsd).toMatchObject({ currency: 'USD', valueAll: '1361.87' });
+    expect((await view({})).display).toMatchObject({ currency: 'USD', baseCurrency: 'USD' });
+  });
+
+  it('validates the choice and is limited to the pool', async () => {
+    const { p } = await xtbUsd();
+    await expect(summary({ currency: 'usd' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(view({ currency: "base' OR 1=1 --" })).rejects.toBeInstanceOf(ValidationError);
+    await expect(view({ portfolioId: p.id }, 'outsider')).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe('dividends and linked accounts in the portfolio view (NES-143)', () => {
+  const asOf = '2026-09-01';
+  const view = async (query: object) =>
+    world.portfolios.view(await s.as('viewer'), s.poolA, { asOf, ...query });
+
+  it('has no dividends for an accounts-only portfolio and charts the accounts balance', async () => {
+    const works = await portfolio('owner', { name: 'Obras' });
+    await account('savings', 'Reserva Obras', {
+      opening: '600',
+      openingDate: '2026-01-02',
+      portfolioId: works.id,
+    });
+    const result = await view({ portfolioId: works.id });
+    expect(result.hasDividends).toBe(false);
+    expect(result.holdings).toEqual([]);
+    // No positions, yet a history: the linked account's balance from its opening date.
+    expect(result.performance.months[0]).toBe('2026-01');
+    expect(result.performance.months.at(-1)).toBe('2026-09');
+    expect(result.performance.value.every((value) => value === '600')).toBe(true);
+    expect(result.performance.invested.at(-1)).toBe('600');
+    expect(result.allocation.type).toEqual([]);
+  });
+
+  it('reports the daily gain per position and for the portfolio from the last two prices', async () => {
+    const p = await portfolio('owner', { name: 'Carteira' });
+    const a = await asset('owner', { ticker: 'DIA', currency: 'EUR' });
+    const fresh = await asset('owner', { ticker: 'NOVO', currency: 'EUR' });
+    const as = await s.as('owner');
+    for (const [date, price] of [
+      ['2026-08-28', '9'],
+      ['2026-08-31', '10'],
+      ['2026-09-01', '11'],
+    ] as const) {
+      await world.assets.setPrice(as, s.poolA, a.id, { date, price });
+    }
+    // One price only: no daily change to report.
+    await world.assets.setPrice(as, s.poolA, fresh.id, { date: '2026-09-01', price: '5' });
+    for (const asset of [a, fresh]) {
+      await createOp('owner', {
+        portfolioId: p.id,
+        assetId: asset.id,
+        type: 'buy',
+        date: '2026-08-01',
+        qty: '10',
+        price: '8',
+      });
+    }
+    const result = await view({ portfolioId: p.id });
+    expect(result.holdings.find((h) => h.assetId === a.id)).toMatchObject({
+      dayN: '10',
+      day: '10',
+      dayPct: '0.1',
+    });
+    expect(result.holdings.find((h) => h.assetId === fresh.id)).toMatchObject({
+      dayN: '0',
+      dayPct: '0',
+    });
+    // 10 shares gained 1 €; yesterday the portfolio was worth 100 + 50.
+    expect(result.dayGain).toBe('10');
+    expect(Number(result.dayGainPct)).toBeCloseTo(10 / 150, 6);
+  });
+
+  it('has dividends once a dividend is received or a position is expected to pay', async () => {
+    const p = await portfolio('owner', { name: 'Carteira' });
+    const plain = await asset('owner', { ticker: 'SEMDIV', currency: 'EUR' });
+    await world.assets.setPrice(await s.as('owner'), s.poolA, plain.id, {
+      date: '2026-01-02',
+      price: '10',
+    });
+    await createOp('owner', {
+      portfolioId: p.id,
+      assetId: plain.id,
+      type: 'buy',
+      date: '2026-01-10',
+      qty: '5',
+      price: '10',
+    });
+    expect((await view({ portfolioId: p.id })).hasDividends).toBe(false);
+    expect((await view({})).hasDividends).toBe(false);
+
+    await createOp('owner', {
+      portfolioId: p.id,
+      assetId: plain.id,
+      type: 'dividend',
+      date: '2026-03-10',
+      amount: '1.5',
+      gross: '2',
+      tax: '0.5',
+    });
+    expect((await view({ portfolioId: p.id })).hasDividends).toBe(true);
+    // The other portfolio of the pool still has none; "all" has.
+    const other = await portfolio('owner', { name: 'Outra' });
+    expect((await view({ portfolioId: other.id })).hasDividends).toBe(false);
+    expect((await view({})).hasDividends).toBe(true);
+
+    const payer = await asset('owner', {
+      ticker: 'PAGA',
+      currency: 'EUR',
+      dps: '1',
+      divMonths: [3, 9],
+    });
+    await world.assets.setPrice(await s.as('owner'), s.poolA, payer.id, {
+      date: '2026-01-02',
+      price: '20',
+    });
+    await createOp('owner', {
+      portfolioId: other.id,
+      assetId: payer.id,
+      type: 'buy',
+      date: '2026-01-10',
+      qty: '10',
+      price: '20',
+    });
+    expect((await view({ portfolioId: other.id })).hasDividends).toBe(true);
+  });
+
+  it('is limited to the pool: a stranger gets 404', async () => {
+    const p = await portfolio('owner', { name: 'Privada' });
+    await expect(
+      world.portfolios.view(await s.as('outsider'), s.poolA, { portfolioId: p.id }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
 describe('plans service', () => {
   async function planSetup(extra: object = {}) {
     const { p, x } = await setup();

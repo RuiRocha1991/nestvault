@@ -10,7 +10,7 @@ import type { PoolSummary } from '@webapp/lib/pool';
 import type { Theme } from '@webapp/lib/theme';
 
 import { Brand } from './brand';
-import { NAV_GROUPS } from './nav';
+import { NAV_GROUPS, type NavItem } from './nav';
 import { PoolSwitcher } from './pool-switcher';
 import { SIDEBAR_ID, useShell } from './shell';
 import { SignOutButton } from './sign-out-button';
@@ -44,10 +44,12 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
   const { drawerOpen } = useShell();
   const base = `/${pool.id}`;
 
-  const isActive = (path: string) => {
-    const href = `${base}${path}`;
+  const isActive = (item: NavItem) => {
+    const href = `${base}${item.path}`;
     // The overview answers at the pool root and at `/visao-geral`.
-    if (path === '') return pathname === href || pathname === `${href}/visao-geral`;
+    if (item.path === '') return pathname === href || pathname === `${href}/visao-geral`;
+    // "Portfolios" is "Todos": a portfolio of its own highlights its child item instead.
+    if (item.key === 'portfolios') return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -80,7 +82,7 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
               <div key={item.key} className="flex flex-col gap-0.5">
                 <Link
                   href={`${base}${item.path}`}
-                  aria-current={isActive(item.path) ? 'page' : undefined}
+                  aria-current={isActive(item) ? 'page' : undefined}
                   className={linkStyles}
                 >
                   <item.icon aria-hidden className="size-[18px] shrink-0" />
@@ -89,11 +91,12 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
                 {item.key === 'portfolios' &&
                   portfolios.map((portfolio) => {
                     const href = `${base}/portfolios/${portfolio.id}`;
+                    const here = pathname.toLowerCase() === href.toLowerCase();
                     return (
                       <Link
                         key={portfolio.id}
                         href={href}
-                        aria-current={pathname === href ? 'page' : undefined}
+                        aria-current={here ? 'page' : undefined}
                         className={cn(linkStyles, 'py-1.5 pl-[42px] text-sm')}
                       >
                         <i

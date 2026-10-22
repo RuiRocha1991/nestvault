@@ -3519,7 +3519,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/portfolios/summary?asOf=2026-09-01",
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/portfolios/summary?asOf=2026-09-01&currency=base",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3535,10 +3535,15 @@
                 {
                   "key": "asOf",
                   "value": "2026-09-01"
+                },
+                {
+                  "key": "currency",
+                  "value": "base",
+                  "description": "portfolio (default, needs portfolioId) or base: the currency of the converted totals"
                 }
               ]
             },
-            "description": "Domain summary of all portfolios or one (portfolioId), as of asOf."
+            "description": "Domain summary of all portfolios or one (portfolioId), as of asOf. currency=base converts the totals to the pool base currency with the pool FX rates."
           },
           "response": [],
           "event": [

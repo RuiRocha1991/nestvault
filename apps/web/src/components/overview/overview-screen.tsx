@@ -86,16 +86,18 @@ function KpiCard({
   to: string;
 }) {
   return (
-    <Card className="relative col-span-3 min-h-[118px] gap-0 overflow-hidden kpi2:col-span-6 one:col-span-12">
+    <Card className="col-span-3 min-h-[118px] gap-0 overflow-hidden kpi2:col-span-6 one:col-span-12">
       <h2 className="text-base font-semibold">{title}</h2>
-      <div className="mt-0.5 whitespace-nowrap text-xl font-bold tracking-[-0.01em]">{value}</div>
-      <div className="relative z-10 mb-4 mt-1">{detail}</div>
-      <Sparkline
-        values={spark.map(Number)}
-        from={from}
-        to={to}
-        className="pointer-events-none absolute bottom-0 right-0 h-16 w-1/2"
-      />
+      <div className="relative min-h-14">
+        <div className="mt-0.5 whitespace-nowrap text-xl font-bold tracking-[-0.01em]">{value}</div>
+        <Sparkline
+          values={spark.map(Number)}
+          from={from}
+          to={to}
+          className="pointer-events-none absolute -right-5 top-0 h-14 w-1/2"
+        />
+      </div>
+      <div className="mb-4 mt-1">{detail}</div>
     </Card>
   );
 }
@@ -384,31 +386,33 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
           )}
         </Card>
 
-        <Card className="col-span-4 kpi2:col-span-12">
-          <CardHeader
-            title={t('dividends.title')}
-            headingLevel={3}
-            actions={
-              <Link href={`/${poolId}/portfolios`} className={linkButton}>
-                {t('dividends.calendar')}
-              </Link>
-            }
-          />
-          <BarChart
-            labels={data.dividends.months.map(monthLabel)}
-            values={forecast.map(() => 0)}
-            forecast={forecast}
-            highlight={0}
-            label={t('dividends.chartLabel')}
-            periodHeader={t('dividends.periodHeader')}
-            empty={t('dividends.empty')}
-            height={150}
-          />
-          <span className="text-sm text-fg-3">
-            {t('dividends.forecast')}{' '}
-            <b className="text-fg-2">{formatMoney(data.dividends.total)}</b>
-          </span>
-        </Card>
+        {data.dividends.hasDividends && (
+          <Card className="col-span-4 kpi2:col-span-12">
+            <CardHeader
+              title={t('dividends.title')}
+              headingLevel={3}
+              actions={
+                <Link href={`/${poolId}/portfolios`} className={linkButton}>
+                  {t('dividends.calendar')}
+                </Link>
+              }
+            />
+            <BarChart
+              labels={data.dividends.months.map(monthLabel)}
+              values={forecast.map(() => 0)}
+              forecast={forecast}
+              highlight={0}
+              label={t('dividends.chartLabel')}
+              periodHeader={t('dividends.periodHeader')}
+              empty={t('dividends.empty')}
+              height={150}
+            />
+            <span className="text-sm text-fg-3">
+              {t('dividends.forecast')}{' '}
+              <b className="text-fg-2">{formatMoney(data.dividends.total)}</b>
+            </span>
+          </Card>
+        )}
       </div>
     </>
   );

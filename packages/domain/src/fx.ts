@@ -23,6 +23,21 @@ export function toEur(
   return mul(amount, fx(currency, rates));
 }
 
+/** An amount in `from` expressed in `to`, through EUR (`amount × fx(from) ÷ fx(to)`). */
+export function convertCurrency(
+  amount: DecInput,
+  from: string | null | undefined,
+  to: string | null | undefined,
+  rates: FxRates,
+): Money {
+  return mul(amount, fx(from, rates)).div(fx(to, rates));
+}
+
+/** An amount in EUR expressed in `to`. */
+export function fromEur(amount: DecInput, to: string | null | undefined, rates: FxRates): Money {
+  return convertCurrency(amount, 'EUR', to, rates);
+}
+
 /** Per-currency totals (`{ USD: 10 }`), as the portfolio summary reports them. */
 export type ByCurrency = Record<string, Dec>;
 

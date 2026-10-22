@@ -5,6 +5,8 @@ import { z } from 'zod';
 
 import { ASSET_CURRENCIES } from '../assets/schemas';
 
+import { DisplayMode, rebase } from './display-currency';
+
 const OPS_LIST_DEFAULT = 200;
 const OPS_LIST_MAX = 1000;
 const TARGETS_MAX = 50;
@@ -108,9 +110,17 @@ export const toPortfolioDto = (
   ...counts,
 });
 
-/** `?asOf=yyyy-mm-dd` (today when left out); `portfolioId` narrows to one portfolio. */
+/**
+ * `?asOf=yyyy-mm-dd` (today when left out); `portfolioId` narrows to one portfolio; `currency`
+ * picks the currency of the converted figures: the portfolio's own (default) or the pool's base
+ * currency (always the base currency for all portfolios).
+ */
 export const SummaryQuery = z
-  .object({ asOf: z.iso.date().optional(), portfolioId: z.uuid().optional() })
+  .object({
+    asOf: z.iso.date().optional(),
+    portfolioId: z.uuid().optional(),
+    currency: DisplayMode.optional(),
+  })
   .strict();
 export type SummaryQuery = z.input<typeof SummaryQuery>;
 
@@ -135,7 +145,11 @@ export const PortfolioSummaryDto = z.object({
   otherBy: ByCurrencyDto,
   profitBy: ByCurrencyDto,
   valueAllBy: ByCurrencyDto,
-  /** EUR totals, decimal strings. */
+  /** Currency of the converted totals below (EUR unless the request asked for another). */
+  currency: z.string(),
+  /** Portfolio cash in EUR, whatever the currency of the totals (cash moves are in EUR). */
+  cashEur: z.string(),
+  /** Converted totals, decimal strings. */
   valueAll: z.string(),
   profit: z.string(),
   netInvested: z.string(),
@@ -153,6 +167,8 @@ export const PortfolioSummaryDto = z.object({
   yld: z.string(),
   yoc: z.string(),
   divs12: z.string(),
+  /** Gross dividends received (before withholding tax). */
+  divGross: z.string(),
   /** Withholding tax (negative), tax refunds and interest of brokerage and linked accounts, EUR. */
   tax: z.string(),
   refund: z.string(),
@@ -173,47 +189,54 @@ export const toSummaryDto = (
   asOf: string,
   portfolioId: string | null,
   rates: FxRates,
-): PortfolioSummaryDto => ({
-  asOf,
-  portfolioId,
-  valueBy: byCurrency(summary.valueBy),
-  costBy: byCurrency(summary.costBy),
-  gainBy: byCurrency(summary.gainBy),
-  totalBy: byCurrency(summary.totalBy),
-  divsBy: byCurrency(summary.divsBy),
-  realizedBy: byCurrency(summary.realizedBy),
-  incomeBy: byCurrency(summary.incomeBy),
-  divs12By: byCurrency(summary.divs12By),
-  divGrossBy: byCurrency(summary.divGrossBy),
-  taxBy: byCurrency(summary.taxBy),
-  refundBy: byCurrency(summary.refundBy),
-  cashBy: byCurrency(summary.cashBy),
-  otherBy: byCurrency(summary.otherBy),
-  profitBy: byCurrency(summary.profitBy),
-  valueAllBy: byCurrency(summary.valueAllBy),
-  valueAll: toPlain(summary.valueAll),
-  profit: toPlain(summary.profit),
-  netInvested: toPlain(summary.netInvested),
-  profitPct: toPlain(summary.profitPct),
-  cash: toPlain(summary.cash),
-  value: toPlain(summary.value),
-  cost: toPlain(summary.cost),
-  gain: toPlain(summary.gain),
-  gainPct: toPlain(summary.gainPct),
-  realized: toPlain(summary.realized),
-  divs: toPlain(summary.divs),
-  total: toPlain(summary.total),
-  totalPct: toPlain(summary.totalPct),
-  income: toPlain(summary.income),
-  yld: toPlain(summary.yld),
-  yoc: toPlain(summary.yoc),
-  divs12: toPlain(summary.divs12),
-  tax: toPlain(sumToEur(summary.taxBy, rates)),
-  refund: toPlain(sumToEur(summary.refundBy, rates)),
-  other: toPlain(sumToEur(summary.otherBy, rates)),
-  irr: Number.isFinite(summary.irr) ? summary.irr : null,
-  positions: summary.positions,
-});
+  currency = 'EUR',
+): PortfolioSummaryDto => {
+  const to = rebase(currency, rates);
+  return {
+    asOf,
+    portfolioId,
+    valueBy: byCurrency(summary.valueBy),
+    costBy: byCurrency(summary.costBy),
+    gainBy: byCurrency(summary.gainBy),
+    totalBy: byCurrency(summary.totalBy),
+    divsBy: byCurrency(summary.divsBy),
+    realizedBy: byCurrency(summary.realizedBy),
+    incomeBy: byCurrency(summary.incomeBy),
+    divs12By: byCurrency(summary.divs12By),
+    divGrossBy: byCurrency(summary.divGrossBy),
+    taxBy: byCurrency(summary.taxBy),
+    refundBy: byCurrency(summary.refundBy),
+    cashBy: byCurrency(summary.cashBy),
+    otherBy: byCurrency(summary.otherBy),
+    profitBy: byCurrency(summary.profitBy),
+    valueAllBy: byCurrency(summary.valueAllBy),
+    currency,
+    cashEur: toPlain(summary.cash),
+    valueAll: to(toPlain(summary.valueAll)),
+    profit: to(toPlain(summary.profit)),
+    netInvested: to(toPlain(summary.netInvested)),
+    profitPct: toPlain(summary.profitPct),
+    cash: to(toPlain(summary.cash)),
+    value: to(toPlain(summary.value)),
+    cost: to(toPlain(summary.cost)),
+    gain: to(toPlain(summary.gain)),
+    gainPct: toPlain(summary.gainPct),
+    realized: to(toPlain(summary.realized)),
+    divs: to(toPlain(summary.divs)),
+    total: to(toPlain(summary.total)),
+    totalPct: toPlain(summary.totalPct),
+    income: to(toPlain(summary.income)),
+    yld: toPlain(summary.yld),
+    yoc: toPlain(summary.yoc),
+    divs12: to(toPlain(summary.divs12)),
+    divGross: to(toPlain(sumToEur(summary.divGrossBy, rates))),
+    tax: to(toPlain(sumToEur(summary.taxBy, rates))),
+    refund: to(toPlain(sumToEur(summary.refundBy, rates))),
+    other: to(toPlain(sumToEur(summary.otherBy, rates))),
+    irr: Number.isFinite(summary.irr) ? summary.irr : null,
+    positions: summary.positions,
+  };
+};
 
 /* ------------------------------------------------------------------ operations */
 

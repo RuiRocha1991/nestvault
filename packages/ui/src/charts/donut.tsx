@@ -35,7 +35,7 @@ export function Donut({
   centerLabel,
   centerValue,
   size = 150,
-  stroke = 18,
+  stroke = 16,
   legend = 'right',
   className,
 }: DonutProps) {
@@ -134,10 +134,10 @@ export function ChartLegend({ segments, currency = 'EUR', className }: ChartLege
       {segments.map((segment) => (
         <li key={segment.name} className="flex items-center gap-2">
           <i
-            className="inline-block size-2.5 shrink-0 rounded-[3px]"
+            className="inline-block size-[9px] shrink-0 rounded-full"
             style={{ background: segment.color }}
           />
-          <span className="mr-auto min-w-0 truncate text-fg-2">{segment.name}</span>
+          <span className="mr-auto min-w-0 truncate">{segment.name}</span>
           <b className="tabular-nums">{formatMoney(amount(segment), currency)}</b>
           <span className="w-12 text-right tabular-nums text-fg-3">
             {formatPct(total > 0 ? (amount(segment) / total) * 100 : 0)}

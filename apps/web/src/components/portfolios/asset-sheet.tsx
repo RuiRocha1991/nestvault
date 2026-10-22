@@ -30,6 +30,7 @@ export function AssetSheet({
   const t = useTranslations('portfolios.assetSheet');
   const priceId = useId();
   const asset = ctx.assetsById.get(assetId);
+  const cur = ctx.data.display.currency;
   const holding = ctx.data.holdings.find((h) => h.assetId === assetId && h.isOpen);
   const [price, setPrice] = useState('');
   const [invalid, setInvalid] = useState(false);
@@ -133,7 +134,8 @@ export function AssetSheet({
             <dd className="text-right">
               <NativeMoney
                 native={holding.valueN}
-                eur={holding.value}
+                converted={holding.value}
+                displayCurrency={cur}
                 currency={holding.currency}
               />
             </dd>
@@ -141,7 +143,8 @@ export function AssetSheet({
             <dd className="text-right">
               <NativeMoney
                 native={holding.gainN}
-                eur={holding.gain}
+                converted={holding.gain}
+                displayCurrency={cur}
                 currency={holding.currency}
                 signed
               />

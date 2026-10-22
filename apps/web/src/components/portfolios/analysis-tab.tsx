@@ -50,8 +50,8 @@ export function AnalysisTab({ ctx, open }: { ctx: TabContext; open: OpenDialog }
       .reduce((total, h) => total + Number(h.weight), 0);
 
   return (
-    <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-      <Card className="col-span-2 max-[900px]:col-span-1">
+    <div className="grid grid-cols-2 gap-4 kpi2:grid-cols-1">
+      <Card className="col-span-2 kpi2:col-span-1">
         <CardHeader title={t('diagnostic')} />
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {data.diagnostics.map((d) => {
@@ -90,6 +90,7 @@ export function AnalysisTab({ ctx, open }: { ctx: TabContext; open: OpenDialog }
             <Donut
               segments={segments}
               label={t(`dimensions.${dimension}`)}
+              currency={ctx.data.display.currency}
               centerValue={String(segments.length)}
               size={120}
               stroke={14}
@@ -99,7 +100,7 @@ export function AnalysisTab({ ctx, open }: { ctx: TabContext; open: OpenDialog }
       })}
 
       {!!portfolio && (
-        <Card className="col-span-2 max-[900px]:col-span-1">
+        <Card className="col-span-2 kpi2:col-span-1">
           <CardHeader
             title={t('targets.title')}
             actions={

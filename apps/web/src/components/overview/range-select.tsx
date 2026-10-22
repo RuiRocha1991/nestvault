@@ -16,7 +16,8 @@ export function RangeSelect({ value }: { value: string }) {
     <Select
       aria-label={t('period')}
       value={value}
-      className="h-7 w-auto min-w-[104px] bg-panel-2 text-sm font-medium"
+      compact
+      className="min-w-[104px]"
       onChange={(event) => {
         const next = event.target.value;
         router.replace(next === DEFAULT_RANGE ? pathname : `${pathname}?periodo=${next}`, {

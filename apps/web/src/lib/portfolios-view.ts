@@ -1,4 +1,4 @@
-import { formatPct } from '@nestvault/ui';
+import { formatMoney, formatPct } from '@nestvault/ui';
 
 import type { OpView } from './portfolios-types';
 
@@ -24,12 +24,23 @@ export function parseGroup(value: string | string[] | undefined): PositionsGroup
   return (Array.isArray(value) ? value[0] : value) === 'account' ? 'account' : 'asset';
 }
 
-/** Path of the Portfolios screen: all portfolios, or one; the tab only when it is not the summary. */
+export type CurrencyMode = 'portfolio' | 'base';
+
+/** `?moeda=` of the URL: the portfolio's own currency unless the URL asks for the base currency. */
+export function parseCurrencyMode(value: string | string[] | undefined): CurrencyMode {
+  return (Array.isArray(value) ? value[0] : value) === 'base' ? 'base' : 'portfolio';
+}
+
+/**
+ * Path of the Portfolios screen: all portfolios, or one; the tab only when it is not the summary
+ * and the currency only when it is not the default (the portfolio's own).
+ */
 export function portfoliosPath(
   poolId: string,
   portfolioId: string | null,
   tab: PortfolioTab = 'summary',
   group: PositionsGroup = 'asset',
+  currency: CurrencyMode = 'portfolio',
 ): string {
   const base = `/${encodeURIComponent(poolId)}/portfolios${
     portfolioId ? `/${encodeURIComponent(portfolioId)}` : ''
@@ -37,6 +48,7 @@ export function portfoliosPath(
   const query = new URLSearchParams();
   if (tab !== 'summary') query.set('tab', tab);
   if (tab === 'positions' && group === 'account') query.set('group', 'account');
+  if (currency === 'base') query.set('moeda', 'base');
   const text = query.toString();
   return text ? `${base}?${text}` : base;
 }
@@ -53,6 +65,11 @@ export function toneClass(value: string): string {
   const sign = signOf(value);
   if (sign > 0) return 'text-pos';
   return sign < 0 ? 'text-neg' : 'text-fg-2';
+}
+
+/** The value on a portfolio chip: whole units from 10 000 up, cents below (the prototype's `fmt0C`). */
+export function chipMoney(value: string, currency: string): string {
+  return formatMoney(value, currency, { digits: Math.abs(Number(value)) >= 10_000 ? 0 : 2 });
 }
 
 /** A fraction string (`0.113`) as a percentage text (`11,3%`). */
@@ -125,7 +142,40 @@ const RANGE_MONTHS: Record<Exclude<PerformanceRange, 'all'>, number> = {
 /** The last points of the monthly series for the chosen range (all of them for `all`). */
 export function sliceRange<T>(values: readonly T[], range: PerformanceRange): T[] {
   if (range === 'all') return [...values];
-  return values.slice(-(RANGE_MONTHS[range] + 1));
+  return values.slice(-RANGE_MONTHS[range]);
+}
+
+/** The month before a `yyyy-mm` key. */
+function previousMonth(month: string): string {
+  const [year, number] = month.split('-').map(Number) as [number, number];
+  return number === 1 ? `${year - 1}-12` : `${year}-${String(number - 1).padStart(2, '0')}`;
+}
+
+export interface PerformanceWindow {
+  months: string[];
+  value: number[];
+  invested: number[];
+}
+
+/**
+ * The chart's series for a range. A fixed range always spans its months: before the portfolio
+ * existed the value and the invested amount are 0, like the prototype's chart (a portfolio that
+ * started in December still shows November). "Tudo" starts at the first month.
+ */
+export function performanceWindow(
+  performance: { months: readonly string[]; value: readonly string[]; invested: readonly string[] },
+  range: PerformanceRange,
+): PerformanceWindow {
+  const months = sliceRange(performance.months, range);
+  const value = sliceRange(performance.value, range).map(Number);
+  const invested = sliceRange(performance.invested, range).map(Number);
+  const wanted = range === 'all' ? 0 : RANGE_MONTHS[range];
+  while (months.length > 0 && months.length < wanted) {
+    months.unshift(previousMonth(months[0] as string));
+    value.unshift(0);
+    invested.unshift(0);
+  }
+  return { months, value, invested };
 }
 
 const MONTH_FORMAT = new Intl.DateTimeFormat('pt-PT', { month: 'short', timeZone: 'UTC' });
@@ -133,7 +183,9 @@ const MONTH_FORMAT = new Intl.DateTimeFormat('pt-PT', { month: 'short', timeZone
 /** Short month name of a `yyyy-mm` key (`2026-02` → `fev`). */
 export function monthLabel(month: string): string {
   const at = new Date(`${month}-01T00:00:00Z`);
-  return Number.isNaN(at.getTime()) ? month : MONTH_FORMAT.format(at).replace('.', '');
+  if (Number.isNaN(at.getTime())) return month;
+  const short = MONTH_FORMAT.format(at).replace('.', '');
+  return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
 /** Positions of one account, grouped for the by-account view; accounts keep the input order. */
@@ -188,3 +240,16 @@ export function monthName(month: string): string {
   const name = MONTH_LONG.format(at);
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
+
+/** A price older than this many days is flagged as out of date. */
+export const STALE_PRICE_DAYS = 7;
+
+/** Whole days from `from` to `to` (both `yyyy-mm-dd`). */
+export function daysBetween(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
+  return Number.isFinite(ms) ? Math.round(ms / 86_400_000) : 0;
+}
+
+/** A decimal string with the opposite sign. */
+export const negate = (value: string): string =>
+  value.startsWith('-') ? value.slice(1) : `-${value}`;

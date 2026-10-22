@@ -19,9 +19,10 @@ export function MonthSelect({ poolId, month, months }: MonthSelectProps) {
   const router = useRouter();
   return (
     <Select
+      compact
       aria-label={t('monthLabel')}
       value={month}
-      className="w-[190px]"
+      className="min-w-[130px]"
       onChange={(event) => {
         router.replace(
           `/${poolId}/despesas?tab=resumo&month=${encodeURIComponent(event.target.value)}`,

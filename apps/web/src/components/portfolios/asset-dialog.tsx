@@ -98,7 +98,7 @@ export function AssetDialog({
       onClose={onClose}
       onSubmit={submit}
     >
-      <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+      <div className="grid grid-cols-2 gap-4 one:grid-cols-1">
         <Field
           id={ids.ticker}
           label={t('ticker')}

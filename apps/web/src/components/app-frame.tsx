@@ -3,11 +3,14 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
+import { PageHeaderProvider } from '@webapp/components/page-header-context';
 import { AppShell } from '@webapp/components/shell';
 import { Sidebar } from '@webapp/components/sidebar';
 import type { PoolSummary } from '@webapp/lib/pool';
 import { parseTheme, THEME_COOKIE } from '@webapp/lib/theme';
-import { getMyPools } from '@webapp/server/pool';
+import { getHolders } from '@webapp/server/holders';
+import { getMyPools, getPoolPermissions } from '@webapp/server/pool';
+import { getPortfolios } from '@webapp/server/portfolios';
 import { getCurrentSession } from '@webapp/server/session';
 
 /** The sidebar and the content column shared by the pool pages and the account page. */
@@ -26,6 +29,13 @@ export async function AppFrame({
   const session = await getCurrentSession();
   if (!session) notFound();
   const pools = poolsProp ?? (await getMyPools()).pools;
+  // Read on every render of the layout, so `router.refresh()` after a portfolio is created,
+  // renamed, recoloured or deleted updates the sidebar without a reload.
+  const [{ portfolios }, { holders }, permissions] = await Promise.all([
+    getPortfolios(pool.id),
+    getHolders(pool.id),
+    getPoolPermissions(pool.id),
+  ]);
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
   return (
@@ -39,14 +49,22 @@ export async function AppFrame({
           key="sidebar"
           pool={pool}
           pools={pools}
-          portfolios={[]}
+          portfolios={portfolios.map(({ id, name, color }) => ({ id, name, color }))}
           theme={theme}
           userName={session.name}
         />
       }
     >
       <main key="content" id="content" tabIndex={-1} className="outline-none">
-        {children}
+        <PageHeaderProvider
+          value={{
+            poolId: pool.id,
+            holders: holders.map(({ id, name, color }) => ({ id, name, color })),
+            canAddTransaction: permissions.includes('transactions.write'),
+          }}
+        >
+          {children}
+        </PageHeaderProvider>
       </main>
     </AppShell>
   );

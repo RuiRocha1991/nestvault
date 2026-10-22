@@ -1,11 +1,13 @@
 import type {
   AccountView,
   AssetView,
+  LinkedAccountRow,
   PlanView,
   PortfolioData,
   PortfolioView,
   SummaryView,
 } from '@webapp/lib/portfolios-types';
+import type { CurrencyMode } from '@webapp/lib/portfolios-view';
 
 export interface HolderName {
   id: string;
@@ -30,6 +32,10 @@ export interface TabContext {
   portfolios: readonly PortfolioView[];
   summary: SummaryView;
   data: PortfolioData;
+  /** `?moeda=` of the URL, kept when the links of the screen change tab or portfolio. */
+  currencyMode: CurrencyMode;
+  /** The accounts linked to the scope, for the summary table. */
+  linkedAccounts: readonly LinkedAccountRow[];
   assets: readonly AssetView[];
   assetsById: ReadonlyMap<string, AssetView>;
   accounts: readonly AccountView[];

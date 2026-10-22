@@ -8,7 +8,11 @@ export default async function AllPortfoliosPage({
   searchParams,
 }: {
   params: Promise<{ poolId: string }>;
-  searchParams: Promise<{ tab?: string | string[]; group?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    group?: string | string[];
+    moeda?: string | string[];
+  }>;
 }) {
   const { poolId } = await params;
   return <PortfoliosPage poolId={poolId} searchParams={await searchParams} />;

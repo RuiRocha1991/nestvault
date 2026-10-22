@@ -9,8 +9,10 @@ import {
   groupByAccount,
   monthLabel,
   monthName,
+  parseCurrencyMode,
   parseGroup,
   parseTab,
+  performanceWindow,
   portfoliosPath,
   signOf,
   sliceRange,
@@ -37,7 +39,7 @@ const op = (patch: Partial<OpView>): OpView => ({
   planId: null,
   note: null,
   native: '-1',
-  eur: '-1',
+  converted: '-1',
   ...patch,
 });
 
@@ -65,6 +67,23 @@ describe('tab and group in the URL', () => {
       '/pool/portfolios?tab=transactions',
     );
     expect(portfoliosPath('a/b', '../x')).toBe('/a%2Fb/portfolios/..%2Fx');
+  });
+
+  it('keeps the base currency in the path, and reads only a known value from the URL', () => {
+    expect(portfoliosPath('pool', 'p1', 'summary', 'asset', 'base')).toBe(
+      '/pool/portfolios/p1?moeda=base',
+    );
+    expect(portfoliosPath('pool', null, 'dividends', 'asset', 'base')).toBe(
+      '/pool/portfolios?tab=dividends&moeda=base',
+    );
+    expect(portfoliosPath('pool', 'p1', 'summary', 'asset', 'portfolio')).toBe(
+      '/pool/portfolios/p1',
+    );
+    expect(parseCurrencyMode('base')).toBe('base');
+    expect(parseCurrencyMode(['base', 'portfolio'])).toBe('base');
+    expect(parseCurrencyMode('portfolio')).toBe('portfolio');
+    expect(parseCurrencyMode("base' OR 1=1 --")).toBe('portfolio');
+    expect(parseCurrencyMode(undefined)).toBe('portfolio');
   });
 });
 
@@ -98,15 +117,31 @@ describe('number helpers', () => {
 describe('performance range and labels', () => {
   const months = Array.from({ length: 20 }, (_, i) => i);
 
-  it('keeps the last n + 1 points of the range', () => {
-    expect(sliceRange(months, 'sixMonths')).toHaveLength(7);
-    expect(sliceRange(months, 'oneYear')).toHaveLength(13);
+  it('keeps the last n months of the range, like the prototype', () => {
+    expect(sliceRange(months, 'sixMonths')).toHaveLength(6);
+    expect(sliceRange(months, 'oneYear')).toHaveLength(12);
     expect(sliceRange(months, 'threeYears')).toHaveLength(20);
     expect(sliceRange(months, 'all')).toHaveLength(20);
   });
 
+  it('pads a fixed range with zero months before the portfolio existed, but not "Tudo"', () => {
+    const young = { months: ['2025-12', '2026-01'], value: ['10', '20'], invested: ['10', '10'] };
+    const year = performanceWindow(young, 'oneYear');
+    expect(year.months).toHaveLength(12);
+    expect(year.months[0]).toBe('2025-02');
+    expect(year.months.slice(-2)).toEqual(['2025-12', '2026-01']);
+    expect(year.value.slice(0, 10).every((v) => v === 0)).toBe(true);
+    expect(year.value.slice(-2)).toEqual([10, 20]);
+    expect(year.invested.slice(-2)).toEqual([10, 10]);
+    expect(performanceWindow(young, 'all').months).toEqual(['2025-12', '2026-01']);
+    // Nothing to plot stays empty (the empty state shows instead of a row of zeros).
+    expect(performanceWindow({ months: [], value: [], invested: [] }, 'oneYear').months).toEqual(
+      [],
+    );
+  });
+
   it('names months in Portuguese', () => {
-    expect(monthLabel('2026-02')).toBe('fev');
+    expect(monthLabel('2026-02')).toBe('Fev');
     expect(monthName('2026-09')).toBe('Setembro');
     expect(monthLabel('bad')).toBe('bad');
   });
