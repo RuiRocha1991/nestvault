@@ -26,6 +26,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
       e2e: ${{ steps.filter.outputs.e2e }}
+      parser: ${{ steps.filter.outputs.parser }}
     steps:
       # On a pull request the checkout is the merge commit: HEAD^1 is the tip of the base branch.
       - uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
         run: |
           code=true
           e2e=true
+          parser=true
           if [ "$EVENT" = "pull_request" ]; then
             files=$(git diff --name-only HEAD^1 HEAD)
             # docs-only: Markdown, ADRs and the prototype (docs/api/openapi.json is still checked)
@@ -50,8 +52,14 @@ jobs:
             fi
           fi
           if [ "$code" = false ]; then e2e=false; fi
+          # The parser job (Python, builds the image) only runs when the service or its wiring changes.
+          if [ "$EVENT" = "pull_request" ] \
+             && ! echo "$files" | grep -qE '^(services/parser/|docker-compose\.yml$|\.github/workflows/security\.yml$)'; then
+            parser=false
+          fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
+          echo "parser=$parser" >> "$GITHUB_OUTPUT"
 
   secrets:
     name: Secret scan (gitleaks)
@@ -63,6 +71,38 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Security control 21 (NES-56): the isolated Python parser. Lint, types, unit tests, and the tests
+  # that run the real image (no outbound network, non-root, read-only filesystem, compose review).
+  parser:
+    name: Parser service (ruff, mypy, pytest, isolation)
+    needs: changes
+    if: needs.changes.outputs.parser == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/parser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: services/parser/uv.lock
+      - run: uv sync --frozen
+      - name: Dependency audit
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o "$RUNNER_TEMP/parser-req.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/parser-req.txt" --no-deps --disable-pip
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - name: Row schema is up to date
+        run: uv run python scripts/export_schema.py --check
+      - name: Unit tests
+        run: uv run pytest -q
+      - name: Isolation tests on the built image
+        run: uv run pytest -m docker -q
 
   checks:
     name: Audit, lint, typecheck, test
@@ -95,6 +135,8 @@ jobs:
         run: pnpm db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
+      - name: Parser row schema (zod) is up to date
+        run: pnpm gen:parser-schema --check
       - name: OpenAPI document is up to date
         run: pnpm openapi --check
       # Unit + integration tests with coverage; fails below the thresholds in vitest.config.ts

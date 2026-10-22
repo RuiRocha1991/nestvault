@@ -1,0 +1,289 @@
+{
+  "$defs": {
+    "BankRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "bank",
+          "title": "Kind",
+          "type": "string"
+        },
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 500,
+          "title": "Description",
+          "type": "string"
+        },
+        "amount": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Balance"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        }
+      },
+      "required": [
+        "kind",
+        "date",
+        "description",
+        "amount"
+      ],
+      "title": "BankRow",
+      "type": "object"
+    },
+    "BrokerRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "broker",
+          "title": "Kind",
+          "type": "string"
+        },
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "buy",
+            "sell",
+            "dividend",
+            "tax",
+            "refund",
+            "deposit",
+            "withdrawal",
+            "fee"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantity"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price"
+        },
+        "amount": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "holder": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holder"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        }
+      },
+      "required": [
+        "kind",
+        "date",
+        "type",
+        "amount",
+        "currency"
+      ],
+      "title": "BrokerRow",
+      "type": "object"
+    },
+    "ParseMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "parser_id": {
+          "title": "Parser Id",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "row_count": {
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "opening_balance": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opening Balance"
+        },
+        "closing_balance": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Closing Balance"
+        },
+        "reconciled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciled"
+        }
+      },
+      "required": [
+        "parser_id",
+        "parser_version",
+        "row_count"
+      ],
+      "title": "ParseMeta",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rows": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "bank": "#/$defs/BankRow",
+            "broker": "#/$defs/BrokerRow"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/BankRow"
+          },
+          {
+            "$ref": "#/$defs/BrokerRow"
+          }
+        ]
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "meta": {
+      "$ref": "#/$defs/ParseMeta"
+    },
+    "warnings": {
+      "items": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "warnings"
+  ],
+  "title": "ParseResponse",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nestvault.local/schemas/parse-response.json"
+}

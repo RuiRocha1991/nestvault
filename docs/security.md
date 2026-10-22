@@ -645,7 +645,13 @@ leave local-only development · **N/A** = does not apply to this stack (with the
     reconciled, confirmed imports or admin approval; failing global specs are demoted.
   - AI generation is rate-limited per pool and globally, requires `imports.run`, and is audited
     (without file content).
-- **Verified by:** docker-compose review (no network/volumes for the parser container); tests that
+- **Verified by:** docker-compose review (no network/volumes for the parser container) and, since
+  NES-56, `services/parser/tests/test_container.py` (marked `docker`, run by the `parser` CI job):
+  the container cannot open outbound connections, runs as uid 10001 with a read-only root
+  filesystem, and the rendered compose file has `read_only`, `cap_drop: [ALL]`, an `internal`
+  network, no volumes, no published port and no database variable; `test_limits.py` (11 MB file,
+  zip bomb, entry count, job timeout, regex timeout) and `test_auth.py` (401 without the shared
+  secret; constant-time compare); tests that
   the synthesizer output contains none of the original values; spec-schema rejection tests
   (unknown keys, unbounded regex, oversized patterns); promotion-rule unit tests.
 

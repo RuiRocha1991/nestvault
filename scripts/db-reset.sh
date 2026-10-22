@@ -7,5 +7,5 @@ read -r -p "This deletes ALL local database data. Type 'reset' to continue: " an
 [ "$answer" = "reset" ] || { echo "Aborted."; exit 1; }
 
 docker compose down --volumes
-docker compose --env-file .env.local up -d --wait
+docker compose --env-file .env.local up -d --wait postgres mailpit
 echo "Database recreated."

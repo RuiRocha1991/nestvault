@@ -1,0 +1,317 @@
+{
+ "_comment": "Run by pytest (tests/test_helpers.py) and Vitest (tests/domain/parser-vectors.test.ts). Keep both helpers in step.",
+ "parseNum": [
+  {
+   "input": "1.234,56",
+   "expected": "1234.56"
+  },
+  {
+   "input": "1,234.56",
+   "expected": "1234.56"
+  },
+  {
+   "input": "1.234.567,89",
+   "expected": "1234567.89"
+  },
+  {
+   "input": "1,234,567.89",
+   "expected": "1234567.89"
+  },
+  {
+   "input": "12,5",
+   "expected": "12.5"
+  },
+  {
+   "input": "12.5",
+   "expected": "12.5"
+  },
+  {
+   "input": "1.234",
+   "expected": "1234"
+  },
+  {
+   "input": "1.234.567",
+   "expected": "1234567"
+  },
+  {
+   "input": "1,234,567",
+   "expected": "1234567"
+  },
+  {
+   "input": "12.3456",
+   "expected": "12.3456"
+  },
+  {
+   "input": "0,5",
+   "expected": "0.5"
+  },
+  {
+   "input": ".5",
+   "expected": "0.5"
+  },
+  {
+   "input": "5.",
+   "expected": "5"
+  },
+  {
+   "input": "(12,00)",
+   "expected": "-12"
+  },
+  {
+   "input": "12,00-",
+   "expected": "-12"
+  },
+  {
+   "input": "-12,00",
+   "expected": "-12"
+  },
+  {
+   "input": "+12,00",
+   "expected": "12"
+  },
+  {
+   "input": "€ 1.234,56",
+   "expected": "1234.56"
+  },
+  {
+   "input": "1234,56 EUR",
+   "expected": "1234.56"
+  },
+  {
+   "input": "1 234,56 €",
+   "expected": "1234.56"
+  },
+  {
+   "input": "1 234,56",
+   "expected": "1234.56"
+  },
+  {
+   "input": "  42  ",
+   "expected": "42"
+  },
+  {
+   "input": "0",
+   "expected": "0"
+  },
+  {
+   "input": "-0",
+   "expected": "0"
+  },
+  {
+   "input": "(0,00)",
+   "expected": "0"
+  },
+  {
+   "input": "007",
+   "expected": "7"
+  },
+  {
+   "input": "100",
+   "expected": "100"
+  },
+  {
+   "input": "1.000,50",
+   "expected": "1000.5"
+  },
+  {
+   "input": 12.5,
+   "expected": "12.5"
+  },
+  {
+   "input": -3,
+   "expected": "-3"
+  },
+  {
+   "input": 1e-07,
+   "expected": "0.0000001"
+  },
+  {
+   "input": 0.30000000000000004,
+   "expected": "0.30000000000000004"
+  },
+  {
+   "input": null,
+   "expected": null
+  },
+  {
+   "input": "",
+   "expected": null
+  },
+  {
+   "input": "   ",
+   "expected": null
+  },
+  {
+   "input": "€",
+   "expected": null
+  },
+  {
+   "input": "abc",
+   "expected": null
+  },
+  {
+   "input": "12abc",
+   "expected": null
+  },
+  {
+   "input": "1.2.3",
+   "expected": null
+  },
+  {
+   "input": "1,2.3,4",
+   "expected": null
+  },
+  {
+   "input": "--5",
+   "expected": null
+  },
+  {
+   "input": "-(5)",
+   "expected": null
+  },
+  {
+   "input": "(5)-",
+   "expected": null
+  },
+  {
+   "input": "-",
+   "expected": null
+  },
+  {
+   "input": "()",
+   "expected": null
+  },
+  {
+   "input": "1e5",
+   "expected": null
+  },
+  {
+   "input": "0x10",
+   "expected": null
+  }
+ ],
+ "parseDate": [
+  {
+   "input": "2026-01-05",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "2026-1-5",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "2026/01/05",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "2026.01.05",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "2026-01-05T10:20:30Z",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "05-01-2026",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "05/01/2026",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "5/1/2026",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "05.01.2026",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "05/01/26",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": "29/02/2024",
+   "expected": "2024-02-29"
+  },
+  {
+   "input": "  05/01/2026  ",
+   "expected": "2026-01-05"
+  },
+  {
+   "input": 45292,
+   "expected": "2024-01-01"
+  },
+  {
+   "input": 46027.75,
+   "expected": "2026-01-05"
+  },
+  {
+   "input": 25569,
+   "expected": "1970-01-01"
+  },
+  {
+   "input": null,
+   "expected": null
+  },
+  {
+   "input": "",
+   "expected": null
+  },
+  {
+   "input": "hello",
+   "expected": null
+  },
+  {
+   "input": "31/02/2026",
+   "expected": null
+  },
+  {
+   "input": "2026-13-01",
+   "expected": null
+  },
+  {
+   "input": "29/02/2026",
+   "expected": null
+  },
+  {
+   "input": "05/01/20266",
+   "expected": null
+  },
+  {
+   "input": "2026-01-055",
+   "expected": null
+  },
+  {
+   "input": 100,
+   "expected": null
+  },
+  {
+   "input": 90000,
+   "expected": null
+  }
+ ],
+ "normalizeText": [
+  {
+   "input": "  Câmara   Municipal\tde Évora ",
+   "expected": "CAMARA MUNICIPAL DE EVORA"
+  },
+  {
+   "input": "açúcar",
+   "expected": "ACUCAR"
+  },
+  {
+   "input": null,
+   "expected": ""
+  },
+  {
+   "input": "",
+   "expected": ""
+  },
+  {
+   "input": "já  vai",
+   "expected": "JA VAI"
+  }
+ ]
+}

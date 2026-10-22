@@ -49,6 +49,7 @@ variable is added, renamed or removed):
 | 1       | NES-12 | Postgres, database URLs, test databases, app secrets, SMTP          |
 | 2       | NES-16 | `ENABLE_API_DOCS` (Swagger UI at `/api/docs`, development only)    |
 | 3       | NES-23 | `TRUSTED_PROXY_HOPS` (proxies trusted for `x-forwarded-for`, 0 = none) |
+| 4       | NES-56 | `PARSER_URL`, `PARSER_SECRET` (internal statement parser service)    |
 
 ## 3. What runs
 
@@ -57,6 +58,7 @@ variable is added, renamed or removed):
 | Postgres | `127.0.0.1:5433`        | Two databases in one container (see below)           |
 | Mailpit  | SMTP `127.0.0.1:1025`   | Catches every email the app sends                    |
 | Mailpit  | UI `http://localhost:8025` | Read the emails (verification, reset, invites)    |
+| Parser   | `http://127.0.0.1:8100` | Statement parser (Python), reached through a local forwarder; the container itself has no network out. Needs `X-Parser-Secret` |
 
 ### Databases and users
 
