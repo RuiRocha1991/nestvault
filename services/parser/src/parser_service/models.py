@@ -41,6 +41,15 @@ class BrokerRow(_Strict):
 Row = Annotated[BankRow | BrokerRow, Field(discriminator="kind")]
 
 
+class PriceEntry(_Strict):
+    """A quote the file states (for example the fund price on the report date)."""
+
+    symbol: Text
+    date: IsoDate
+    price: Decimal_
+    currency: Currency
+
+
 class DetectResult(_Strict):
     parser_id: str
     kind: ParserKind
@@ -67,6 +76,7 @@ class ParseResponse(_Strict):
     rows: list[Row]
     meta: ParseMeta
     warnings: list[Text]
+    prices: list[PriceEntry] = Field(default_factory=list)
 
 
 class DetectResponse(_Strict):
