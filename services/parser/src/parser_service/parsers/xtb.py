@@ -96,9 +96,9 @@ class XtbXlsx:
         reconciled = None if file_total is None else total == file_total and not ignored
         if reconciled is False:
             warnings_out.append("The operations do not add up to the report total.")
-        prices = _prices(positions, column_names=None, currency=currency, as_of=as_of)
+        prices = _prices(positions, currency=currency, as_of=as_of)
         return ParseResponse(
-            rows=list(rows),
+            rows=rows,
             meta=ParseMeta(
                 parser_id=self.id,
                 parser_version=self.version,
@@ -139,7 +139,8 @@ def _row(
         price = Decimal(trade[2])
         if price <= 0:
             return None
-        quantity = Decimal(trade[1]) if Decimal(trade[1]) > 0 else abs(amount) / price
+        units = Decimal(trade[1])
+        quantity = units if units > 0 else abs(amount) / price
         return BrokerRow(
             type="buy" if amount < 0 else "sell",
             symbol=symbol,
@@ -163,9 +164,7 @@ def _row(
     return None
 
 
-def _prices(
-    positions: list[list[Any]], *, column_names: None, currency: str, as_of: str | None
-) -> list[PriceEntry]:
+def _prices(positions: list[list[Any]], *, currency: str, as_of: str | None) -> list[PriceEntry]:
     """Current price of every open position (the `Open Positions` table)."""
     header_at = next(
         (i for i, r in enumerate(positions) if r[1:2] == ["Instrument/Position"]), None
