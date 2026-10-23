@@ -4,6 +4,7 @@ from .errors import UnknownParserError
 from .models import DetectResult, ParserInfo
 from .parsers.banco_invest import BancoInvestXlsx
 from .parsers.base import Parser
+from .parsers.xtb import XtbXlsx
 from .sniff import SniffedFile
 
 # Below this score the file is treated as unrecognised and the user is asked to choose.
@@ -49,4 +50,4 @@ class Registry:
 
 def default_registry() -> Registry:
     """The parsers shipped with the service. Each parser task (NES-57 ...) adds its own here."""
-    return Registry([BancoInvestXlsx()])
+    return Registry([BancoInvestXlsx(), XtbXlsx()])

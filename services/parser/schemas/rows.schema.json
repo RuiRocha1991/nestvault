@@ -83,7 +83,8 @@
             "refund",
             "deposit",
             "withdrawal",
-            "fee"
+            "fee",
+            "interest"
           ],
           "title": "Type",
           "type": "string"
@@ -100,6 +101,19 @@
           ],
           "default": null,
           "title": "Symbol"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
         },
         "quantity": {
           "anyOf": [
@@ -231,6 +245,19 @@
           ],
           "default": null,
           "title": "Reconciled"
+        },
+        "account_hint": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Hint"
         }
       },
       "required": [

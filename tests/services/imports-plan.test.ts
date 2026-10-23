@@ -24,6 +24,7 @@ const broker = (overrides: Partial<Extract<ParsedRow, { kind: 'broker' }>>): Par
   date: '2026-09-05',
   type: 'dividend',
   symbol: 'AAA.US',
+  name: null,
   quantity: null,
   price: null,
   amount: '1',

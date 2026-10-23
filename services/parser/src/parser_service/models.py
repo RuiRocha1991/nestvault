@@ -28,8 +28,11 @@ class BankRow(_Strict):
 class BrokerRow(_Strict):
     kind: Literal["broker"]
     date: IsoDate
-    type: Literal["buy", "sell", "dividend", "tax", "refund", "deposit", "withdrawal", "fee"]
+    type: Literal[
+        "buy", "sell", "dividend", "tax", "refund", "deposit", "withdrawal", "fee", "interest"
+    ]
     symbol: Text | None = None
+    name: Text | None = None  # instrument name, to create a missing asset in the preview
     quantity: Decimal_ | None = None
     price: Decimal_ | None = None
     amount: Decimal_
@@ -70,6 +73,7 @@ class ParseMeta(_Strict):
     opening_balance: Decimal_ | None = None
     closing_balance: Decimal_ | None = None
     reconciled: bool | None = None
+    account_hint: Text | None = None  # the account number the file states, to pick the account
 
 
 class ParseResponse(_Strict):

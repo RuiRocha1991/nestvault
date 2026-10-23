@@ -31,8 +31,10 @@ export const parserResponseSchema = z
               'deposit',
               'withdrawal',
               'fee',
+              'interest',
             ]),
             symbol: z.union([z.string().max(500), z.null()]).default(null),
+            name: z.union([z.string().max(500), z.null()]).default(null),
             quantity: z
               .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
               .default(null),
@@ -59,6 +61,7 @@ export const parserResponseSchema = z
           .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
           .default(null),
         reconciled: z.union([z.boolean(), z.null()]).default(null),
+        account_hint: z.union([z.string().max(500), z.null()]).default(null),
       })
       .strict(),
     warnings: z.array(z.string().max(500)),
