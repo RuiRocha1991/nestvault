@@ -29,6 +29,7 @@ Errors are `{code, message}`; a message never contains file content.
 | `banco-invest-xlsx` | broker | Banco Invest "Posição Actual" (xlsx/xlsm) | One buy per lot (`Subscrição`, `Subs / T`), `holder` = first name of the account holder, stable `external_id`; the quote is returned in `prices`; units are reconciled against the bank's summary table. |
 | `xtb-xlsx` | broker | XTB account report (xlsx: `Cash Operations`, `Open Positions`) | One row per operation, `external_id` = `xtb:<operation id>`. Dividends, the tax withheld on them (`tax`) and later refunds (`refund`) are separate rows sharing symbol and date. Free-funds interest and its tax have no symbol. `meta.account_hint` is the account number, `prices` the open positions' current price. Reconciles the operations against the report's `Total`. |
 | `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `fee`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
+| `bpi-xlsx` | bank | BPI Net "Extracto movimentos" (xlsx, sheet `Movimentos`) | Text dates `dd-mm-aaaa`, signed amount, running balance; the file lists the newest first, rows come out oldest first. The movement date is the row date (the value date is not used). `type` is set for card purchases, transfers and fees. `meta.account_hint` is the account number; reconciles each balance against the one before. |
 | `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
 
 PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
@@ -38,6 +39,9 @@ fixture statement; the golden test runs `docs/tools/extrato_para_csv.py` on it a
 with `docs/tools/bancoinvest_para_csv.py`.
 
 `tests/support/xtb.py` generates the fixture report.
+`tests/support/bpi.py` generates the BPI fixture; `python -m tests.support.bpi` (with `PYTHONPATH=.:src`)
+rewrites the shared copy in `tests/fixtures/bpi/` (the xlsx the import e2e tests upload and the rows the
+parser must return, read by `tests/domain/bpi-fixture-rules.test.ts`).
 
 ## Import specs
 

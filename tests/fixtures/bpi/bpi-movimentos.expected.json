@@ -1,0 +1,249 @@
+{
+  "rows": [
+    {
+      "kind": "bank",
+      "date": "2026-09-01",
+      "description": "TRF CR SEPA+ 382 P/ DE89370400440532013000 XTB",
+      "amount": "-300",
+      "balance": "2888.65",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-01",
+      "description": "DD EDP COMERCIAL 88123/456",
+      "amount": "-62.4",
+      "balance": "2826.25",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-02",
+      "description": "31/08 COMPRA ELEC 1234567/01 SUPERMERCADO EXEMPLO",
+      "amount": "-48.15",
+      "balance": "2778.1",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-03",
+      "description": "TRF CR SEPA+ 1022 DE EMPRESA EXEMPLO LDA",
+      "amount": "1850",
+      "balance": "4628.1",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-03",
+      "description": "SEGURO ALLIANZ - APOLICE 123456789",
+      "amount": "-34.9",
+      "balance": "4593.2",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-05",
+      "description": "03/09 COMPRA ELEC 1234567/02 REPSOL LISBOA",
+      "amount": "-52.3",
+      "balance": "4540.9",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-05",
+      "description": "TRF SEPA+ INST 386 DE TITULAR EXEMPLO",
+      "amount": "200",
+      "balance": "4740.9",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-05",
+      "description": "TRF SEPA+ INST 387 P/ PT50003501350069602273023 PERSONAL TRAINER EXEMPLO",
+      "amount": "-105",
+      "balance": "4635.9",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-07",
+      "description": "DD VODAFONE PORTUGAL-COM. 55123",
+      "amount": "-39.99",
+      "balance": "4595.91",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-07",
+      "description": "DD AdAM Aguas 4411",
+      "amount": "-27.8",
+      "balance": "4568.11",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-08",
+      "description": "JUROS DE EMPRESTIMO",
+      "amount": "-118.42",
+      "balance": "4449.69",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-08",
+      "description": "AMORTIZACAO DE CAPITAL",
+      "amount": "-241.58",
+      "balance": "4208.11",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-10",
+      "description": "08/09 COMPRA ELEC 1234567/03 FARMACIA EXEMPLO",
+      "amount": "-17.6",
+      "balance": "4190.51",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-10",
+      "description": "10/09 LEV. ATM 000123 RUA EXEMPLO",
+      "amount": "-40",
+      "balance": "4150.51",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-12",
+      "description": "TRF CR INTRAB 77 DE FAMILIAR EXEMPLO",
+      "amount": "100",
+      "balance": "4250.51",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-14",
+      "description": "12/09 COMPRA ELEC 1234567/04 RESTAURANTE EXEMPLO",
+      "amount": "-36.5",
+      "balance": "4214.01",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-14",
+      "description": "12/09 PAG. PORTAGEM/TELEF. VIA VERDE",
+      "amount": "-12.75",
+      "balance": "4201.26",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-15",
+      "description": "DD BANCO INVEST 99001 PPR",
+      "amount": "-150",
+      "balance": "4051.26",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-17",
+      "description": "TRF SEPA+ INST 404 DE ANA EXEMPLO",
+      "amount": "30",
+      "balance": "4081.26",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-21",
+      "description": "19/09 COMPRA ELEC 1234567/05 SUPERMERCADO EXEMPLO",
+      "amount": "-63.2",
+      "balance": "4018.06",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-24",
+      "description": "PAGSERV 12345 67890",
+      "amount": "-45",
+      "balance": "3973.06",
+      "external_id": null,
+      "type": null
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-28",
+      "description": "26/09 COMPRA ELEC 1234567/06 CAFE EXEMPLO",
+      "amount": "-8.4",
+      "balance": "3964.66",
+      "external_id": null,
+      "type": "card"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-28",
+      "description": "TRF SEPA+ INST 399 P/ PT50000700000011122233344 PEDRO",
+      "amount": "-20",
+      "balance": "3944.66",
+      "external_id": null,
+      "type": "transfer"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-30",
+      "description": "IMPOSTO DE SELO",
+      "amount": "-4.73",
+      "balance": "3939.93",
+      "external_id": null,
+      "type": "fee"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-30",
+      "description": "MANUTENCAO DE CONTA",
+      "amount": "-5.5",
+      "balance": "3934.43",
+      "external_id": null,
+      "type": "fee"
+    },
+    {
+      "kind": "bank",
+      "date": "2026-09-30",
+      "description": "TRF SEPA+ INST 405 DE TITULAR EXEMPLO",
+      "amount": "25",
+      "balance": "3959.43",
+      "external_id": null,
+      "type": "transfer"
+    }
+  ],
+  "meta": {
+    "parser_id": "bpi-xlsx",
+    "parser_version": "1.0.0",
+    "row_count": 26,
+    "opening_balance": "3188.65",
+    "closing_balance": "3959.43",
+    "reconciled": true,
+    "account_hint": "1-0000000.000.001"
+  },
+  "warnings": [],
+  "prices": []
+}
