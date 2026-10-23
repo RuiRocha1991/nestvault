@@ -202,6 +202,16 @@ read-only filesystem and CPU/memory limits; only a forwarder published on `127.0
 Every call needs the `X-Parser-Secret` header (`PARSER_SECRET`, created by `pnpm env:init`; after
 pulling run `pnpm env:sync`). Work on it with uv: `cd services/parser && uv sync && uv run pytest`.
 
+### Importing statements
+
+`POST /api/v1/pools/:poolId/imports` takes a statement (`.xlsx`, `.pdf` or `.csv`, 10 MB at most),
+shows what would be added, and `POST …/imports/:batchId/commit` writes it; see the "Statement
+imports" folder of the Postman collection (`tests/api/`). The upload is kept **encrypted** (AES-256-GCM
+with `APP_ENCRYPTION_KEY`) under `IMPORT_STORAGE_DIR` (default `.data/imports`, git-ignored): back the
+folder up together with the key, and to rotate the key put the new one first as
+`APP_ENCRYPTION_KEY=new:<key>,old:<key>`. The parser container must be running (`pnpm parser:up`)
+for an import; the rest of the app does not need it.
+
 ## Repository layout
 
 ```
@@ -214,6 +224,7 @@ packages/db/         Drizzle schemas, migrations, repositories (identity + app d
 packages/ui/         base components (shadcn-style, token based) and pt-PT formatters
 packages/config/     validated environment variables (the only place that reads process.env):
                      `@nestvault/config` is server-only, `@nestvault/config/public` is browser-safe
+packages/crypto/     AES-256-GCM with key ids and rotation (encrypts uploaded statements at rest)
 services/parser/     Python parser service (FastAPI): isolated container, parsers, shared schemas
 design/  docs/
 tests/<package>/     Vitest tests, one folder per package (+ tests/lint, tests/api)

@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
+
 import {
   createAuthRuntime,
   createSmtpSender,
@@ -22,6 +25,7 @@ import {
   type AssetsService,
   type CategoriesService,
   type HoldersService,
+  type ImportsService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -32,6 +36,20 @@ import {
 } from '@nestvault/services';
 
 let instance: Promise<AuthRuntime> | undefined;
+
+/** The repository root: the closest folder up from here with a `pnpm-workspace.yaml`. */
+function repositoryRoot(): string {
+  let folder = process.cwd();
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(resolve(folder, 'pnpm-workspace.yaml'))) return folder;
+    folder = dirname(folder);
+  }
+  return process.cwd();
+}
+
+/** `IMPORT_STORAGE_DIR` as an absolute path; a relative one is from the repository root. */
+const storageDir = (value: string): string =>
+  isAbsolute(value) ? value : resolve(repositoryRoot(), value);
 
 /**
  * The one Better Auth instance and rate limiter of the web process. Built on first use (not at
@@ -60,6 +78,12 @@ function getRuntime(): Promise<AuthRuntime> {
         log: logger,
       }),
       log: logger,
+      imports: {
+        parserUrl: env.PARSER_URL,
+        parserSecret: env.PARSER_SECRET,
+        encryptionKey: env.APP_ENCRYPTION_KEY,
+        storageDir: storageDir(env.IMPORT_STORAGE_DIR),
+      },
     });
   });
   instance.catch(() => {
@@ -170,4 +194,8 @@ export async function getPrototypeImportService(): Promise<PrototypeImportServic
 
 export async function getMonthsService(): Promise<MonthsService> {
   return (await getRuntime()).months;
+}
+
+export async function getImportsService(): Promise<ImportsService> {
+  return (await getRuntime()).imports;
 }
