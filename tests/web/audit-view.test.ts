@@ -46,6 +46,7 @@ describe('small helpers', () => {
       'category',
       'deposit',
       'holder',
+      'import',
       'interest',
       'invite',
       'member',

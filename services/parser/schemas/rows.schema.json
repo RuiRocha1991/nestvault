@@ -104,7 +104,8 @@
             "refund",
             "deposit",
             "withdrawal",
-            "fee"
+            "fee",
+            "interest"
           ],
           "title": "Type",
           "type": "string"
@@ -121,6 +122,19 @@
           ],
           "default": null,
           "title": "Symbol"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
         },
         "quantity": {
           "anyOf": [
@@ -252,6 +266,19 @@
           ],
           "default": null,
           "title": "Reconciled"
+        },
+        "account_hint": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Hint"
         }
       },
       "required": [
@@ -260,6 +287,41 @@
         "row_count"
       ],
       "title": "ParseMeta",
+      "type": "object"
+    },
+    "PriceEntry": {
+      "additionalProperties": false,
+      "description": "A quote the file states (for example the fund price on the report date).",
+      "properties": {
+        "symbol": {
+          "maxLength": 500,
+          "title": "Symbol",
+          "type": "string"
+        },
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "price": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Price",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "date",
+        "price",
+        "currency"
+      ],
+      "title": "PriceEntry",
       "type": "object"
     }
   },
@@ -295,6 +357,13 @@
         "type": "string"
       },
       "title": "Warnings",
+      "type": "array"
+    },
+    "prices": {
+      "items": {
+        "$ref": "#/$defs/PriceEntry"
+      },
+      "title": "Prices",
       "type": "array"
     }
   },

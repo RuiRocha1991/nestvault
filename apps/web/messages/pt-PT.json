@@ -1120,7 +1120,8 @@
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
       "interest": "Juros",
-      "note": "Notas"
+      "note": "Notas",
+      "import": "Importações"
     },
     "actions": {
       "auth": {
@@ -1226,6 +1227,11 @@
       },
       "note": {
         "updated": "Nota alterada"
+      },
+      "import": {
+        "uploaded": "Extrato carregado",
+        "committed": "Importação confirmada",
+        "discarded": "Importação descartada"
       }
     },
     "table": {

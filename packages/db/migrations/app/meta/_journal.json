@@ -78,6 +78,13 @@
       "when": 1792503995323,
       "tag": "0010_portfolio_cash_moves",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792705750191,
+      "tag": "0011_import_batches",
+      "breakpoints": true
     }
   ]
 }

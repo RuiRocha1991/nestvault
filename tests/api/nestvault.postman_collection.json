@@ -100,6 +100,10 @@
     {
       "key": "cashMoveId",
       "value": ""
+    },
+    {
+      "key": "batchId",
+      "value": ""
     }
   ],
   "item": [
@@ -5165,6 +5169,197 @@
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('has the KPIs', () => { const b = pm.response.json(); pm.expect(b.kpis.netWorth.value).to.be.a('string'); pm.expect(b.evolution.months).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Statement imports",
+      "item": [
+        {
+          "name": "Upload a statement (preview)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/imports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "imports"
+              ]
+            },
+            "description": "Multipart upload: pick a .xlsx, .xlsm, .pdf or .csv statement (10 MB at most) in `file`. `accountId` (optional) makes the duplicates known and selects the account's remembered format; `parserId` picks a format from an earlier `choose-parser` answer; `spec` (JSON text) sends a column mapping confirmed from an earlier `needs-mapping` answer. Answers 201 with a preview (nothing is written to the ledger), or 200 with `choose-parser` / `needs-mapping`. 415 for a file whose content is not what its name says, 413 over 10 MB, 429 after 20 uploads an hour per pool.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "parserId",
+                  "value": "",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "spec",
+                  "value": "",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "const b = pm.response.json();",
+                  "pm.test('has a status', () => pm.expect(b.status).to.be.oneOf(['preview', 'choose-parser', 'needs-mapping']));",
+                  "if (b.status === 'preview') { pm.collectionVariables.set('batchId', b.batchId); pm.test('has lines and a summary', () => { pm.expect(b.rows).to.be.an('array'); pm.expect(b.summary.total).to.be.a('number'); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preview of a pending import",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/imports/{{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "imports",
+                "{{batchId}}"
+              ],
+              "query": [
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The preview again. `?accountId=` shows the duplicates, categories and transfers for another account. 409 once the import is committed or discarded; 404 for a batch of another pool."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is a preview', () => pm.expect(pm.response.json().status).to.eql('preview'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit a pending import",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/imports/{{batchId}}/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "imports",
+                "{{batchId}}",
+                "commit"
+              ]
+            },
+            "description": "Writes the import into `accountId` in one transaction. Importing the same file twice adds 0 rows; two identical lines inside one file are both kept; notes and categories chosen by hand are never touched. `adjustOpeningBalance` makes the account's balance equal the statement's. For a broker file also send `portfolioId` (or link one to the account) and an asset for every symbol: `assets` {symbol: assetId} or `newAssets` [{ticker, symbol, name, type, currency}]. `subAccounts` maps a holder's first name to a sub-account.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"adjustOpeningBalance\": false\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('is committed', () => { pm.expect(b.status).to.eql('committed'); pm.expect(b.inserted).to.be.a('number'); pm.expect(b.duplicates).to.be.a('number'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Discard a pending import",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/imports/{{batchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "imports",
+                "{{batchId}}"
+              ]
+            },
+            "description": "Drops the stored rows of a pending import. 409 once it is committed or discarded."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }

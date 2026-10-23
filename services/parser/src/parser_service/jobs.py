@@ -14,6 +14,9 @@ from multiprocessing.connection import Connection
 from typing import Any, Literal
 
 from .config import Settings
+from .engine.parser import SpecParser
+from .engine.propose import propose
+from .engine.spec import ImportSpec
 from .errors import JobTimeoutError, ParseFailedError, ParserError
 from .models import DetectResponse, ParseResponse
 from .registry import Registry
@@ -26,16 +29,24 @@ RegistryFactory = Callable[[], Registry]
 
 @dataclass(frozen=True)
 class Job:
-    kind: Literal["detect", "parse"]
+    kind: Literal["detect", "parse", "parse-spec", "propose"]
     data: bytes
     settings: Settings
     registry_factory: RegistryFactory
     parser_id: str | None = None
+    spec: dict[str, Any] | None = None  # an ImportSpec as JSON, for "parse-spec"
 
 
 def execute(job: Job) -> dict[str, Any]:
     """The work itself; runs inside the child process (and directly in unit tests)."""
     file = sniff(job.data, job.settings)
+    if job.kind == "propose":
+        return propose(file).model_dump(mode="json", by_alias=True)
+    if job.kind == "parse-spec":
+        if job.spec is None:
+            raise ParseFailedError("A spec is required.")
+        spec_response = SpecParser(ImportSpec.model_validate(job.spec)).parse(file)
+        return ParseResponse.model_validate(spec_response.model_dump()).model_dump(mode="json")
     registry = job.registry_factory()
     if job.kind == "detect":
         return DetectResponse(results=registry.detect(file)).model_dump(mode="json")

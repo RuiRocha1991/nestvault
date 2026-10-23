@@ -52,6 +52,7 @@ vi.mock('@webapp/server/auth', () => ({
   getHoldersService: () => Promise.resolve(holder.world.holders),
   getSettingsService: () => Promise.resolve(holder.world.settings),
   getPrototypeImportService: () => Promise.resolve(holder.world.prototypeImport),
+  getImportsService: () => Promise.resolve(holder.world.imports),
 }));
 vi.mock('@nestvault/config', () => ({ env: { APP_URL: 'http://localhost:4000' } }));
 

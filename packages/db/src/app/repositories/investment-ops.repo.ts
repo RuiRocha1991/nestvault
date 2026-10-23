@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
@@ -108,6 +108,49 @@ export const investmentOpsRepo = {
       .returning();
     if (!row) throw new Error('insert returned no row');
     return row;
+  },
+
+  /**
+   * Inserts an imported operation unless the account already has one with the same broker id
+   * (`ON CONFLICT DO NOTHING` on the unique `(pool_id, account_id, ext_id)`), so re-importing a
+   * file adds nothing and never touches what the household changed. Returns whether it was added.
+   */
+  async insertIgnoringExtId(
+    tx: PoolTx,
+    ctx: PoolContext,
+    id: string,
+    data: InvestmentOpValues,
+  ): Promise<boolean> {
+    const rows = await tx
+      .insert(investmentOps)
+      .values({ id, poolId: ctx.poolId, ...fields(data) })
+      .onConflictDoNothing()
+      .returning({ id: investmentOps.id });
+    return rows.length > 0;
+  },
+
+  /** Which of these broker ids the account already has (the import preview marks them). */
+  async existingExtIds(
+    tx: PoolTx,
+    ctx: PoolContext,
+    accountId: string,
+    extIds: readonly string[],
+  ): Promise<Set<string>> {
+    const found = new Set<string>();
+    for (let at = 0; at < extIds.length; at += 1000) {
+      const rows = await tx
+        .select({ extId: investmentOps.extId })
+        .from(investmentOps)
+        .where(
+          and(
+            eq(investmentOps.poolId, ctx.poolId),
+            eq(investmentOps.accountId, accountId),
+            inArray(investmentOps.extId, extIds.slice(at, at + 1000)),
+          ),
+        );
+      for (const row of rows) if (row.extId !== null) found.add(row.extId);
+    }
+    return found;
   },
 
   /** Inserts many operations in chunks of 500 (prototype import); ids come from the importer. */

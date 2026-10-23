@@ -81,6 +81,35 @@ export class PayloadTooLargeError extends HttpError {
   }
 }
 
+export class UnsupportedMediaTypeError extends HttpError {
+  readonly status = 415;
+  readonly code = 'unsupported_media_type';
+
+  constructor(message = 'This kind of file is not supported.') {
+    super(message);
+  }
+}
+
+/** The request is well formed but its content cannot be used (a file no parser recognises). */
+export class UnprocessableError extends HttpError {
+  readonly status = 422;
+  readonly code = 'unprocessable';
+
+  constructor(message = 'The content could not be processed.') {
+    super(message);
+  }
+}
+
+/** An internal service the request depends on (the parser) failed or could not be reached. */
+export class UpstreamError extends HttpError {
+  readonly status = 502;
+  readonly code = 'upstream_error';
+
+  constructor(message = 'A service this request depends on is not available. Try again later.') {
+    super(message);
+  }
+}
+
 export class RateLimitError extends HttpError {
   readonly status = 429;
   readonly code = 'rate_limited';

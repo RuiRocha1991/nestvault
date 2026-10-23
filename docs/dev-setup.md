@@ -50,6 +50,7 @@ variable is added, renamed or removed):
 | 2       | NES-16 | `ENABLE_API_DOCS` (Swagger UI at `/api/docs`, development only)    |
 | 3       | NES-23 | `TRUSTED_PROXY_HOPS` (proxies trusted for `x-forwarded-for`, 0 = none) |
 | 4       | NES-56 | `PARSER_URL`, `PARSER_SECRET` (internal statement parser service)    |
+| 5       | NES-57 | `IMPORT_STORAGE_DIR` (encrypted uploads); `APP_ENCRYPTION_KEY` may be a list `new:<key>,old:<key>` to rotate |
 
 ## 3. What runs
 
