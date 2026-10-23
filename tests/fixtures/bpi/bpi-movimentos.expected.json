@@ -242,7 +242,8 @@
     "opening_balance": "3188.65",
     "closing_balance": "3959.43",
     "reconciled": true,
-    "account_hint": "1-0000000.000.001"
+    "account_hint": "1-0000000.000.001",
+    "subaccounts": []
   },
   "warnings": [],
   "prices": []
