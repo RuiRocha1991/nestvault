@@ -84,7 +84,7 @@ class BancoInvestXlsx:
                     + hashlib.sha256(f"{key}|{seen[key]}".encode()).hexdigest()[:24],
                 )
             )
-        reconciled = _reconcile(report, rows, warnings_out)
+        reconciled = _reconcile(report, warnings_out)
         prices = (
             [
                 PriceEntry(
@@ -98,7 +98,7 @@ class BancoInvestXlsx:
             else []
         )
         return ParseResponse(
-            rows=list(rows),
+            rows=rows,
             meta=ParseMeta(
                 parser_id=self.id,
                 parser_version=self.version,
@@ -213,8 +213,6 @@ def _read_lots(lines: list[list[Any]], start: int, report: _Report) -> int:
         first = normalize_text(str(row[0] or ""))
         if first in report.summary:
             holder = str(row[0]).strip()
-        elif first == "TIPO":
-            pass
         elif first.startswith("WWW."):
             break
         elif holder and len(row) > 3 and _day(row[1]) and isinstance(row[2], int | float):
@@ -226,15 +224,14 @@ def _read_lots(lines: list[list[Any]], start: int, report: _Report) -> int:
     return j
 
 
-def _reconcile(report: _Report, rows: list[BrokerRow], warnings_out: list[str]) -> bool | None:
+def _reconcile(report: _Report, warnings_out: list[str]) -> bool | None:
     if not report.summary:
         return None
     units: dict[str, Decimal] = {}
     for lot in report.lots:
         sign = 1 if _side(lot.kind) == "buy" else -1
-        units[normalize_text(lot.holder)] = (
-            units.get(normalize_text(lot.holder), Decimal(0)) + sign * lot.quantity
-        )
+        holder = normalize_text(lot.holder)
+        units[holder] = units.get(holder, Decimal(0)) + sign * lot.quantity
     ok = True
     for holder, expected in report.summary.items():
         if abs(units.get(holder, Decimal(0)) - expected) >= _QUANTITY_TOLERANCE:

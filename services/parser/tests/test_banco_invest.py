@@ -101,7 +101,6 @@ def test_a_redemption_is_a_sell_with_positive_cash() -> None:
 
 
 def test_lots_that_do_not_match_the_summary_do_not_reconcile() -> None:
-    broken = banco_invest_xlsx()
     rows = [list(r) for r in _workbook_rows()]
     for row in rows:
         if row and row[0] == "Subscrição" and isinstance(row[2], float):
@@ -110,7 +109,6 @@ def test_lots_that_do_not_match_the_summary_do_not_reconcile() -> None:
     result = _parse(make_xlsx({"Folha 1": rows}))
     assert result.meta.reconciled is False
     assert any("do not add up" in w for w in result.warnings)
-    assert broken  # the untouched workbook still parses
 
 
 def _workbook_rows() -> list[list[object]]:
