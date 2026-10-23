@@ -83,6 +83,8 @@ export const ImportPreviewDto = z.object({
   /** The parser and mapping remembered from the account's last import were used. */
   remembered: z.boolean(),
   accountId: z.uuid().nullable(),
+  /** The account number the file states (XTB), to pre-select the account; `null` when it has none. */
+  accountHint: z.string().nullable(),
   reconciled: z.boolean().nullable(),
   openingBalance: Amount.nullable(),
   closingBalance: Amount.nullable(),
@@ -195,3 +197,23 @@ export const CommitImportResultDto = z.object({
   openingBalanceAdjusted: z.boolean(),
 });
 export type CommitImportResultDto = z.infer<typeof CommitImportResultDto>;
+
+/** Lines of the history shown: the last ones committed. */
+export const IMPORT_HISTORY_MAX = 50;
+
+export const ImportHistoryQuery = z.object({ accountId: z.uuid().optional() }).strict();
+
+export const ImportHistoryItemDto = z.object({
+  batchId: z.uuid(),
+  accountId: z.uuid().nullable(),
+  fileName: z.string(),
+  /** Lines the file had. */
+  rowCount: z.number().int(),
+  /** Lines written; `null` for a batch that did not record it. */
+  inserted: z.number().int().nullable(),
+  parserId: z.string(),
+  committedAt: z.iso.datetime(),
+});
+
+export const ImportHistoryDto = z.object({ items: z.array(ImportHistoryItemDto) });
+export type ImportHistoryDto = z.infer<typeof ImportHistoryDto>;

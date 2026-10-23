@@ -40,6 +40,7 @@ export default async function AccountsPage({ params }: { params: Promise<{ poolI
         holders={holders}
         suggestedColor={nextHolderColor(holders.map((holder) => holder.color))}
         canWrite={permissions.includes('accounts.write')}
+        canImport={permissions.includes('imports.run')}
       />
     </>
   );

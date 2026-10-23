@@ -815,3 +815,56 @@ describe('imports service: broker files', () => {
     );
   });
 });
+
+describe('imports service: history', () => {
+  it('lists the committed imports of the pool, newest first, and narrows them to one account', async () => {
+    const first = await makeAccount('Conta A');
+    const second = await makeAccount('Conta B');
+    const one = await preview();
+    await commit(one.batchId, { accountId: first.id });
+    parser.response = responseOf([bankRow('2026-02-01', 'Other', '-5')]);
+    const two = await preview();
+    await commit(two.batchId, { accountId: second.id });
+    await preview(); // still pending: not part of the history
+
+    const all = await world.imports.history(await s.as('owner'), s.poolA);
+    expect(all.items.map((item) => item.batchId)).toEqual([two.batchId, one.batchId]);
+    expect(all.items[0]).toMatchObject({ fileName: 'extrato.csv', inserted: 1, rowCount: 1 });
+
+    const only = await world.imports.history(await s.as('owner'), s.poolA, {
+      accountId: first.id,
+    });
+    expect(only.items.map((item) => item.batchId)).toEqual([one.batchId]);
+  });
+
+  it('never shows the history of another pool', async () => {
+    const other = await makeAccount('Conta B', {}, s.poolB);
+    const theirs = await preview({ as: 'outsider', poolId: s.poolB });
+    await commit(theirs.batchId, { accountId: other.id }, 'outsider', s.poolB);
+    expect((await world.imports.history(await s.as('owner'), s.poolA)).items).toEqual([]);
+    await expect(world.imports.history(await s.as('owner'), s.poolB)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it('refuses a viewer (403), a stranger (404) and no session (401)', async () => {
+    await expect(world.imports.history(await s.as('viewer'), s.poolA)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(world.imports.history(await s.as('outsider'), s.poolA)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(world.imports.history(new Headers(), s.poolA)).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+  });
+
+  it('treats an injection payload as data: the account must be a uuid (400)', async () => {
+    await expect(
+      world.imports.history(await s.as('owner'), s.poolA, { accountId: "' OR 1=1 --" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      world.imports.history(await s.as('owner'), s.poolA, { surprise: '1' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+});

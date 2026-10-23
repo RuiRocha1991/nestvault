@@ -1,7 +1,8 @@
 'use client';
 
 import { Button, Card, EmptyState, Eyebrow, formatMoney, useToast } from '@nestvault/ui';
-import { Plus } from 'lucide-react';
+import { FileUp, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -37,6 +38,8 @@ export interface AccountsScreenProps {
   suggestedColor: string;
   /** Hiding is cosmetic: every service call checks `accounts.write` again. */
   canWrite: boolean;
+  /** The link to the import screen needs `imports.run` (the page and the API check it again). */
+  canImport?: boolean;
 }
 
 /** "Contas e poupanças" (mockup 13): products and the accounts by type (people live in Definições). */
@@ -48,6 +51,7 @@ export function AccountsScreen({
   holders,
   suggestedColor,
   canWrite,
+  canImport = false,
 }: AccountsScreenProps) {
   const t = useTranslations('accounts');
   const router = useRouter();
@@ -99,6 +103,15 @@ export function AccountsScreen({
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <p className="m-0 mr-auto min-w-0 flex-1 text-sm text-fg-3">{t('lead')}</p>
+        {canImport && (
+          <Link
+            href={`/${encodeURIComponent(poolId)}/importar`}
+            className="inline-flex h-[34px] items-center justify-center gap-1.5 rounded-sm border border-line-2 bg-panel-2 px-3.5 text-md font-semibold hover:border-accent-2 [&_svg]:size-4"
+          >
+            <FileUp aria-hidden />
+            {t('importStatement')}
+          </Link>
+        )}
         {canWrite && (
           <Button
             variant="primary"

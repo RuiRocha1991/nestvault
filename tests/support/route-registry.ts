@@ -48,6 +48,7 @@ import {
   HolderListDto,
   ImportResultDto,
   CommitImportResultDto,
+  ImportHistoryDto,
   ImportPreviewDto,
   MergePreviewDto,
   InviteDto,
@@ -1151,6 +1152,20 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
   },
 
   // ---------------------------------------------------------------- pool scope: statement import
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/imports`,
+    permission: 'imports.run',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/route')),
+    success: { status: 200, schema: ImportHistoryDto },
+    noForeignBecause:
+      'lists the URL’s own pool; RLS and the pool filter are checked by the history test in tests/services/imports.integration.test.ts',
+    negatives: [
+      { name: 'an unknown query field', query: '?poolId=1', expect: 400 },
+      { name: 'an account that is not a uuid', query: "?accountId=' OR 1=1 --", expect: 400 },
+    ],
+  },
   {
     scope: 'pool',
     method: 'GET',

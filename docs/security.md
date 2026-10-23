@@ -598,6 +598,12 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `ON CONFLICT DO NOTHING` on `(pool_id, account_id, hash)` (lines) and `(pool_id, account_id,
   ext_id)` (broker operations), never touches notes or categories chosen by hand, and answers 404
   for a batch of another pool, 409 for one already settled.
+  `GET /api/v1/pools/:poolId/imports` (NES-64, the history of the import screen) runs the same guards
+  (session, strict query, membership 404, `imports.run` 403, `withPool`) and answers file name,
+  counts, format and date only, never rows or content; the page `/[poolId]/importar` loads nothing
+  for a caller without `imports.run`. The screen renders everything the file says as text (React
+  escapes it; checked in `tests/web/imports-screen.test.tsx`), and `accountHint` (the account number
+  of the file) only goes to a caller who may import.
   Verified by `tests/services/imports.integration.test.ts` (guards, rate limit, format choice,
   preview writes nothing, idempotent commit, identical lines, notes kept, rollback, other pool,
   audit without content, broker commit), `tests/services/imports-file-type.test.ts`,

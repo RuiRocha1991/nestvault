@@ -25,6 +25,18 @@ export interface ImportBatchValues {
   spec: unknown;
 }
 
+/** One line of an account's import history. */
+export interface BatchHistoryRow {
+  id: string;
+  accountId: string | null;
+  fileName: string;
+  rowCount: number;
+  parserId: string;
+  /** What the commit reported (`inserted`, `duplicates`, ...); `null` for older rows. */
+  result: unknown;
+  committedAt: Date;
+}
+
 export interface CommittedBatch {
   id: string;
   accountId: string | null;
@@ -136,6 +148,37 @@ export const importBatchesRepo = {
       .orderBy(desc(importBatches.committedAt))
       .limit(1);
     return row as RememberedParser | undefined;
+  },
+
+  /** The latest committed batches of the pool, newest first; of one account when `accountId` is given. */
+  async listCommitted(
+    tx: PoolTx,
+    ctx: PoolContext,
+    options: { accountId?: string | undefined; limit: number },
+  ): Promise<BatchHistoryRow[]> {
+    const rows = await tx
+      .select({
+        id: importBatches.id,
+        accountId: importBatches.accountId,
+        fileName: importBatches.fileName,
+        rowCount: importBatches.rowCount,
+        parserId: importBatches.parserId,
+        result: importBatches.result,
+        committedAt: importBatches.committedAt,
+      })
+      .from(importBatches)
+      .where(
+        and(
+          eq(importBatches.poolId, ctx.poolId),
+          eq(importBatches.status, 'committed'),
+          options.accountId ? eq(importBatches.accountId, options.accountId) : undefined,
+        ),
+      )
+      .orderBy(desc(importBatches.committedAt), desc(importBatches.id))
+      .limit(options.limit);
+    return rows.flatMap((row) =>
+      row.committedAt ? [{ ...row, committedAt: row.committedAt }] : [],
+    );
   },
 
   /**

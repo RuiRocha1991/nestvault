@@ -1981,7 +1981,8 @@
       "interestSaved": "Juros lançados.",
       "interestDeleted": "Juro apagado.",
       "personSaved": "Pessoa guardada."
-    }
+    },
+    "importStatement": "Importar extrato"
   },
   "categories": {
     "housing": "Habitação",
@@ -2101,6 +2102,171 @@
         "sell": "Venda",
         "div": "Dividendo"
       }
+    }
+  },
+  "imports": {
+    "title": "Importar extrato",
+    "lead": "Larga aqui o ficheiro do banco ou da corretora. O formato é reconhecido automaticamente e nada é guardado antes de confirmares.",
+    "noAccess": {
+      "title": "Sem permissão para importar",
+      "text": "A tua função neste agregado não permite importar ficheiros. Pede a um administrador."
+    },
+    "drop": {
+      "title": "Ficheiro",
+      "prompt": "Larga o extrato aqui ou escolhe um ficheiro",
+      "hint": "CSV, XLSX ou PDF até 10 MB. Extratos do BPI, XTB, Trade Republic e Banco Invest são reconhecidos automaticamente.",
+      "choose": "Escolher ficheiro",
+      "chooseAnother": "Escolher outro ficheiro",
+      "inputLabel": "Ficheiro do extrato",
+      "reading": "A ler {name}…",
+      "selected": "Ficheiro: {name}"
+    },
+    "detected": {
+      "banner": "Formato detetado: {parser} · confiança {level}",
+      "remembered": "Formato lembrado da última importação desta conta."
+    },
+    "confidence": {
+      "high": "alta",
+      "medium": "média",
+      "low": "baixa"
+    },
+    "parsers": {
+      "bpiXlsx": "BPI (XLSX)",
+      "xtbXlsx": "XTB (XLSX)",
+      "tradeRepublicPdf": "Trade Republic (PDF)",
+      "bancoInvestXlsx": "Banco Invest (XLSX)",
+      "genericBankCsv": "CSV genérico",
+      "investmentCsv": "Transações de investimento (CSV)",
+      "genericCsv": "CSV genérico"
+    },
+    "choose": {
+      "title": "Escolhe o formato",
+      "text": "Não foi possível decidir sozinho qual é o formato deste ficheiro. Escolhe o que corresponde.",
+      "option": "{parser} · confiança {level}",
+      "legend": "Formatos possíveis",
+      "use": "Usar este formato"
+    },
+    "mapping": {
+      "title": "Colunas do ficheiro",
+      "text": "O formato deste CSV não é conhecido. Confirma que colunas são a data, a descrição e o valor.",
+      "date": "Data",
+      "description": "Descrição",
+      "amount": "Valor",
+      "balance": "Saldo",
+      "dateFormat": "Formato da data",
+      "none": "Nenhuma",
+      "sample": "Primeiras linhas lidas com esta escolha",
+      "rows": "{n, plural, one {# linha lida} other {# linhas lidas}}",
+      "confirm": "Usar estas colunas",
+      "noRows": "Com estas colunas não foi lida nenhuma linha."
+    },
+    "account": {
+      "label": "Conta do extrato",
+      "placeholder": "Escolhe a conta",
+      "bankHint": "Os movimentos são adicionados a esta conta.",
+      "brokerHint": "Os ativos e operações ficam nesta conta de corretora.",
+      "none": "Não há nenhuma conta que sirva para este ficheiro. Cria-a primeiro em Contas e poupanças.",
+      "needed": "Escolhe a conta para ver os movimentos novos."
+    },
+    "summary": {
+      "read": "Linhas lidas",
+      "new": "Novos",
+      "duplicates": "Duplicados",
+      "skipped": "Ignorados",
+      "period": "Período",
+      "periodRange": "{from} a {to}",
+      "reconciliation": "Reconciliação",
+      "reconciled": "Confere com o saldo",
+      "notReconciled": "Não confere com o saldo",
+      "notAvailable": "Sem saldos no ficheiro",
+      "newCount": "{n, plural, one {# novo} other {# novos}}",
+      "unknown": "—"
+    },
+    "alerts": {
+      "duplicateFile": "Este ficheiro já foi importado em {date}. Os movimentos repetidos são ignorados.",
+      "allDuplicates": "Todos os movimentos já existem nesta conta: 0 novos.",
+      "warnings": "Avisos ao ler o ficheiro"
+    },
+    "table": {
+      "label": "Primeiras linhas do ficheiro",
+      "date": "Data",
+      "description": "Descrição",
+      "amount": "Valor",
+      "category": "Categoria prevista",
+      "status": "Estado",
+      "type": "Tipo",
+      "asset": "Ativo",
+      "quantity": "Quantidade",
+      "price": "Preço",
+      "holder": "Titular",
+      "shown": "A mostrar as primeiras {shown} de {total} linhas.",
+      "uncategorized": "Sem categoria"
+    },
+    "status": {
+      "new": "Novo",
+      "duplicate": "Duplicado",
+      "skipped": "Ignorado",
+      "transfer": "Transferência",
+      "unknown": "—"
+    },
+    "operation": {
+      "buy": "Compra",
+      "sell": "Venda",
+      "div": "Dividendo",
+      "dividend": "Dividendo",
+      "deposit": "Depósito",
+      "withdrawal": "Levantamento",
+      "other": "Outro"
+    },
+    "options": {
+      "title": "Opções",
+      "adjustOpening": "Acertar o saldo inicial da conta pelo extrato",
+      "adjustOpeningHint": "O saldo da conta passa a ser igual ao saldo final do extrato ({balance}).",
+      "portfolio": "Portfolio das operações",
+      "portfolioPlaceholder": "Escolhe o portfolio",
+      "newAssets": "Ativos a criar",
+      "newAssetsHint": "Estes símbolos ainda não existem no agregado e são criados ao importar.",
+      "assetType": "Tipo de {symbol}",
+      "stock": "Ação",
+      "etf": "ETF",
+      "holders": "Titulares e subcontas",
+      "holderSub": "Subconta de {holder}",
+      "noSubAccount": "Sem subconta"
+    },
+    "actions": {
+      "confirm": "{n, plural, one {Importar # movimento} other {Importar # movimentos}}",
+      "confirming": "A importar…",
+      "cancel": "Cancelar",
+      "another": "Importar outro ficheiro",
+      "viewAccounts": "Ver contas"
+    },
+    "done": {
+      "title": "Importação concluída",
+      "text": "{inserted, plural, one {# movimento importado} other {# movimentos importados}} e {duplicates, plural, one {# duplicado ignorado} other {# duplicados ignorados}}.",
+      "assets": "{n, plural, one {# ativo criado.} other {# ativos criados.}}",
+      "opening": "O saldo inicial da conta foi acertado."
+    },
+    "history": {
+      "title": "Histórico de importações",
+      "empty": "Ainda não foi importado nenhum ficheiro.",
+      "date": "Data",
+      "file": "Ficheiro",
+      "account": "Conta",
+      "rows": "Linhas",
+      "imported": "Importadas",
+      "parser": "Formato",
+      "unknownAccount": "Conta removida"
+    },
+    "errors": {
+      "tooLarge": "O ficheiro tem mais de 10 MB.",
+      "unsupported": "Este tipo de ficheiro não é aceite. Usa CSV, XLSX ou PDF.",
+      "unrecognized": "Não foi possível reconhecer o formato deste ficheiro.",
+      "rateLimited": "Fizeste demasiadas importações seguidas. Tenta novamente daqui a pouco.",
+      "forbidden": "Não tens permissão para importar neste agregado.",
+      "settled": "Esta importação já foi concluída ou cancelada. Larga o ficheiro outra vez.",
+      "invalid": "Os dados desta importação não são válidos. Confirma a conta e as opções.",
+      "generic": "Não foi possível importar. Tenta novamente dentro de instantes.",
+      "network": "Sem ligação ao servidor. Tenta novamente."
     }
   }
 }
