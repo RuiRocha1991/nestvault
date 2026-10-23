@@ -229,6 +229,53 @@ describe('importBatchesRepo', () => {
     expect(count).toBe(2);
   });
 
+  it('lists committed batches newest first, only committed ones, and as data for the account', async () => {
+    const { a } = createTwoPools();
+    const ids = [newId(), newId(), newId()];
+    const accountId = await withPool(a.ctx, async (tx) => {
+      const created = await account(tx, a.ctx);
+      for (const id of ids) await importBatchesRepo.insert(tx, a.ctx, id, values(), USER);
+      return created.id;
+    });
+    const settle = (at: string) => ({
+      accountId,
+      spec: null,
+      result: { inserted: 2 },
+      at: new Date(at),
+    });
+    await withPool(a.ctx, async (tx) => {
+      await importBatchesRepo.markCommitted(
+        tx,
+        a.ctx,
+        ids[0] ?? '',
+        settle('2026-03-01T10:00:00Z'),
+      );
+      await importBatchesRepo.markCommitted(
+        tx,
+        a.ctx,
+        ids[1] ?? '',
+        settle('2026-03-02T10:00:00Z'),
+      );
+    });
+    const listed = await withPool(a.ctx, (tx) =>
+      importBatchesRepo.listCommitted(tx, a.ctx, { limit: 50 }),
+    );
+    expect(listed.map((row) => row.id)).toEqual([ids[1], ids[0]]);
+    const limited = await withPool(a.ctx, (tx) =>
+      importBatchesRepo.listCommitted(tx, a.ctx, { accountId, limit: 1 }),
+    );
+    expect(limited.map((row) => row.id)).toEqual([ids[1]]);
+    // A payload where an id goes is bound as a parameter: Postgres rejects it as a uuid, it never runs.
+    await expect(
+      withPool(a.ctx, (tx) =>
+        importBatchesRepo.listCommitted(tx, a.ctx, { accountId: "' OR 1=1 --", limit: 50 }),
+      ),
+    ).rejects.toThrow();
+    expect(
+      await withPool(a.ctx, (tx) => importBatchesRepo.listCommitted(tx, a.ctx, { limit: 50 })),
+    ).toHaveLength(2);
+  });
+
   it('looks a hash up as data: an injection payload finds nothing', async () => {
     const { a } = createTwoPools();
     await withPool(a.ctx, (tx) => importBatchesRepo.insert(tx, a.ctx, newId(), values(), USER));
@@ -316,6 +363,23 @@ describe('isolation between pools', () => {
       },
       snapshot: (tx, ctxB, id) => importBatchesRepo.find(tx, ctxB, id),
       run: (tx, ctxA) => importBatchesRepo.findCommittedByHash(tx, ctxA, SHA),
+    });
+  });
+  it('listCommitted lists nothing of pool B', async () => {
+    await expectIsolated({
+      database,
+      seed: async (tx, ctxB) => {
+        const { id, accountId } = await seed(tx, ctxB);
+        await importBatchesRepo.markCommitted(tx, ctxB, id, {
+          accountId,
+          spec: null,
+          result: {},
+          at: NOW,
+        });
+        return id;
+      },
+      snapshot: (tx, ctxB, id) => importBatchesRepo.find(tx, ctxB, id),
+      run: (tx, ctxA) => importBatchesRepo.listCommitted(tx, ctxA, { limit: 50 }),
     });
   });
   it('lastForAccount finds nothing of pool B', () =>

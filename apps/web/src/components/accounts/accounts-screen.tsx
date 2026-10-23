@@ -1,18 +1,20 @@
 'use client';
 
 import { Button, Card, EmptyState, Eyebrow, formatMoney, useToast } from '@nestvault/ui';
-import { Plus } from 'lucide-react';
+import { FileUp, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { HolderDialog, type HolderView } from '@webapp/components/holders/holder-dialog';
+import { ImportDialog } from '@webapp/components/imports/import-dialog';
 import type {
   AccountsScreenData as AccountsScreenDto,
   PortfolioOption as PortfolioDto,
   SavingsProduct as ProductDto,
 } from '@webapp/lib/accounts-types';
 import { TYPE_META, TYPE_ORDER } from '@webapp/lib/accounts-view';
+import type { CategoryView } from '@webapp/lib/expenses-types';
 import { sendJson } from '@webapp/lib/post-json';
 
 import { AccountCard } from './account-card';
@@ -37,6 +39,10 @@ export interface AccountsScreenProps {
   suggestedColor: string;
   /** Hiding is cosmetic: every service call checks `accounts.write` again. */
   canWrite: boolean;
+  /** The link to the import screen needs `imports.run` (the page and the API check it again). */
+  canImport?: boolean;
+  /** For the predicted categories of the import dialogs. */
+  categories?: readonly CategoryView[];
 }
 
 /** "Contas e poupanças" (mockup 13): products and the accounts by type (people live in Definições). */
@@ -48,12 +54,15 @@ export function AccountsScreen({
   holders,
   suggestedColor,
   canWrite,
+  canImport = false,
+  categories = [],
 }: AccountsScreenProps) {
   const t = useTranslations('accounts');
   const router = useRouter();
   const toast = useToast();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [person, setPerson] = useState(false);
+  const [importing, setImporting] = useState<'bank' | 'broker' | null>(null);
 
   const accountNames = new Map(screen.accounts.map((account) => [account.id, account.name]));
   const productNames = new Map(products.map((product) => [product.id, product.name]));
@@ -99,6 +108,26 @@ export function AccountsScreen({
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <p className="m-0 mr-auto min-w-0 flex-1 text-sm text-fg-3">{t('lead')}</p>
+        {canImport && (
+          <>
+            <Button
+              onClick={() => {
+                setImporting('bank');
+              }}
+            >
+              <FileUp aria-hidden />
+              {t('importStatement')}
+            </Button>
+            <Button
+              onClick={() => {
+                setImporting('broker');
+              }}
+            >
+              <FileUp aria-hidden />
+              {t('importInvestments')}
+            </Button>
+          </>
+        )}
         {canWrite && (
           <Button
             variant="primary"
@@ -239,6 +268,18 @@ export function AccountsScreen({
           onClose={close}
           onDone={() => {
             finish(dialog.target.kind === 'account' ? 'accountDeleted' : 'productDeleted');
+          }}
+        />
+      )}
+      {importing && (
+        <ImportDialog
+          kind={importing}
+          poolId={poolId}
+          accounts={screen.accounts}
+          portfolios={portfolios}
+          categories={categories}
+          onClose={() => {
+            setImporting(null);
           }}
         />
       )}

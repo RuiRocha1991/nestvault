@@ -212,6 +212,12 @@ folder up together with the key, and to rotate the key put the new one first as
 `APP_ENCRYPTION_KEY=new:<key>,old:<key>`. The parser container must be running (`pnpm parser:up`)
 for an import; the rest of the app does not need it.
 
+In the app, **Contas e poupanças → Importar extrato** (`/<poolId>/importar`) is the screen for it: drop a
+file, the format is detected, choose the account, check the preview and confirm. Importing needs the
+`imports.run` permission (owner, admin and member; not viewer). The Playwright import specs
+(`tests/e2e/import.spec.ts`) also need the parser container; their generated statements are in
+`tests/e2e/fixtures/imports` (regenerate with `cd services/parser && uv run python scripts/export_e2e_fixtures.py`).
+
 ## Repository layout
 
 ```

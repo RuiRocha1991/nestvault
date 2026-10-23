@@ -134,6 +134,11 @@ query)`. `APP_URL`, `PASSWORD` and `SECRET` are exported too.
   the first); `E2E_SIGNUP_SERVER=1|0` forces it on or off. Each has its own `APP_URL`, because the Origin check compares against it.
 - `smoke.spec.ts`: the shell loads, navigation works, the theme survives a reload.
   `csp.spec.ts`: no Content-Security-Policy violation on the shell pages.
+- `import.spec.ts` (NES-64): the import screen with the real parser service (`pnpm parser:up`; CI starts
+  it too) and the generated statements of `tests/e2e/fixtures/imports`. One test per format from the
+  `FORMATS` list (Trade Republic, XTB, Banco Invest), plus the generic csv mapping, a refused file
+  type, roles and the link on Contas. BPI (NES-59) and the investment CSV (NES-63) are added as
+  one more `FORMATS` entry each when their parsers land.
 - Failures keep a trace and an HTML report (CI uploads them as the `playwright-report` artifact).
 - Sign-in: `tests/e2e/global-setup.ts` resets the `_test` databases (needs `pnpm db:up`), creates
   the E2E owner (`tests/e2e/support/user.ts`) and stores a signed-in session in

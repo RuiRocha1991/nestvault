@@ -10,6 +10,7 @@ import {
   getPortfolioList,
   getSavingsProducts,
 } from '@webapp/server/accounts-screen';
+import { getCategories } from '@webapp/server/expenses';
 import { getHolders } from '@webapp/server/holders';
 import { getPoolPermissions } from '@webapp/server/pool';
 
@@ -28,6 +29,9 @@ export default async function AccountsPage({ params }: { params: Promise<{ poolI
     getPortfolioList(poolId),
     getHolders(poolId),
   ]);
+  // The import dialogs show predicted categories; only people who may import need them.
+  const canImport = permissions.includes('imports.run');
+  const categories = canImport ? (await getCategories(poolId)).categories : [];
 
   return (
     <>
@@ -40,6 +44,8 @@ export default async function AccountsPage({ params }: { params: Promise<{ poolI
         holders={holders}
         suggestedColor={nextHolderColor(holders.map((holder) => holder.color))}
         canWrite={permissions.includes('accounts.write')}
+        canImport={canImport}
+        categories={categories}
       />
     </>
   );

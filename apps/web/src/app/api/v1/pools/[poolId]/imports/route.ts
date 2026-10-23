@@ -23,3 +23,14 @@ export const POST = route<{ poolId: string }>(async (req, ctx) => {
   ).start(req.headers, poolId, () => readUpload(req, { maxFileBytes: IMPORT_MAX_BYTES }));
   return NextResponse.json(result, { status: result.status === 'preview' ? 201 : 200 });
 });
+
+// The last imports of the pool that were committed (`?accountId=` narrows it to one account), newest
+// first, for the history of the import screen. Guards in the service: session, strict query,
+// membership (404), `imports.run` (403), `withPool` (RLS). A read: no audit entry.
+export const GET = route<{ poolId: string }>(async (req, ctx) => {
+  await signedIn(req, ctx);
+  const { poolId } = await ctx.params;
+  ctx.setActor({ poolId });
+  const query = Object.fromEntries(new URL(req.url).searchParams);
+  return NextResponse.json(await (await getImportsService()).history(req.headers, poolId, query));
+});

@@ -82,6 +82,7 @@ export async function buildPreview(
     },
     remembered: stored.remembered,
     accountId,
+    accountHint: response.meta.account_hint,
     reconciled: response.meta.reconciled,
     openingBalance: response.meta.opening_balance,
     closingBalance: response.meta.closing_balance,
