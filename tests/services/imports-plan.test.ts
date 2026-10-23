@@ -16,6 +16,7 @@ const bank = (date: string, description: string, amount: string): ParsedRow => (
   description,
   amount,
   balance: null,
+  type: null,
   external_id: null,
 });
 

@@ -76,3 +76,50 @@ def make_many_entries(count: int) -> bytes:
         for number in range(count):
             archive.writestr(f"xl/part{number}.xml", "x")
     return buffer.getvalue()
+
+
+def make_layout_pdf(pages: list[list[str]], width: int = 1000, leading: int = 13) -> bytes:
+    """Monospaced pages (Courier 12, 7.2 pt per character) so `extract_text(layout=True)` gives
+    back the same columns the lines were written with. Text is WinAnsi: `€`, `ç`, `ã` work."""
+    objects: list[bytes] = [b"", b"", b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier"]
+    objects[2] += b" /Encoding /WinAnsiEncoding >>"
+    kids: list[int] = []
+    for lines in pages:
+        text = f"BT /F1 12 Tf 20 800 Td {leading} TL " + " ".join(
+            f"({_escape_cp1252(line)}) Tj T*" for line in lines
+        )
+        stream = (text + " ET").encode("latin-1")
+        content = len(objects) + 2
+        kids.append(content - 1)
+        objects.append(
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} 842] /Contents {content} 0 R "
+            f"/Resources << /Font << /F1 3 0 R >> >> >>".encode()
+        )
+        objects.append(
+            b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"
+        )
+    objects[0] = b"<< /Type /Catalog /Pages 2 0 R >>"
+    kid_refs = " ".join(f"{k} 0 R" for k in kids)
+    objects[1] = f"<< /Type /Pages /Kids [{kid_refs}] /Count {len(kids)} >>".encode()
+    return _assemble(objects)
+
+
+def _escape_cp1252(text: str) -> str:
+    raw = text.encode("cp1252").decode("latin-1")
+    return raw.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _assemble(objects: list[bytes]) -> bytes:
+    out = bytearray(b"%PDF-1.4\n")
+    offsets: list[int] = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n".encode() + body + b"\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode()
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode()
+    out += (
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    )
+    return bytes(out)

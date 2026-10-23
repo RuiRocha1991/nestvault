@@ -28,6 +28,11 @@ Errors are `{code, message}`; a message never contains file content.
 | --- | --- | --- | --- |
 | `banco-invest-xlsx` | broker | Banco Invest "Posição Actual" (xlsx/xlsm) | One buy per lot (`Subscrição`, `Subs / T`), `holder` = first name of the account holder, stable `external_id`; the quote is returned in `prices`; units are reconciled against the bank's summary table. |
 | `xtb-xlsx` | broker | XTB account report (xlsx: `Cash Operations`, `Open Positions`) | One row per operation, `external_id` = `xtb:<operation id>`. Dividends, the tax withheld on them (`tax`) and later refunds (`refund`) are separate rows sharing symbol and date. Free-funds interest and its tax have no symbol. `meta.account_hint` is the account number, `prices` the open positions' current price. Reconciles the operations against the report's `Total`. |
+| `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `fee`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
+| `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
+
+PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
+fixture statement; the golden test runs `docs/tools/extrato_para_csv.py` on it and compares.
 
 `tests/support/banco_invest.py` generates the fixture workbook; the golden test compares its lots
 with `docs/tools/bancoinvest_para_csv.py`.

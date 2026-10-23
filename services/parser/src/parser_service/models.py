@@ -10,6 +10,7 @@ Decimal_ = Annotated[str, StringConstraints(pattern=r"^-?\d+(\.\d+)?$", max_leng
 Text = Annotated[str, StringConstraints(max_length=500)]
 Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
 ParserKind = Literal["bank", "broker"]
+BankRowType = Literal["transfer", "card", "interest", "trade", "dividend", "fee", "other"]
 
 
 class _Strict(BaseModel):
@@ -23,6 +24,8 @@ class BankRow(_Strict):
     amount: Decimal_
     balance: Decimal_ | None = None
     external_id: Text | None = None
+    # What the statement says the movement is, when it says so. `interest` feeds `deposits.link`.
+    type: BankRowType | None = None
 
 
 class BrokerRow(_Strict):

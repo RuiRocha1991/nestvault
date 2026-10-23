@@ -16,6 +16,12 @@ export const parserResponseSchema = z
               .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
               .default(null),
             external_id: z.union([z.string().max(500), z.null()]).default(null),
+            type: z
+              .union([
+                z.enum(['transfer', 'card', 'interest', 'trade', 'dividend', 'fee', 'other']),
+                z.null(),
+              ])
+              .default(null),
           })
           .strict(),
         z

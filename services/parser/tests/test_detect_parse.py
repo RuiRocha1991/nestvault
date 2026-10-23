@@ -59,6 +59,7 @@ def test_parse_returns_schema_valid_rows(client: TestClient) -> None:
             "amount": "-1.20",
             "balance": None,
             "external_id": None,
+            "type": None,
         }
     ]
     assert body["meta"]["row_count"] == 1

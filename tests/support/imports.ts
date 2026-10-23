@@ -23,6 +23,7 @@ export const bankRow = (
   description,
   amount,
   balance,
+  type: null,
   external_id: null,
 });
 
