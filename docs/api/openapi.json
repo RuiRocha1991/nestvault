@@ -86,6 +86,10 @@
       "description": "Interest received by savings accounts, entered by hand"
     },
     {
+      "name": "Imports",
+      "description": "Bank and broker statements: upload, preview and idempotent commit"
+    },
+    {
       "name": "Notes",
       "description": "Notes on movements and operations, and month notes"
     },
@@ -1021,6 +1025,1920 @@
                     "status"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/imports": {
+      "post": {
+        "operationId": "startImport",
+        "summary": "Upload a statement and preview it",
+        "description": "multipart/form-data with `file` and optional `accountId`, `parserId`, `spec`. The answer depends on `status`: `preview` (201) has the batch and its lines, each marked as a duplicate or new with the category the pool’s rules would give and the internal transfers it would complete; `choose-parser` (200) lists the formats that fit when several do or only a weak one does, upload again with `parserId`; `needs-mapping` (200) is for a csv no format recognises: a guessed column mapping to confirm, upload again with `spec`. A file that was already imported (same SHA-256) is reported in `duplicateFile`. Nothing is written to the ledger.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The statement: .xlsx, .xlsm, .pdf or .csv, at most 10 MB."
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The account the lines are for. It makes the duplicates known and selects the parser and column mapping the account used last."
+                  },
+                  "parserId": {
+                    "type": "string",
+                    "description": "A format the user chose among the candidates of an earlier answer."
+                  },
+                  "spec": {
+                    "type": "string",
+                    "description": "JSON text of a column mapping (an import spec) the user confirmed, as proposed by an earlier answer."
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A choice of formats, or a column mapping to confirm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "preview"
+                          ]
+                        },
+                        "batchId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "bank",
+                            "broker"
+                          ]
+                        },
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "parser": {
+                          "type": "object",
+                          "properties": {
+                            "parserId": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "bank",
+                                "broker"
+                              ]
+                            },
+                            "version": {
+                              "type": "string"
+                            },
+                            "confidence": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "parserId",
+                            "kind",
+                            "version",
+                            "confidence"
+                          ]
+                        },
+                        "remembered": {
+                          "type": "boolean"
+                        },
+                        "accountId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "reconciled": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "openingBalance": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "closingBalance": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "duplicateFile": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "committedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "required": [
+                            "committedAt"
+                          ]
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "new": {
+                              "type": "integer"
+                            },
+                            "duplicates": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "skipped": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "total",
+                            "new",
+                            "duplicates",
+                            "skipped"
+                          ]
+                        },
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "index": {
+                                    "type": "integer"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "bank"
+                                    ]
+                                  },
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "duplicate": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  },
+                                  "categoryId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "uuid"
+                                  },
+                                  "transfer": {
+                                    "type": "boolean"
+                                  },
+                                  "transferPair": {
+                                    "type": "boolean"
+                                  },
+                                  "valid": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "index",
+                                  "kind",
+                                  "date",
+                                  "description",
+                                  "amount",
+                                  "balance",
+                                  "duplicate",
+                                  "categoryId",
+                                  "transfer",
+                                  "transferPair",
+                                  "valid"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "index": {
+                                    "type": "integer"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "broker"
+                                    ]
+                                  },
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "type": {
+                                    "type": "string"
+                                  },
+                                  "symbol": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "quantity": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "price": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "amount": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  },
+                                  "holder": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "duplicate": {
+                                    "type": [
+                                      "boolean",
+                                      "null"
+                                    ]
+                                  },
+                                  "supported": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "index",
+                                  "kind",
+                                  "date",
+                                  "type",
+                                  "symbol",
+                                  "quantity",
+                                  "price",
+                                  "amount",
+                                  "currency",
+                                  "holder",
+                                  "duplicate",
+                                  "supported"
+                                ]
+                              }
+                            ]
+                          },
+                          "maxItems": 2000
+                        },
+                        "rowsTruncated": {
+                          "type": "boolean"
+                        },
+                        "broker": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "symbols": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "symbol": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "assetId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "uuid"
+                                  }
+                                },
+                                "required": [
+                                  "symbol",
+                                  "name",
+                                  "assetId"
+                                ]
+                              }
+                            },
+                            "holders": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "holder": {
+                                    "type": "string"
+                                  },
+                                  "subAccountId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "uuid"
+                                  }
+                                },
+                                "required": [
+                                  "holder",
+                                  "subAccountId"
+                                ]
+                              }
+                            },
+                            "portfolioId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "uuid"
+                            }
+                          },
+                          "required": [
+                            "symbols",
+                            "holders",
+                            "portfolioId"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "batchId",
+                        "kind",
+                        "fileName",
+                        "parser",
+                        "remembered",
+                        "accountId",
+                        "reconciled",
+                        "openingBalance",
+                        "closingBalance",
+                        "warnings",
+                        "duplicateFile",
+                        "summary",
+                        "rows",
+                        "rowsTruncated",
+                        "broker"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "choose-parser"
+                          ]
+                        },
+                        "candidates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "parserId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "bank",
+                                  "broker"
+                                ]
+                              },
+                              "version": {
+                                "type": "string"
+                              },
+                              "confidence": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "parserId",
+                              "kind",
+                              "version",
+                              "confidence"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "candidates"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "needs-mapping"
+                          ]
+                        },
+                        "spec": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "header": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "preview": {
+                          "type": "object",
+                          "properties": {
+                            "rowCount": {
+                              "type": "integer"
+                            },
+                            "reconciled": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "rows": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string",
+                                    "format": "date"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "date",
+                                  "description",
+                                  "amount",
+                                  "balance"
+                                ]
+                              },
+                              "maxItems": 20
+                            }
+                          },
+                          "required": [
+                            "rowCount",
+                            "reconciled",
+                            "rows"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "spec",
+                        "header",
+                        "preview"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A preview, ready to commit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "preview"
+                      ]
+                    },
+                    "batchId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "bank",
+                        "broker"
+                      ]
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "parser": {
+                      "type": "object",
+                      "properties": {
+                        "parserId": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "bank",
+                            "broker"
+                          ]
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "confidence": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "parserId",
+                        "kind",
+                        "version",
+                        "confidence"
+                      ]
+                    },
+                    "remembered": {
+                      "type": "boolean"
+                    },
+                    "accountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "reconciled": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "openingBalance": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "closingBalance": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "duplicateFile": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "committedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "committedAt"
+                      ]
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "new": {
+                          "type": "integer"
+                        },
+                        "duplicates": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "skipped": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "new",
+                        "duplicates",
+                        "skipped"
+                      ]
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "index": {
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "bank"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "string"
+                              },
+                              "balance": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "duplicate": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "categoryId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "transfer": {
+                                "type": "boolean"
+                              },
+                              "transferPair": {
+                                "type": "boolean"
+                              },
+                              "valid": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "index",
+                              "kind",
+                              "date",
+                              "description",
+                              "amount",
+                              "balance",
+                              "duplicate",
+                              "categoryId",
+                              "transfer",
+                              "transferPair",
+                              "valid"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "index": {
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "broker"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "quantity": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "amount": {
+                                "type": "string"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "holder": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "duplicate": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "supported": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "index",
+                              "kind",
+                              "date",
+                              "type",
+                              "symbol",
+                              "quantity",
+                              "price",
+                              "amount",
+                              "currency",
+                              "holder",
+                              "duplicate",
+                              "supported"
+                            ]
+                          }
+                        ]
+                      },
+                      "maxItems": 2000
+                    },
+                    "rowsTruncated": {
+                      "type": "boolean"
+                    },
+                    "broker": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "symbols": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "assetId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              }
+                            },
+                            "required": [
+                              "symbol",
+                              "name",
+                              "assetId"
+                            ]
+                          }
+                        },
+                        "holders": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "holder": {
+                                "type": "string"
+                              },
+                              "subAccountId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              }
+                            },
+                            "required": [
+                              "holder",
+                              "subAccountId"
+                            ]
+                          }
+                        },
+                        "portfolioId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "symbols",
+                        "holders",
+                        "portfolioId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "batchId",
+                    "kind",
+                    "fileName",
+                    "parser",
+                    "remembered",
+                    "accountId",
+                    "reconciled",
+                    "openingBalance",
+                    "closingBalance",
+                    "warnings",
+                    "duplicateFile",
+                    "summary",
+                    "rows",
+                    "rowsTruncated",
+                    "broker"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported file type (decided from the content, not the name)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The content could not be processed (no format matches the file)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The parser service this request depends on is not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/imports/{batchId}": {
+      "get": {
+        "operationId": "getImport",
+        "summary": "The preview of a pending import",
+        "description": "The same preview again; `?accountId=` shows it for another account. 409 once the batch is committed or discarded.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "batchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "preview"
+                      ]
+                    },
+                    "batchId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "bank",
+                        "broker"
+                      ]
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "parser": {
+                      "type": "object",
+                      "properties": {
+                        "parserId": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "bank",
+                            "broker"
+                          ]
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "confidence": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "parserId",
+                        "kind",
+                        "version",
+                        "confidence"
+                      ]
+                    },
+                    "remembered": {
+                      "type": "boolean"
+                    },
+                    "accountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "reconciled": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "openingBalance": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "closingBalance": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "duplicateFile": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "committedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "committedAt"
+                      ]
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "new": {
+                          "type": "integer"
+                        },
+                        "duplicates": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "skipped": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "new",
+                        "duplicates",
+                        "skipped"
+                      ]
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "index": {
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "bank"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "string"
+                              },
+                              "balance": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "duplicate": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "categoryId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              },
+                              "transfer": {
+                                "type": "boolean"
+                              },
+                              "transferPair": {
+                                "type": "boolean"
+                              },
+                              "valid": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "index",
+                              "kind",
+                              "date",
+                              "description",
+                              "amount",
+                              "balance",
+                              "duplicate",
+                              "categoryId",
+                              "transfer",
+                              "transferPair",
+                              "valid"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "index": {
+                                "type": "integer"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "broker"
+                                ]
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "symbol": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "quantity": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "amount": {
+                                "type": "string"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "holder": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "duplicate": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "supported": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "index",
+                              "kind",
+                              "date",
+                              "type",
+                              "symbol",
+                              "quantity",
+                              "price",
+                              "amount",
+                              "currency",
+                              "holder",
+                              "duplicate",
+                              "supported"
+                            ]
+                          }
+                        ]
+                      },
+                      "maxItems": 2000
+                    },
+                    "rowsTruncated": {
+                      "type": "boolean"
+                    },
+                    "broker": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "symbols": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "symbol": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "assetId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              }
+                            },
+                            "required": [
+                              "symbol",
+                              "name",
+                              "assetId"
+                            ]
+                          }
+                        },
+                        "holders": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "holder": {
+                                "type": "string"
+                              },
+                              "subAccountId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "uuid"
+                              }
+                            },
+                            "required": [
+                              "holder",
+                              "subAccountId"
+                            ]
+                          }
+                        },
+                        "portfolioId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "symbols",
+                        "holders",
+                        "portfolioId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "batchId",
+                    "kind",
+                    "fileName",
+                    "parser",
+                    "remembered",
+                    "accountId",
+                    "reconciled",
+                    "openingBalance",
+                    "closingBalance",
+                    "warnings",
+                    "duplicateFile",
+                    "summary",
+                    "rows",
+                    "rowsTruncated",
+                    "broker"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "discardImport",
+        "summary": "Discard a pending import",
+        "description": "Drops the stored rows of a pending batch. 409 once it is committed or discarded.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "batchId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Discarded"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/imports/{batchId}/commit": {
+      "post": {
+        "operationId": "commitImport",
+        "summary": "Commit a pending import",
+        "description": "Writes the batch into `accountId` in one transaction. Lines the account already has (same hash, or same broker id) are left alone, so importing the same file twice adds nothing; two identical lines inside one file are both kept. Notes and categories chosen by hand are never touched. New lines get the category the pool’s rules give and the transfers they complete are paired. `adjustOpeningBalance` sets the account’s opening balance so that its balance equals the statement’s closing balance. Broker files also need a portfolio and an asset for every symbol (`assets`, or `newAssets` to create them); dividends, the tax withheld and its refund become one operation. A batch of another pool answers 404, one already settled 409.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "batchId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "adjustOpeningBalance": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "portfolioId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "assets": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "default": {}
+                  },
+                  "newAssets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ticker": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80,
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "stock",
+                            "etf",
+                            "fund",
+                            "reit",
+                            "ppr",
+                            "bond",
+                            "crypto",
+                            "other"
+                          ]
+                        },
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "EUR",
+                            "USD",
+                            "GBP",
+                            "CHF"
+                          ]
+                        },
+                        "symbol": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 30
+                        },
+                        "sector": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1,
+                          "maxLength": 40,
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        },
+                        "region": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "minLength": 1,
+                          "maxLength": 40,
+                          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                        },
+                        "dps": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "divMonths": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 12
+                          },
+                          "maxItems": 12
+                        }
+                      },
+                      "required": [
+                        "ticker",
+                        "name",
+                        "type",
+                        "currency",
+                        "symbol"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 200,
+                    "default": []
+                  },
+                  "subAccounts": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "default": {}
+                  }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batchId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "committed"
+                      ]
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "inserted": {
+                      "type": "integer"
+                    },
+                    "duplicates": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "categorized": {
+                      "type": "integer"
+                    },
+                    "transfersPaired": {
+                      "type": "integer"
+                    },
+                    "assetsCreated": {
+                      "type": "integer"
+                    },
+                    "openingBalanceAdjusted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "batchId",
+                    "status",
+                    "accountId",
+                    "inserted",
+                    "duplicates",
+                    "skipped",
+                    "categorized",
+                    "transfersPaired",
+                    "assetsCreated",
+                    "openingBalanceAdjusted"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

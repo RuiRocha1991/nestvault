@@ -221,8 +221,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   imported statement files and, later, TOTP secrets. Amounts and dates stay in clear (they are
   queried and aggregated); IBANs are stored in clear but never logged (decision to revisit).
   The Ubuntu machine should use full-disk encryption; DB backups are encrypted.
-- **Where:** `packages/crypto`.
-- **Verified by:** unit tests (round-trip, tamper detection, rotation).
+- **Where:** `packages/crypto` (`encrypt`, `decrypt`, `rotate`, `parseKeyRing`). The blob is
+  `[format][key id length][key id][iv 12][ciphertext][tag 16]`; the header and a caller context
+  (the pool and the file hash) are authenticated, so a file copied under another name or into
+  another pool does not decrypt. `APP_ENCRYPTION_KEY` is one base64 key (id `k1`) or a list
+  `new:<key>,old:<key>` whose first entry encrypts: rotating means putting the new key first and
+  dropping the old one once `rotate` has re-encrypted every file. The uploaded statements are
+  stored by `packages/services/src/imports/storage.ts` under `IMPORT_STORAGE_DIR` (outside the web
+  root, one folder per pool, `<sha256>.bin`, files `0600`, folders `0700`, written beside the
+  target and renamed).
+- **Verified by:** unit tests (round-trip, a flipped bit in any byte of the blob, truncation, wrong
+  context, wrong key, rotation, key-list parsing: `tests/crypto/aes-gcm.test.ts`; the file store:
+  not readable on disk, not readable without the key, readable after a rotation, copied file
+  refused, ids never reach the file system as a path: `tests/services/imports-storage.test.ts`).
 
 ## 6. Server-side authentication
 - **What:** Better Auth with database sessions. Next.js `middleware.ts` only redirects for UX;
@@ -571,6 +582,30 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   SHA-256, original filename kept only as metadata. Never execute or render uploaded content.
   Parsing happens only in the isolated parser service (21).
 - **Verified by:** importer tests with an oversized file, a renamed executable and a zip bomb.
+- **Statement uploads (NES-57)** — `POST /api/v1/pools/:poolId/imports` (multipart). The body is
+  read only after the caller is a member with `imports.run` (the service calls `read()` after the
+  guards), counted while it is read and cut off at 10 MB plus the multipart envelope (413, also
+  when `Content-Length` lies); at most one `file` and a few short text fields (`accountId`,
+  `parserId`, `spec`), anything else is a 400. The type is decided from the **bytes** by
+  `imports/file-type.ts` (`%PDF-`; a zip with `[Content_Types].xml` and `xl/workbook`; text without
+  NUL and almost no control characters) and the extension must agree with it (415), so an `.exe`
+  renamed `.xlsx` never reaches the parser. The file name is cleaned (no path, no control
+  characters, 200 characters) and kept only as metadata. The file is stored encrypted (5) before
+  the preview exists; the preview rows live in `import_batches.preview` (RLS) and are dropped when
+  the batch is committed or discarded. 20 uploads an hour per pool (`imports` bucket). Audit:
+  `import.uploaded` / `import.committed` / `import.discarded` with the batch id and a row count.
+  The commit writes through the repositories only, in one `withPool` transaction, with
+  `ON CONFLICT DO NOTHING` on `(pool_id, account_id, hash)` (lines) and `(pool_id, account_id,
+  ext_id)` (broker operations), never touches notes or categories chosen by hand, and answers 404
+  for a batch of another pool, 409 for one already settled.
+  Verified by `tests/services/imports.integration.test.ts` (guards, rate limit, format choice,
+  preview writes nothing, idempotent commit, identical lines, notes kept, rollback, other pool,
+  audit without content, broker commit), `tests/services/imports-file-type.test.ts`,
+  `tests/services/imports-plan.test.ts`, `tests/services/imports-parser-client.test.ts`,
+  `tests/db/import-batches.repo.integration.test.ts` and
+  `tests/db/import-support.repo.integration.test.ts` (RLS, isolation, injection payloads),
+  `tests/web/imports-route.integration.test.ts` (the multipart route: 401, 404, 403, 413, 415, 400,
+  Origin) and the route registry of the isolation suite.
 - **The prototype's JSON export (NES-47)** is the one upload that is data, not a statement, and it
   writes a whole pool at once, so it is the strictest. `POST /api/v1/pools/:poolId/import-prototype`:
   the body is counted while it is read and cut off at 10 MB (413), parsed as strict UTF-8 JSON, its

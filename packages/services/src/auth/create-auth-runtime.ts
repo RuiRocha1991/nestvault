@@ -1,3 +1,4 @@
+import { parseKeyRing } from '@nestvault/crypto';
 import { createIdentityDatabase } from '@nestvault/db';
 
 import { createAccountService, type AccountService } from '../account';
@@ -8,6 +9,12 @@ import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
 import { createExpensesService, type ExpensesService } from '../expenses';
 import { createHoldersService, type HoldersService } from '../holders';
+import {
+  createEncryptedFileStore,
+  createImportsService,
+  createParserClient,
+  type ImportsService,
+} from '../imports';
 import {
   createCashMovesService,
   createOpsService,
@@ -49,6 +56,15 @@ export interface AuthRuntimeConfig {
   trustedProxyHops?: number;
   email: EmailSender;
   log?: Logger;
+  /** The statement import: the parser service, where files are kept and the key that locks them. */
+  imports: {
+    parserUrl: string;
+    parserSecret: string;
+    /** `APP_ENCRYPTION_KEY`: one key, or a list `new:<key>,old:<key>` for rotation. */
+    encryptionKey: string;
+    /** Absolute directory outside any web root. */
+    storageDir: string;
+  };
 }
 
 export interface AuthRuntime {
@@ -97,6 +113,8 @@ export interface AuthRuntime {
   settings: SettingsService;
   /** Imports the prototype's JSON export into an empty pool (owner only). */
   prototypeImport: PrototypeImportService;
+  /** Bank and broker statements: upload, preview and idempotent commit. */
+  imports: ImportsService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -155,5 +173,19 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     holders: createHoldersService({ auth, identity, ...hops }),
     settings: createSettingsService({ auth, identity, ...hops }),
     prototypeImport: createPrototypeImportService({ auth, identity, limiter, ...hops }),
+    imports: createImportsService({
+      auth,
+      identity,
+      limiter,
+      parser: createParserClient({
+        url: config.imports.parserUrl,
+        secret: config.imports.parserSecret,
+      }),
+      files: createEncryptedFileStore({
+        dir: config.imports.storageDir,
+        ring: parseKeyRing(config.imports.encryptionKey),
+      }),
+      ...hops,
+    }),
   };
 }

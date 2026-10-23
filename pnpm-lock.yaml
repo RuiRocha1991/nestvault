@@ -175,6 +175,9 @@ importers:
       '@nestvault/config':
         specifier: workspace:*
         version: link:packages/config
+      '@nestvault/crypto':
+        specifier: workspace:*
+        version: link:packages/crypto
       '@nestvault/db':
         specifier: workspace:*
         version: link:packages/db
@@ -319,12 +322,17 @@ importers:
 
   packages/config:
     dependencies:
+      '@nestvault/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
       zod:
         specifier: ^4.6.5
         version: 4.6.5
+
+  packages/crypto: {}
 
   packages/db:
     dependencies:
@@ -359,6 +367,9 @@ importers:
 
   packages/services:
     dependencies:
+      '@nestvault/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       '@nestvault/db':
         specifier: workspace:*
         version: link:../db

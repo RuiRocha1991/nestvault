@@ -68,6 +68,9 @@ export const POOL_AUDIT_ACTIONS = [
   'interest.created',
   'interest.deleted',
   'note.updated',
+  'import.uploaded',
+  'import.committed',
+  'import.discarded',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
@@ -98,6 +101,7 @@ export const AUDIT_CATEGORIES = [
   'deposit',
   'interest',
   'note',
+  'import',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
 
