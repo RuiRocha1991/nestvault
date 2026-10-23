@@ -128,9 +128,17 @@ const migratorShape = {
   MIGRATOR_URL_APP: postgresUrl,
 };
 
+// Worker process (apps/worker): connects to the app database as `worker_rw`, which also owns the
+// job queues (schema `pgboss`). The web app never receives it.
+const workerShape = {
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL_WORKER: postgresUrl,
+};
+
 const testShape = {
   TEST_DATABASE_URL_IDENTITY: postgresUrl,
   TEST_DATABASE_URL_APP: postgresUrl,
+  TEST_DATABASE_URL_WORKER: postgresUrl,
   TEST_MIGRATOR_URL_IDENTITY: postgresUrl,
   TEST_MIGRATOR_URL_APP: postgresUrl,
 };
@@ -163,6 +171,7 @@ const runtimeSchema = z
 const migratorSchema = z
   .object(migratorShape)
   .superRefine(differentDatabases('MIGRATOR_URL_IDENTITY', 'MIGRATOR_URL_APP'));
+const workerSchema = z.object(workerShape);
 const testSchema = z
   .object(testShape)
   .superRefine(differentDatabases('TEST_DATABASE_URL_IDENTITY', 'TEST_DATABASE_URL_APP'))
@@ -170,12 +179,14 @@ const testSchema = z
 
 export type Env = z.infer<typeof runtimeSchema>;
 export type MigratorEnv = z.infer<typeof migratorSchema>;
+export type WorkerEnv = z.infer<typeof workerSchema>;
 export type TestEnv = z.infer<typeof testSchema>;
 
 /** Names of every variable each group reads (used by the `.env.example` completeness test). */
 export const ENV_KEYS = {
   runtime: Object.keys(runtimeShape),
   migrator: Object.keys(migratorShape),
+  worker: Object.keys(workerShape),
   test: Object.keys(testShape),
 } as const;
 
@@ -256,6 +267,11 @@ export type SeedEnv = z.infer<typeof seedSchema>;
 /** Inputs of the seed script; all optional (the script prompts for what is missing). */
 export function loadSeedEnv(source: EnvSource): SeedEnv {
   return parseOrThrow(seedSchema, source);
+}
+
+/** Connection of the worker process to the app database. */
+export function loadWorkerEnv(source: EnvSource): WorkerEnv {
+  return parseOrThrow(workerSchema, source);
 }
 
 /** Connections to the `_test` databases; read only by the integration tests. */

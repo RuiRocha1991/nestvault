@@ -61,7 +61,9 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm test:coverage`                    | `pnpm test` with the coverage report and the thresholds (CI)                                             |
 | `pnpm format` / `pnpm format:check`     | Prettier write / check                                                                                   |
 | `pnpm build`                            | Build every package (placeholders for now)                                                               |
-| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / worker (**placeholder**)                                              |
+| `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / the job worker (pg-boss; needs `pnpm db:up` and `pnpm db:migrate`)    |
+| `pnpm worker:runs`                      | Last job runs, durations and failures (`--failed`, `--limit N`); read from the `pgboss` schema           |
+| `pnpm db:worker-role`                   | Create or refresh the `worker_rw` database role on an existing volume (a fresh volume has it already)    |
 | `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`                                              |
 | `pnpm env:check` / `pnpm env:sync`      | List / add the variables your `.env.local` lacks (names only)                                            |
 | `pnpm gen:secret`                       | Print a random 32-byte base64 secret (auth secret, encryption key)                                       |
@@ -222,7 +224,7 @@ file, the format is detected, choose the account, check the preview and confirm.
 
 ```
 apps/web/            Next.js 15 app (App Router, next-intl, Tailwind with the design tokens)
-apps/worker/         scheduled jobs (pg-boss)
+apps/worker/         scheduled and on-demand jobs (pg-boss): runtime, job registry, runs CLI
 docker/              Postgres init script (docker-compose.yml and scripts/ are at the root)
 packages/domain/     pure calculations, no I/O
 packages/services/   use cases + guards

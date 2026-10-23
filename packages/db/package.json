@@ -16,6 +16,7 @@
     "@nestvault/config": "workspace:*",
     "drizzle-orm": "~0.45.4",
     "pg": "^8.23.1",
+    "pg-boss": "12.38.0",
     "tsx": "^4.23.15",
     "uuid": "^14.0.3"
   },

@@ -7,10 +7,12 @@ import {
   loadMigratorEnv,
   loadSeedEnv,
   loadTestEnv,
+  loadWorkerEnv,
   type Env,
   type MigratorEnv,
   type SeedEnv,
   type TestEnv,
+  type WorkerEnv,
 } from './schema';
 
 /** Fail fast at boot: print variable names and reasons only (never values) and exit. */
@@ -34,6 +36,11 @@ export function runtimeEnv(): Readonly<Env> {
 /** Migration user connections (migration tooling only). */
 export function migratorEnv(): Readonly<MigratorEnv> {
   return Object.freeze(orExit(() => loadMigratorEnv(process.env)));
+}
+
+/** Connection of the worker process (apps/worker only). */
+export function workerEnv(): Readonly<WorkerEnv> {
+  return Object.freeze(orExit(() => loadWorkerEnv(process.env)));
 }
 
 /** `_test` database connections (integration tests only). */
