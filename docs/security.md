@@ -104,6 +104,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   RLS, constraints, injection payloads, and `app_rw` refused on insert, update and delete of
   `fx_rates`), `tests/services/settings.integration.test.ts` (guards in order, validation, audit
   without values, per-pool overrides) and the generated route cases for `/settings` and `/fx`.
+- **Worker (NES-65)**: the worker connects as `worker_rw`: like `app_rw` (no superuser, no
+  `BYPASSRLS`, not an owner, `CONNECT` to the app databases only), so the pool policies apply to
+  every job. The web app never receives `DATABASE_URL_WORKER`. Jobs act through
+  `systemContext(poolId, permissions)` (actor `system`, only the permissions the job lists) and
+  `forEachPool`, which opens one context and one `withPool` per pool. The job queues live in schema
+  `pgboss` (owned by the migration user; `worker_rw` gets `USAGE`/`CREATE` there and nothing on the
+  identity database). A run is stored with a fixed error text; the real error goes to the log as
+  type, code and stack frames, never the message or the payload. Job runs are read by
+  `pnpm worker:runs` only: no page, action or route reads them. Verified by
+  `tests/worker/pool-isolation.integration.test.ts` (a context sees and writes only its pool, no
+  `BYPASSRLS`), `tests/worker/runtime.integration.test.ts` (retry and failure, logs without payload
+  or message, restart after a crash) and `tests/worker/exposure.test.ts` (nothing in `apps/web`).
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or

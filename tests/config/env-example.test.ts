@@ -21,6 +21,7 @@ const DOCKER_ONLY_KEYS = [
   'IDENTITY_RW_PASSWORD',
   'APP_RW_PASSWORD',
   'MIGRATOR_PASSWORD',
+  'WORKER_RW_PASSWORD',
 ];
 /** Allow-listed for the browser (packages/config/src/public.ts). */
 const PUBLIC_KEYS = ['NEXT_PUBLIC_APP_NAME'];
@@ -54,7 +55,12 @@ function fillPlaceholders(example: Record<string, string>): Record<string, strin
 
 describe('.env.example', () => {
   const example = parseExample();
-  const schemaKeys = [...ENV_KEYS.runtime, ...ENV_KEYS.migrator, ...ENV_KEYS.test];
+  const schemaKeys = [
+    ...ENV_KEYS.runtime,
+    ...ENV_KEYS.migrator,
+    ...ENV_KEYS.worker,
+    ...ENV_KEYS.test,
+  ];
 
   it('contains every variable the schema reads', () => {
     const missing = schemaKeys

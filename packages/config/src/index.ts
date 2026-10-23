@@ -9,9 +9,11 @@ export {
   loadEnv,
   loadMigratorEnv,
   loadTestEnv,
+  loadWorkerEnv,
   type Env,
   type MigratorEnv,
   type TestEnv,
+  type WorkerEnv,
 } from './schema';
 
 /** Validated, frozen server configuration. Import it only from server code. */

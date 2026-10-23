@@ -112,6 +112,7 @@ def test_compose_file_keeps_the_parser_isolated() -> None:
         "POSTGRES_PASSWORD",
         "IDENTITY_RW_PASSWORD",
         "APP_RW_PASSWORD",
+        "WORKER_RW_PASSWORD",
         "MIGRATOR_PASSWORD",
     ):
         env.setdefault(key, "x")

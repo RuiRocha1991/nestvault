@@ -22,10 +22,15 @@ export const VALID_MIGRATOR_ENV: Record<string, string> = {
   MIGRATOR_URL_APP: 'postgres://nestvault_migrator:fake-pw@127.0.0.1:5433/nestvault_app',
 };
 
+export const VALID_WORKER_ENV: Record<string, string> = {
+  DATABASE_URL_WORKER: 'postgres://worker_rw:fake-pw@127.0.0.1:5433/nestvault_app',
+};
+
 export const VALID_TEST_ENV: Record<string, string> = {
   TEST_DATABASE_URL_IDENTITY:
     'postgres://identity_rw:fake-pw@127.0.0.1:5433/nestvault_identity_test',
   TEST_DATABASE_URL_APP: 'postgres://app_rw:fake-pw@127.0.0.1:5433/nestvault_app_test',
+  TEST_DATABASE_URL_WORKER: 'postgres://worker_rw:fake-pw@127.0.0.1:5433/nestvault_app_test',
   TEST_MIGRATOR_URL_IDENTITY:
     'postgres://nestvault_migrator:fake-pw@127.0.0.1:5433/nestvault_identity_test',
   TEST_MIGRATOR_URL_APP: 'postgres://nestvault_migrator:fake-pw@127.0.0.1:5433/nestvault_app_test',

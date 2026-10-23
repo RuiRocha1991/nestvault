@@ -5,9 +5,16 @@ import {
   loadEnv,
   loadMigratorEnv,
   loadTestEnv,
+  loadWorkerEnv,
 } from '@nestvault/config/schema';
 
-import { VALID_ENV, VALID_MIGRATOR_ENV, VALID_TEST_ENV, without } from './fixtures';
+import {
+  VALID_ENV,
+  VALID_MIGRATOR_ENV,
+  VALID_TEST_ENV,
+  VALID_WORKER_ENV,
+  without,
+} from './fixtures';
 
 function messageFor(source: Record<string, string | undefined>): string {
   try {
@@ -229,5 +236,20 @@ describe('loadTestEnv', () => {
 
   it('names a missing connection', () => {
     expect(() => loadTestEnv({})).toThrow(/TEST_DATABASE_URL_IDENTITY: is required/);
+  });
+});
+
+describe('loadWorkerEnv', () => {
+  it('parses the worker connection and defaults NODE_ENV to development', () => {
+    const env = loadWorkerEnv(VALID_WORKER_ENV);
+    expect(env.DATABASE_URL_WORKER).toContain('worker_rw');
+    expect(env.NODE_ENV).toBe('development');
+  });
+
+  it('names a missing connection without printing any value', () => {
+    expect(() => loadWorkerEnv({})).toThrow(/DATABASE_URL_WORKER: is required/);
+    expect(() => loadWorkerEnv({ DATABASE_URL_WORKER: 'not a url fake-pw' })).not.toThrow(
+      /fake-pw/,
+    );
   });
 });

@@ -25,6 +25,8 @@ curl -fsS -o /dev/null http://127.0.0.1:8025 && pass "mailpit UI answers on 127.
 echo "Database isolation"
 sql identity_rw "$IDENTITY_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && pass "identity_rw connects to nestvault_identity" || fail "identity_rw cannot connect to nestvault_identity"
 sql app_rw "$APP_RW_PASSWORD" nestvault_app "select 1" >/dev/null && pass "app_rw connects to nestvault_app" || fail "app_rw cannot connect to nestvault_app"
+sql worker_rw "$WORKER_RW_PASSWORD" nestvault_app "select 1" >/dev/null && pass "worker_rw connects to nestvault_app" || fail "worker_rw cannot connect to nestvault_app (run: pnpm db:worker-role)"
+sql worker_rw "$WORKER_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && fail "worker_rw CAN connect to nestvault_identity" || pass "worker_rw cannot connect to nestvault_identity"
 sql app_rw "$APP_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && fail "app_rw CAN connect to nestvault_identity" || pass "app_rw cannot connect to nestvault_identity"
 sql identity_rw "$IDENTITY_RW_PASSWORD" nestvault_app "select 1" >/dev/null && fail "identity_rw CAN connect to nestvault_app" || pass "identity_rw cannot connect to nestvault_app"
 sql app_rw "$APP_RW_PASSWORD" nestvault_app_test "select 1" >/dev/null && pass "app_rw connects to nestvault_app_test" || fail "app_rw cannot connect to nestvault_app_test"
@@ -33,7 +35,7 @@ sql app_rw "$APP_RW_PASSWORD" postgres "select 1" >/dev/null && fail "app_rw CAN
 echo "Role attributes"
 attrs="$(sql postgres "$POSTGRES_PASSWORD" postgres "select rolsuper, rolbypassrls from pg_roles where rolname = 'app_rw'")"
 [ "$attrs" = "f|f" ] && pass "app_rw: rolsuper = false, rolbypassrls = false" || fail "app_rw attributes are '$attrs'"
-attrs="$(sql postgres "$POSTGRES_PASSWORD" postgres "select count(*) from pg_roles where rolname in ('app_rw','identity_rw','nestvault_migrator') and (rolsuper or rolbypassrls or rolcreatedb or rolcreaterole)")"
+attrs="$(sql postgres "$POSTGRES_PASSWORD" postgres "select count(*) from pg_roles where rolname in ('app_rw','identity_rw','worker_rw','nestvault_migrator') and (rolsuper or rolbypassrls or rolcreatedb or rolcreaterole)")"
 [ "$attrs" = "0" ] && pass "no application role is superuser, bypasses RLS or can create roles/databases" || fail "an application role has elevated attributes"
 
 echo "Migrator and runtime privileges"
