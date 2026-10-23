@@ -62,6 +62,19 @@ export const parserResponseSchema = z
       })
       .strict(),
     warnings: z.array(z.string().max(500)),
+    prices: z
+      .array(
+        z
+          .object({
+            symbol: z.string().max(500),
+            date: z.string().regex(new RegExp('^\\d{4}-\\d{2}-\\d{2}$')),
+            price: z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40),
+            currency: z.string().regex(new RegExp('^[A-Z]{3}$')),
+          })
+          .strict()
+          .describe('A quote the file states (for example the fund price on the report date).'),
+      )
+      .optional(),
   })
   .strict();
 export type ParserResponseSchema = z.infer<typeof parserResponseSchema>;
