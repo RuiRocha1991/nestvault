@@ -206,13 +206,41 @@ test('a member imports; a viewer has no access to the screen or the API', async 
   expect(upload.status()).toBe(403);
 });
 
-test('the import link on Contas e poupanças shows only to people who may import', async ({
+test('the import buttons on Contas e poupanças show only to people who may import', async ({
   page,
 }) => {
+  const a = messages.accounts;
   await signIn(page, world.member.email, '/contas');
-  await expect(page.getByRole('link', { name: messages.accounts.importStatement })).toBeVisible();
+  await expect(page.getByRole('button', { name: a.importStatement })).toBeVisible();
+  await expect(page.getByRole('button', { name: a.importInvestments })).toBeVisible();
   await page.context().clearCookies();
   await signIn(page, world.viewer.email, '/contas');
   await expect(page.getByRole('heading', { name: messages.nav.items.accounts })).toBeVisible();
-  await expect(page.getByRole('link', { name: messages.accounts.importStatement })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: a.importStatement })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: a.importInvestments })).toHaveCount(0);
+});
+
+test('the bank statement modal (22) imports a file from Contas e poupanças', async ({ page }) => {
+  await signIn(page, world.admin.email, '/contas');
+  const account = await seedAccount(page, { kind: 'bank' });
+  await page.reload();
+  await hydrated(page);
+
+  await page.getByRole('button', { name: messages.accounts.importStatement }).click();
+  const modal = page.getByRole('dialog', { name: t.dialog.bankTitle });
+  await modal.getByLabel(t.drop.inputLabel).setInputFiles(fixture('trade-republic.pdf'));
+  await expect(modal.getByLabel(t.account.label)).toHaveValue(account.id);
+  await modal.getByRole('button', { name: /^Importar \d+ movimentos?$/ }).click();
+  await expect(modal.getByText(t.done.title)).toBeVisible();
+  await modal.getByRole('button', { name: t.dialog.close, exact: true }).first().click();
+  await expect(modal).toBeHidden();
+});
+
+test('the investment transactions modal (21) opens from Contas e poupanças', async ({ page }) => {
+  await signIn(page, world.admin.email, '/contas');
+  await hydrated(page);
+  await page.getByRole('button', { name: messages.accounts.importInvestments }).click();
+  const modal = page.getByRole('dialog', { name: t.dialog.brokerTitle });
+  await expect(modal.getByLabel(t.drop.inputLabel)).toBeAttached();
+  await expect(modal.getByRole('link', { name: t.dialog.fullScreen })).toBeVisible();
 });

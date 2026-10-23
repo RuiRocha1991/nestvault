@@ -1982,7 +1982,8 @@
       "interestDeleted": "Juro apagado.",
       "personSaved": "Pessoa guardada."
     },
-    "importStatement": "Importar extrato"
+    "importStatement": "Importar extrato",
+    "importInvestments": "Importar transações de investimento"
   },
   "categories": {
     "housing": "Habitação",
@@ -2267,6 +2268,12 @@
       "invalid": "Os dados desta importação não são válidos. Confirma a conta e as opções.",
       "generic": "Não foi possível importar. Tenta novamente dentro de instantes.",
       "network": "Sem ligação ao servidor. Tenta novamente."
+    },
+    "dialog": {
+      "bankTitle": "Importar extrato bancário",
+      "brokerTitle": "Importar transações de investimento",
+      "close": "Fechar",
+      "fullScreen": "Abrir em ecrã completo"
     }
   }
 }

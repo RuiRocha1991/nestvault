@@ -51,7 +51,10 @@ export interface ImportScreenProps {
   accounts: readonly AccountCard[];
   portfolios: readonly PortfolioOption[];
   categories: readonly CategoryView[];
-  history: ImportHistory;
+  /** The history block under the flow; the dialogs leave it out. */
+  history?: ImportHistory;
+  /** Inside a dialog: no lead text, no history, and "Fechar" instead of the link to Contas. */
+  onClose?: () => void;
 }
 
 /**
@@ -66,6 +69,7 @@ export function ImportScreen({
   portfolios,
   categories,
   history,
+  onClose,
 }: ImportScreenProps) {
   const t = useTranslations('imports');
   const router = useRouter();
@@ -177,7 +181,7 @@ export function ImportScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="m-0 text-sm text-fg-3">{t('lead')}</p>
+      {!onClose && <p className="m-0 text-sm text-fg-3">{t('lead')}</p>}
 
       {!!problem && (
         <Alert tone="error" icon={<TriangleAlert aria-hidden />}>
@@ -284,18 +288,22 @@ export function ImportScreen({
               <Button variant="primary" onClick={reset}>
                 {t('actions.another')}
               </Button>
-              <Link
-                href={`/${encodeURIComponent(poolId)}/contas`}
-                className="inline-flex h-[34px] items-center rounded-sm border border-line-2 bg-panel-2 px-3.5 text-md font-semibold hover:border-accent-2"
-              >
-                {t('actions.viewAccounts')}
-              </Link>
+              {onClose ? (
+                <Button onClick={onClose}>{t('dialog.close')}</Button>
+              ) : (
+                <Link
+                  href={`/${encodeURIComponent(poolId)}/contas`}
+                  className="inline-flex h-[34px] items-center rounded-sm border border-line-2 bg-panel-2 px-3.5 text-md font-semibold hover:border-accent-2"
+                >
+                  {t('actions.viewAccounts')}
+                </Link>
+              )}
             </div>
           </div>
         </Card>
       )}
 
-      <HistoryBlock history={history} accountNames={accountNames} />
+      {!!history && <HistoryBlock history={history} accountNames={accountNames} />}
     </div>
   );
 }
