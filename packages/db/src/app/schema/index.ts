@@ -24,3 +24,5 @@ export { deposits, interestEntries, savingsProducts } from './savings';
 export type { DepositRow, InterestEntryRow, SavingsProductRow } from './savings';
 export { portfolioCashMoves } from './portfolio-cash';
 export type { PortfolioCashMoveRow } from './portfolio-cash';
+export { importBatches } from './imports';
+export type { ImportBatchRow } from './imports';

@@ -44,6 +44,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@nestvault/config": "workspace:*",
+    "@nestvault/crypto": "workspace:*",
     "@nestvault/db": "workspace:*",
     "@nestvault/domain": "workspace:*",
     "@nestvault/services": "workspace:*",

@@ -7,6 +7,9 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Uploaded statements in development (encrypted); never committed.
+.data/
 playwright-report/
 test-results/
 reports/

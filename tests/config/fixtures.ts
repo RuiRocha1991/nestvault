@@ -9,6 +9,7 @@ export const VALID_ENV: Record<string, string> = {
   APP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   PARSER_URL: 'http://127.0.0.1:8100',
   PARSER_SECRET: 'fake-parser-secret-0123456789-abcdefghijk',
+  IMPORT_STORAGE_DIR: '.data/imports',
   SMTP_HOST: '127.0.0.1',
   SMTP_PORT: '1025',
   SMTP_USER: '',

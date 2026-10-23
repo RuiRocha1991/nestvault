@@ -47,6 +47,8 @@ import {
   HolderDto,
   HolderListDto,
   ImportResultDto,
+  CommitImportResultDto,
+  ImportPreviewDto,
   MergePreviewDto,
   InviteDto,
   InviteListDto,
@@ -339,6 +341,39 @@ const foreignTransaction = async (s: Scenario): Promise<Foreign> => {
     },
   };
 };
+
+/** A pending statement import in pool A (made by its owner) or pool B (made by `outsider`). */
+const importIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`import-${pool}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const result = await s.world.imports.start(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      poolId,
+      () =>
+        Promise.resolve({
+          fileName: 'extrato.csv',
+          bytes: Buffer.from('Data;Descrição;Valor\n05-01-2026;Coffee;-1,20\n'),
+          fields: {},
+        }),
+    );
+    if (result.status !== 'preview') throw new Error('the import did not reach a preview');
+    return result;
+  });
+
+/** The pending import of pool B, addressed through pool A's URL: 404, and it stays pending. */
+const foreignImport = async (s: Scenario): Promise<Foreign> => {
+  const other = await importIn(s, 'B');
+  return {
+    params: { batchId: other.batchId },
+    unchanged: async () => {
+      const seen = await s.world.imports.get(await s.as('outsider'), s.poolB, other.batchId);
+      expect(seen.batchId).toBe(other.batchId);
+    },
+  };
+};
+
+/** A checking account in pool A to commit an import into. */
+const importTarget = (s: Scenario) => txAccountIn(s, 'A');
 
 /** A keyword rule in pool A or B (global category), made once per scenario. */
 const ruleIn = (s: Scenario, pool: 'A' | 'B') =>
@@ -1113,6 +1148,62 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       },
       { name: 'a body that is not an object', body: 'nope', expect: 400 },
     ],
+  },
+
+  // ---------------------------------------------------------------- pool scope: statement import
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/imports/:batchId`,
+    permission: 'imports.run',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/[batchId]/route')),
+    params: async (s) => ({ batchId: (await importIn(s, 'A')).batchId }),
+    success: { status: 200, schema: ImportPreviewDto },
+    foreign: foreignImport,
+    negatives: [
+      { name: 'an unknown query field', query: '?poolId=1', expect: 400 },
+      { name: 'an account that is not a uuid', query: '?accountId=1', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/imports/:batchId`,
+    permission: 'imports.run',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/[batchId]/route')),
+    params: async (s) => ({ batchId: (await importIn(s, 'A')).batchId }),
+    success: { status: 204 },
+    foreign: foreignImport,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/imports/:batchId/commit`,
+    permission: 'imports.run',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/[batchId]/commit/route')),
+    params: async (s) => ({ batchId: (await importIn(s, 'A')).batchId }),
+    body: async (s) => ({ accountId: (await importTarget(s)).id }),
+    success: { status: 200, schema: CommitImportResultDto },
+    foreign: foreignImport,
+    negatives: [
+      { name: 'no account', body: {}, expect: 400 },
+      {
+        name: 'a status chosen by the client',
+        body: { accountId: '0192f3a1-0000-7000-8000-000000000001', status: 'committed' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'exempt',
+    method: 'POST',
+    path: `${POOL}/imports`,
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/route')),
+    reason:
+      'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/imports-route.integration.test.ts runs the same checks against the real handler: 401, 404 for non-members, 403 below imports.run, 413 over 10 MB, 415 for a renamed executable, unknown fields, Origin and the strict success body',
   },
 
   // ---------------------------------------------------------------- pool scope: accounts

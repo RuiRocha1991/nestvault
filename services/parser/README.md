@@ -22,6 +22,18 @@ Errors are `{code, message}`; a message never contains file content.
 3. Inside it: type sniffing (`xlsx`, `pdf`, `csv`), zip limits (entries, expanded size, ratio → 422),
    then the parsers. Output is re-validated against the row models before it leaves.
 
+## Shipped parsers
+
+| Id | Kind | Input | Notes |
+| --- | --- | --- | --- |
+| `banco-invest-xlsx` | broker | Banco Invest "Posição Actual" (xlsx/xlsm) | One buy per lot (`Subscrição`, `Subs / T`), `holder` = first name of the account holder, stable `external_id`; the quote is returned in `prices`; units are reconciled against the bank's summary table. |
+| `xtb-xlsx` | broker | XTB account report (xlsx: `Cash Operations`, `Open Positions`) | One row per operation, `external_id` = `xtb:<operation id>`. Dividends, the tax withheld on them (`tax`) and later refunds (`refund`) are separate rows sharing symbol and date. Free-funds interest and its tax have no symbol. `meta.account_hint` is the account number, `prices` the open positions' current price. Reconciles the operations against the report's `Total`. |
+
+`tests/support/banco_invest.py` generates the fixture workbook; the golden test compares its lots
+with `docs/tools/bancoinvest_para_csv.py`.
+
+`tests/support/xtb.py` generates the fixture report.
+
 ## Import specs
 
 A spec is a declarative JSON (`schemas/import-spec.schema.json`, schema v1, generated from

@@ -1,6 +1,12 @@
+import { randomBytes } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { sql } from 'drizzle-orm';
 
 import { testEnv } from '@nestvault/config/node';
+import { parseKeyRing } from '@nestvault/crypto';
 import {
   createIdentityDatabase,
   newId,
@@ -18,7 +24,9 @@ import {
   createAuth,
   createInvitesService,
   createInviteVerifier,
+  createEncryptedFileStore,
   createHoldersService,
+  createImportsService,
   createMembersService,
   createMemoryEmailSender,
   createPoolsService,
@@ -48,6 +56,7 @@ import {
   type ExpensesService,
   type AuditService,
   type HoldersService,
+  type ImportsService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -82,6 +91,7 @@ import {
   SECRET,
   tokenIn,
 } from './auth-harness';
+import { createFakeParser, type FakeParser } from './imports';
 
 // The real services on the real `_test` databases, built the way `createAuthRuntime` builds them
 // (same wiring, a memory mailbox and a test clock). The isolation suite mounts it behind the Route
@@ -136,6 +146,9 @@ export interface ApiWorld {
   holders: HoldersService;
   settings: SettingsService;
   prototypeImport: PrototypeImportService;
+  imports: ImportsService;
+  /** The stand-in for the parser service behind `imports`, and where its files are kept. */
+  importsKit: { parser: FakeParser; storageDir: string };
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
   newScenario(): Promise<Scenario>;
   close(): Promise<void>;
@@ -189,6 +202,8 @@ export async function createApiWorld(): Promise<ApiWorld> {
     checkBreached: () => Promise.resolve(false),
   });
   const pools = createPoolsService({ auth, identity, trustedProxyHops: 1 });
+  const storageDir = await mkdtemp(join(tmpdir(), 'nv-world-imports-'));
+  const parser = createFakeParser();
   const world: ApiWorld = {
     identity,
     database,
@@ -320,10 +335,24 @@ export async function createApiWorld(): Promise<ApiWorld> {
       run: database.withPool,
       trustedProxyHops: 1,
     }),
+    imports: createImportsService({
+      auth,
+      identity,
+      limiter,
+      parser,
+      files: createEncryptedFileStore({
+        dir: storageDir,
+        ring: parseKeyRing(randomBytes(32).toString('base64')),
+      }),
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    importsKit: { parser, storageDir },
     async newScenario() {
       return buildScenario(world, accounts, clock);
     },
     async close() {
+      await rm(storageDir, { recursive: true, force: true });
       await identity.close();
       await database.close();
     },
