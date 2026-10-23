@@ -8,6 +8,7 @@ from .models import DetectResult, ParserInfo
 from .parsers.banco_invest import BancoInvestXlsx
 from .parsers.base import Parser
 from .parsers.generic_pdf_lines import GenericPdfLines
+from .parsers.investment_csv import InvestmentCsv
 from .parsers.trade_republic import TradeRepublicPdf
 from .parsers.xtb import XtbXlsx
 from .sniff import SniffedFile
@@ -58,4 +59,13 @@ def default_registry() -> Registry:
     """The parsers shipped with the service: the code parsers (each parser task adds its own here)
     and every spec in `specs/`, validated now so a broken spec stops the start-up."""
     specs = [SpecParser(spec) for spec in load_specs(SPECS_DIR)] if SPECS_DIR.is_dir() else []
-    return Registry([TradeRepublicPdf(), BancoInvestXlsx(), XtbXlsx(), GenericPdfLines(), *specs])
+    return Registry(
+        [
+            TradeRepublicPdf(),
+            BancoInvestXlsx(),
+            XtbXlsx(),
+            InvestmentCsv(),
+            GenericPdfLines(),
+            *specs,
+        ]
+    )
