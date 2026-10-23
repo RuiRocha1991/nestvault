@@ -14,7 +14,6 @@ export {
 } from './parser-client';
 export {
   createImportsService,
-  type CommittedImport,
   type ImportsService,
   type ImportsServiceDeps,
   type UploadInput,

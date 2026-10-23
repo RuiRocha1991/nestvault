@@ -82,12 +82,6 @@ export interface ImportsService {
   discard(headers: Headers, poolId: string, batchId: string): Promise<void>;
 }
 
-export interface CommittedImport {
-  accountId: string;
-  kind: 'bank' | 'broker';
-  inserted: number;
-}
-
 export interface ImportsServiceDeps {
   auth: Auth;
   identity: IdentityDatabase;
@@ -98,8 +92,6 @@ export interface ImportsServiceDeps {
   run?: PoolRunner;
   trustedProxyHops?: number;
   now?: () => Date;
-  /** Called after a commit; the deposit-interest linking job (`deposits.link`) plugs in here. */
-  afterCommit?: (ctx: PoolContext, committed: CommittedImport) => Promise<void>;
 }
 
 const invalid = (path: string, message: string) =>
@@ -110,7 +102,6 @@ export function createImportsService(deps: ImportsServiceDeps): ImportsService {
   const run = deps.run ?? withPool;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
   const now = deps.now ?? (() => new Date());
-  const afterCommit = deps.afterCommit ?? (() => Promise.resolve());
 
   const parseId = (id: string) => {
     if (!isUuid(id)) throw new NotFoundError();
@@ -304,18 +295,13 @@ export function createImportsService(deps: ImportsServiceDeps): ImportsService {
         });
         // A second commit of the same batch got here first: undo this one's writes too.
         if (!settled) throw new ConflictError('This import is already settled.');
-        return { outcome, kind, accountId: account.id };
+        return { outcome, accountId: account.id };
       });
 
       await recordAudit(identity, ctx, 'import.committed', {
         target: id,
         meta: { count: result.outcome.inserted },
         ip: ipOf(headers),
-      });
-      await afterCommit(ctx, {
-        accountId: result.accountId,
-        kind: result.kind,
-        inserted: result.outcome.inserted,
       });
       return CommitImportResultDto.parse({
         batchId: id,

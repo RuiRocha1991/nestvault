@@ -8,7 +8,7 @@ import {
   type PoolContext,
   type PoolTx,
 } from '@nestvault/db';
-import { applyRules, detectTransfers, type Transaction } from '@nestvault/domain';
+import { addDays, applyRules, detectTransfers, type Transaction } from '@nestvault/domain';
 
 import { loadEngineContext } from '../transactions/engine';
 
@@ -21,10 +21,6 @@ import {
 } from './plan';
 import { ImportPreviewDto, PREVIEW_ROWS_MAX, type PreviewRowDto } from './schemas';
 import type { StoredPreview } from './stored';
-
-const DAY_MS = 24 * 3600 * 1000;
-const shiftDay = (date: string, days: number) =>
-  new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 
 /** The broker symbols of the pool: matched by the stored symbol, else by the ticker without suffix. */
 export function matchAsset(
@@ -146,8 +142,8 @@ async function bankRows(
       const around = await transactionsRepo.window(
         tx,
         ctx,
-        shiftDay(dates[0] ?? '', -engine.days),
-        shiftDay(dates[dates.length - 1] ?? '', engine.days),
+        addDays(dates[0] ?? '', -engine.days),
+        addDays(dates[dates.length - 1] ?? '', engine.days),
       );
       const existing: Transaction[] = around.map((row) => ({ ...row }));
       const newcomers = fresh.map((line) => {

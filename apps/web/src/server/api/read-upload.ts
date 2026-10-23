@@ -1,5 +1,7 @@
 import { PayloadTooLargeError, ValidationError, type UploadInput } from '@nestvault/services';
 
+import { readBodyCapped } from './read-body';
+
 export interface ReadUploadOptions {
   /** Largest file accepted, in bytes. */
   maxFileBytes: number;
@@ -25,28 +27,11 @@ export async function readUpload(
     throw new ValidationError('Content-Type must be multipart/form-data.');
   }
   const limit = maxFileBytes + ENVELOPE_BYTES;
-  const declared = Number(req.headers.get('content-length') ?? '0');
-  if (declared > limit) throw new PayloadTooLargeError();
-
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  if (req.body) {
-    const reader = req.body.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value.byteLength;
-      if (received > limit) {
-        await reader.cancel();
-        throw new PayloadTooLargeError();
-      }
-      chunks.push(value);
-    }
-  }
+  const body = await readBodyCapped(req, limit);
 
   let form: FormData;
   try {
-    form = await new Response(Buffer.concat(chunks), {
+    form = await new Response(body, {
       headers: { 'content-type': contentType },
     }).formData();
   } catch {

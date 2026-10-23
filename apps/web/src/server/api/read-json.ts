@@ -1,4 +1,6 @@
-import { PayloadTooLargeError, ValidationError } from '@nestvault/services';
+import { ValidationError } from '@nestvault/services';
+
+import { readBodyCapped } from './read-body';
 
 export interface ReadJsonOptions {
   /** Hard limit on the body size in bytes; larger bodies get 413 before they are parsed. */
@@ -14,27 +16,10 @@ export async function readJson(req: Request, { maxBytes }: ReadJsonOptions): Pro
   if (mediaType !== 'application/json') {
     throw new ValidationError('Content-Type must be application/json.');
   }
-  const declared = Number(req.headers.get('content-length') ?? '0');
-  if (declared > maxBytes) throw new PayloadTooLargeError();
-
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  if (req.body) {
-    const reader = req.body.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value.byteLength;
-      if (received > maxBytes) {
-        await reader.cancel();
-        throw new PayloadTooLargeError();
-      }
-      chunks.push(value);
-    }
-  }
+  const body = await readBodyCapped(req, maxBytes);
   try {
     // `fatal` makes malformed UTF-8 an error instead of silently becoming U+FFFD.
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(body);
     return JSON.parse(text) as unknown;
   } catch {
     throw new ValidationError('The request body is not valid JSON.');

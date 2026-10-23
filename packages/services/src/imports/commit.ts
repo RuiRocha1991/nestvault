@@ -11,7 +11,7 @@ import {
   type PoolContext,
   type PoolTx,
 } from '@nestvault/db';
-import { applyRules, dec, detectTransfers, roundTo, toPlain } from '@nestvault/domain';
+import { addDays, applyRules, dec, detectTransfers, roundTo, toPlain } from '@nestvault/domain';
 
 import { ValidationError } from '../errors';
 import { linkCashMoves } from '../investments/cash-moves-match';
@@ -51,10 +51,6 @@ export const parsedInput = (input: CommitImportInput) => ({
   newAssets: input.newAssets ?? [],
   subAccounts: input.subAccounts ?? {},
 });
-
-const DAY_MS = 24 * 3600 * 1000;
-const shiftDay = (date: string, days: number) =>
-  new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 
 const invalid = (path: string, message: string) =>
   new ValidationError('The request is not valid.', [{ path, message }]);
@@ -134,8 +130,8 @@ export async function commitBank({ tx, ctx, batch, stored, account, input }: Com
     const window = await transactionsRepo.window(
       tx,
       ctx,
-      shiftDay(dates[0] ?? '', -engine.days),
-      shiftDay(dates[dates.length - 1] ?? '', engine.days),
+      addDays(dates[0] ?? '', -engine.days),
+      addDays(dates[dates.length - 1] ?? '', engine.days),
     );
     const pairs = detectTransfers(
       window.map(toEngineTransaction),

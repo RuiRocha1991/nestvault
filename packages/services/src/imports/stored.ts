@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { importSpecSchema } from './parser-client';
 import { parserResponseSchema } from './parser-rows.generated';
 
 /**
@@ -15,6 +14,3 @@ export const StoredPreview = z
   })
   .strict();
 export type StoredPreview = z.infer<typeof StoredPreview>;
-
-/** The mapping stored on a batch (`import_batches.spec`). */
-export const StoredSpec = importSpecSchema.nullable();
