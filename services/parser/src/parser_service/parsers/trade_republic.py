@@ -21,7 +21,15 @@ from ..errors import ParseFailedError
 from ..helpers import normalize_text
 from ..models import BankRow, BankRowType, ParseMeta, ParseResponse, ParserKind
 from ..sniff import SniffedFile
-from .pdf_text import MONTHS, euro_amounts, euro_to_decimal, money, pdf_to_text, strip_euro
+from .pdf_text import (
+    BALANCE_TOLERANCE,
+    MONTHS,
+    euro_amounts,
+    euro_to_decimal,
+    money,
+    pdf_to_text,
+    strip_euro,
+)
 
 _OPENING = re.compile(r"Conta corrente\s+(-?\d[\d .\u00a0\u202f]*,\d{2})\s*€")
 _DAY_MONTH = re.compile(r"^\s*(\d{1,2}) (\w{3})\.")
@@ -30,7 +38,6 @@ _HEADER = re.compile(r"^\s*DATA\s+TIPO\s+DESCRI")
 _GAP = re.compile(r"\s{2,}")
 MAX_BLOCK_LINES = 8
 DASH = "\u2013"
-_TOLERANCE = Decimal("0.011")
 
 # Keywords of the `TIPO` column (normalised), first match wins.
 _TYPES: tuple[tuple[tuple[str, ...], BankRowType], ...] = (
@@ -95,7 +102,7 @@ class TradeRepublicPdf:
         if reconciled is False:
             warnings.append("The movements do not add up to the closing balance.")
         return ParseResponse(
-            rows=list(rows),
+            rows=rows,
             meta=ParseMeta(
                 parser_id=self.id,
                 parser_version=self.version,
@@ -222,7 +229,7 @@ def _read_block(
     column, amount = values[0]
     balance = values[-1][1]
     delta = balance - previous
-    if abs(abs(delta) - amount) < _TOLERANCE:
+    if abs(abs(delta) - amount) < BALANCE_TOLERANCE:
         signed = delta
     else:
         outgoing = (

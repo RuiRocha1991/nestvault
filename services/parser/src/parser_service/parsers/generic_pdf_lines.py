@@ -10,10 +10,9 @@ from ..errors import ParseFailedError
 from ..helpers import parse_date
 from ..models import BankRow, ParseMeta, ParseResponse, ParserKind
 from ..sniff import SniffedFile
-from .pdf_text import EURO, euro_to_decimal, money, pdf_to_text
+from .pdf_text import BALANCE_TOLERANCE, EURO, euro_to_decimal, money, pdf_to_text
 
 _LINE = re.compile(r"^\s*(\d{2}[-/.]\d{2}[-/.]\d{2,4})\s+(?:\d{2}[-/.]\d{2}[-/.]\d{2,4}\s+)?(.*)$")
-_TOLERANCE = Decimal("0.011")
 MIN_LINES_TO_DETECT = 3
 
 
@@ -51,7 +50,7 @@ class GenericPdfLines:
             balance = values[-1][1] if len(values) >= 2 else None
             if balance is not None and previous is not None:
                 delta = balance - previous
-                if abs(abs(delta) - abs(amount)) < _TOLERANCE:
+                if abs(abs(delta) - abs(amount)) < BALANCE_TOLERANCE:
                     amount = delta
             if balance is not None:
                 previous = closing = balance
@@ -68,7 +67,7 @@ class GenericPdfLines:
         if not rows:
             raise ParseFailedError("No movements were found in this PDF.")
         return ParseResponse(
-            rows=list(rows),
+            rows=rows,
             meta=ParseMeta(
                 parser_id=self.id,
                 parser_version=self.version,

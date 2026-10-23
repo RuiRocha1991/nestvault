@@ -45,3 +45,7 @@ def strip_euro(text: str) -> str:
 
 def money(value: Decimal) -> str:
     return format(value.quantize(Decimal("0.01")), "f")
+
+
+# Largest rounding gap between a printed amount and the change in the printed balance.
+BALANCE_TOLERANCE = Decimal("0.011")
