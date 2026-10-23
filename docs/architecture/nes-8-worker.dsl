@@ -4,7 +4,9 @@
 workspace "NestVault — NES-8 Worker and automation" "Scheduled and on-demand jobs through the same service layer and guards" {
 
     model {
-        owner = person "Pool owner" "Sees prices, FX, dividend calendar, snapshots, reminders and the last job runs"
+        owner = person "Pool owner" "Sees prices with last and next update time, FX, dividend calendar, snapshots and reminders"
+
+        admin = person "Platform admin" "Operates the worker; sees job runs and failures only through the CLI (no screen for users or pool owners)"
 
         ecb = softwareSystem "ECB" "Daily euro reference rates (XML)" "External"
         marketProviders = softwareSystem "Market data providers" "Prices and dividends: free first (Twelve Data, Alpha Vantage, FMP, Eulerpool), paid later (EODHD). Final choice pending spike NES-91" "External"
@@ -16,7 +18,8 @@ workspace "NestVault — NES-8 Worker and automation" "Scheduled and on-demand j
             worker = container "Worker" "pg-boss process: job registry, cron in Europe/Lisbon, retries, system actor per pool" "Node.js, pg-boss" {
                 runtime = component "Job runtime" "Registry with zod payloads, cron, retry with backoff, singleton keys, graceful shutdown, structured logs" "pg-boss" "NES-65"
                 systemCtx = component "System context" "systemContext(poolId): explicit permissions per job, one withPool per pool" "TypeScript" "NES-65"
-                pricesJob = component "prices.refresh" "Hourly 08:00-22:00 Mon-Fri; one fetch per instrument for the whole app" "Job" "NES-66"
+                pricesJob = component "prices.refresh" "Markets: hourly 08:00-22:00 Mon-Fri; one fetch per instrument for the whole app" "Job" "NES-66"
+                cryptoJob = component "prices.refresh.crypto" "Crypto: hourly, 24h a day, 7 days a week" "Job" "NES-66"
                 fxJob = component "fx.refresh" "Daily 17:00; ECB XML parsed without external entities" "Job" "NES-67"
                 dividendsJob = component "dividends.refresh" "Daily at night; announced and paid events into market_dividends" "Job" "NES-93"
                 instrumentsJob = component "instruments.sync" "On demand when an asset is created or its ticker/ISIN changes" "Job" "NES-92"
@@ -25,17 +28,21 @@ workspace "NestVault — NES-8 Worker and automation" "Scheduled and on-demand j
                 snapshotJob = component "snapshots.daily" "Daily 23:30; net worth per pool" "Job" "NES-69"
                 cleanupJob = component "sessions.cleanup" "Daily; expired sessions, old invites, rate limits, discarded previews" "Job" "NES-69"
             }
+            runsCli = container "Runs CLI" "pnpm worker:runs: last runs, durations and failures" "Node.js" "NES-65"
             marketData = container "Market data layer" "MarketDataProvider interface, adapters, router by capability with env fallback chain, quota manager, symbol mapping" "TypeScript package packages/market-data" "NES-92"
             services = container "Services and domain" "Use cases, guards, linkDepositFlows, netWorth, forecastDividends" "TypeScript packages/services, packages/domain"
-            appDb = container "App database" "Pool tables with RLS; global market_* tables (read-only for app_rw, written by market role); notifications; net_worth_snapshots; schema pgboss" "PostgreSQL 16" "Database"
+            appDb = container "App database" "Pool tables with RLS; global market_* tables incl. market_quotes = current price per instrument (read-only for app_rw, written by market role); notifications; net_worth_snapshots; schema pgboss" "PostgreSQL 16" "Database"
         }
 
         owner -> web "Uses" "HTTPS"
+        admin -> runsCli "Checks job runs" "CLI"
+        runsCli -> appDb "Reads pgboss runs" "SQL"
         web -> services "Calls use cases" "in-process"
-        web -> appDb "Enqueues on-demand jobs; reads last runs" "SQL via pg-boss"
+        web -> appDb "Enqueues on-demand jobs; reads market_quotes (current price)" "SQL via pg-boss"
 
         runtime -> appDb "Stores queues, schedules and runs" "SQL, schema pgboss"
         runtime -> pricesJob "Triggers on cron"
+        runtime -> cryptoJob "Triggers on cron"
         runtime -> fxJob "Triggers on cron"
         runtime -> dividendsJob "Triggers on cron"
         runtime -> instrumentsJob "Triggers on demand"
@@ -54,7 +61,9 @@ workspace "NestVault — NES-8 Worker and automation" "Scheduled and on-demand j
         fxJob -> ecb "Fetches daily reference rates" "HTTPS/XML"
         fxJob -> appDb "Writes fx_rates" "SQL"
         cleanupJob -> appDb "Deletes expired data" "SQL"
-        pricesJob -> appDb "Writes market_prices" "SQL, market role"
+        pricesJob -> appDb "Upserts market_quotes, writes market_prices" "SQL, market role"
+        cryptoJob -> marketData "Requests crypto quotes (capability quote)" "in-process"
+        cryptoJob -> appDb "Upserts market_quotes, writes market_prices" "SQL, market role"
         dividendsJob -> appDb "Writes market_dividends" "SQL, market role"
 
         marketData -> marketProviders "Fetches quotes, history, dividends, search" "HTTPS/JSON, allow-listed hosts"
