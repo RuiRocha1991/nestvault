@@ -40,12 +40,17 @@ Constraints:
    the worker's market-data role): `market_instruments` (isin, name, type, ccy, exchange),
    `market_symbols` (instrument_id, provider_id, symbol — per-provider symbol mapping),
    `market_prices` (instrument_id, date, close, source), `market_dividends` (instrument_id,
-   ex_date, record_date, pay_date, amount, ccy, kind announced|paid, source). Pool `assets` link to an
-   instrument (`assets.instrument_id`, optional). One fetch per instrument for the whole app.
+   ex_date, record_date, pay_date, amount, ccy, kind announced|paid, source), and `market_quotes`
+   (one row per instrument with the current price: `last_price`, ccy, `fetched_at`, source, status;
+   upserted by the price job and read by the UI; `market_prices` stays the daily history). Pool
+   `assets` link to an instrument (`assets.instrument_id`, optional). One fetch per instrument for
+   the whole app.
 4. **Quota manager**: per-provider token bucket (per minute and per day) persisted in Postgres;
    symbols prioritized by number of pools holding them and staleness; when the quota runs out, the
    job stops and resumes next window — never hammer a provider.
-5. **Jobs**: `prices.refresh` hourly 08:00–22:00 on business days (unchanged, NES-66);
+5. **Jobs**: `prices.refresh` hourly 08:00–22:00 on business days (NES-66) for markets, and
+   `prices.refresh.crypto` hourly 24/7 for crypto assets (markets never close for crypto; it may need
+   its own provider chain);
    `dividends.refresh` **daily** (corporate actions change at most daily — hourly would waste quota);
    `instruments.sync` on demand when a new asset is added (search + symbol mapping).
 6. **Forecast when nothing is announced**: domain function projects the next 12 months from the
