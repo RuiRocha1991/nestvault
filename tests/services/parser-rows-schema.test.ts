@@ -20,6 +20,16 @@ describe('parserResponseSchema (generated from services/parser/schemas/rows.sche
     expect(parsed.meta.reconciled).toBeNull();
   });
 
+  it('accepts the investment CSV extras (sub-account, asset type, fee, tax, sub-account names)', () => {
+    const row = { ...broker, subaccount: 'Ana', asset_type: 'Fundo', fee: '1.5', tax: '0.8' };
+    const parsed = parserResponseSchema.parse({
+      rows: [row],
+      meta: { ...meta, subaccounts: ['Ana'] },
+      warnings: [],
+    });
+    expect(parsed.meta.subaccounts).toEqual(['Ana']);
+  });
+
   it.each([
     ['unknown row kind', { rows: [{ ...bank, kind: 'card' }] }],
     ['unknown field on a row', { rows: [{ ...bank, extra: 1 }] }],

@@ -51,6 +51,14 @@ export const parserResponseSchema = z
             currency: z.string().regex(new RegExp('^[A-Z]{3}$')),
             holder: z.union([z.string().max(500), z.null()]).default(null),
             external_id: z.union([z.string().max(500), z.null()]).default(null),
+            subaccount: z.union([z.string().max(500), z.null()]).default(null),
+            asset_type: z.union([z.string().max(500), z.null()]).default(null),
+            fee: z
+              .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
+              .default(null),
+            tax: z
+              .union([z.string().regex(new RegExp('^-?\\d+(\\.\\d+)?$')).max(40), z.null()])
+              .default(null),
           })
           .strict(),
       ]),
@@ -68,6 +76,7 @@ export const parserResponseSchema = z
           .default(null),
         reconciled: z.union([z.boolean(), z.null()]).default(null),
         account_hint: z.union([z.string().max(500), z.null()]).default(null),
+        subaccounts: z.array(z.string().max(500)).optional(),
       })
       .strict(),
     warnings: z.array(z.string().max(500)),

@@ -39,6 +39,10 @@ export const brokerRow = (overrides: Partial<Extract<FakeRow, { kind: 'broker' }
   currency: 'USD',
   holder: null,
   external_id: null,
+  subaccount: null,
+  asset_type: null,
+  fee: null,
+  tax: null,
   ...overrides,
 });
 
@@ -57,6 +61,7 @@ export function responseOf(
       closing_balance: null,
       reconciled: null,
       account_hint: null,
+      subaccounts: [],
       ...meta,
     },
     warnings,

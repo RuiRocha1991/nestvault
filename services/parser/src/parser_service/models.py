@@ -42,6 +42,12 @@ class BrokerRow(_Strict):
     currency: Currency
     holder: Text | None = None
     external_id: Text | None = None
+    # Investment CSV extras: the sub-account and asset class named in the file, the commission and
+    # the tax withheld (dividends). The import links `subaccount` to the account's sub-accounts.
+    subaccount: Text | None = None
+    asset_type: Text | None = None
+    fee: Decimal_ | None = None
+    tax: Decimal_ | None = None
 
 
 Row = Annotated[BankRow | BrokerRow, Field(discriminator="kind")]
@@ -77,6 +83,8 @@ class ParseMeta(_Strict):
     closing_balance: Decimal_ | None = None
     reconciled: bool | None = None
     account_hint: Text | None = None  # the account number the file states, to pick the account
+    # Distinct sub-account names the file mentions, so the preview can flag the unknown ones.
+    subaccounts: list[Text] = Field(default_factory=list)
 
 
 class ParseResponse(_Strict):
