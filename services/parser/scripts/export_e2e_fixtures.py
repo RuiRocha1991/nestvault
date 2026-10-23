@@ -11,10 +11,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tests.support.banco_invest import banco_invest_xlsx
+from tests.support.bpi import bpi_xlsx
 from tests.support.files import make_csv
 from tests.support.trade_republic import statement_pdf
 from tests.support.xtb import xtb_xlsx
 
+TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "investment-transactions.csv"
 DEFAULT_OUT = Path(__file__).resolve().parents[3] / "tests" / "e2e" / "fixtures" / "imports"
 
 
@@ -23,6 +25,8 @@ def main(out: Path) -> None:
     (out / "trade-republic.pdf").write_bytes(statement_pdf())
     (out / "xtb.xlsx").write_bytes(xtb_xlsx())
     (out / "banco-invest.xlsx").write_bytes(banco_invest_xlsx())
+    (out / "bpi.xlsx").write_bytes(bpi_xlsx())
+    (out / "investment-transactions.csv").write_bytes(TEMPLATE.read_bytes())
     (out / "generic-bank.csv").write_bytes(
         make_csv(
             "Data;Descrição;Valor;Saldo",

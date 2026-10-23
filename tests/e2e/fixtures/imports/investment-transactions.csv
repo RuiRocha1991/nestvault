@@ -1,0 +1,3 @@
+Data;Tipo;Ticker;Nome;Tipo de ativo;Moeda;Quantidade;Preço;Comissão;Valor;Imposto;Subconta;Titular;Cotação atual;Data cotação
+2026-01-15;Compra;ABCD;Example Global Fund;Fundo;EUR;10;25,5;2,5;;;Sub-account A;Alex Example;26,1;2026-04-01
+2026-03-20;Dividendo;ABCD;Example Global Fund;;EUR;;;;3,2;0,8;Sub-account A;;;
