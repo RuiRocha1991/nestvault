@@ -12,11 +12,7 @@ import { E2E_ORIGIN } from './support/user';
 // generated fixtures: no real statement is stored (tests/e2e/fixtures/imports, made by
 // services/parser/scripts/export_e2e_fixtures.py).
 //
-// Each format is one entry of FORMATS, so adding a format when its parser lands is one more entry
-// plus its fixture. Still to add (their parsers are not in `dev` yet):
-//   - bpi-xlsx            (NES-59): a bank statement xlsx, banner "BPI (XLSX)"
-//   - investment-csv      (NES-63): the NestVault investment CSV, a broker file
-// The task NES-64 stays open until both are covered.
+// Each format is one entry of FORMATS: a new parser adds its entry plus its fixture.
 
 const t = messages.imports;
 const fixture = (name: string) =>
@@ -50,6 +46,18 @@ const FORMATS: readonly Format[] = [
     name: 'Banco Invest xlsx',
     file: 'banco-invest.xlsx',
     parser: t.parsers.bancoInvestXlsx,
+    kind: 'broker',
+  },
+  {
+    name: 'BPI xlsx',
+    file: 'bpi.xlsx',
+    parser: t.parsers.bpiXlsx,
+    kind: 'bank',
+  },
+  {
+    name: 'Investment transactions CSV',
+    file: 'investment-transactions.csv',
+    parser: t.parsers.investmentCsv,
     kind: 'broker',
   },
 ];
