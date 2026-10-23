@@ -90,7 +90,7 @@ def _movement_lines(move: Move, balance: Decimal, columns: tuple[int, ...]) -> l
     return [
         _at([(MARGIN, date), (c_desc, move.text)]),
         _at([(c_type, move.kind), *values]),
-        _at([(MARGIN, year), (c_desc, "DE55502109007023130518")]),
+        _at([(MARGIN, year), (c_desc, "DE00000000000000000000")]),
     ]
 
 

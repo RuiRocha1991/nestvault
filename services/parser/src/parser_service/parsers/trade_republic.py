@@ -5,7 +5,7 @@ Each movement is a block of 2-3 lines that ends with its year line:
 
     19 nov.                        Depósito aceite: … para
                 Transferência                                   100,00 €              100,00 €
-    2024                           DE55502109007023130518
+    2024                           DE00000000000000000000
 
 A long type wraps over the date line and the year line (`Transação com` / `cartão`).
 
