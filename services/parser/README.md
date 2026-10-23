@@ -30,6 +30,7 @@ Errors are `{code, message}`; a message never contains file content.
 | `xtb-xlsx` | broker | XTB account report (xlsx: `Cash Operations`, `Open Positions`) | One row per operation, `external_id` = `xtb:<operation id>`. Dividends, the tax withheld on them (`tax`) and later refunds (`refund`) are separate rows sharing symbol and date. Free-funds interest and its tax have no symbol. `meta.account_hint` is the account number, `prices` the open positions' current price. Reconciles the operations against the report's `Total`. |
 | `investment-csv` | broker | Investment-transactions CSV in the prototype format (`Data;Tipo;Ticker;Nome;Tipo de ativo;Moeda;Quantidade;Preço;Comissão;Valor;Imposto;Subconta;Titular;Cotação atual;Data cotação`, also English headers; `;`/`,`/tab/`|`, decimal comma, UTF-8 or Windows-1252) | `buy` / `sell` / `dividend` rows with signed cash `amount`, `fee`, `tax`, `subaccount`, `holder`, `asset_type`; `external_id` = `csv:<hash>#<n>`; the current quote goes to `prices`; `meta.subaccounts` lists the distinct sub-account names so the preview can flag unknown ones. Cells are never evaluated (formula-looking text stays text). Template: `templates/investment-transactions.csv` (`template_csv()` / `export_csv()`). |
 | `trade-republic-pdf` | bank | Trade Republic account statement (PDF, pt-PT) | Rows carry `type` (`transfer`, `card`, `interest`, `fee`, `trade`, `dividend`, `other`); `interest` rows feed `deposits.link`. Reconciles the opening balance plus movements against the closing balance. |
+| `bpi-xlsx` | bank | BPI Net "Extracto movimentos" (xlsx, sheet `Movimentos`) | Text dates `dd-mm-aaaa`, signed amount, running balance; the file lists the newest first, rows come out oldest first. The movement date is the row date (the value date is not used). `type` is set for card purchases, transfers and fees. `meta.account_hint` is the account number; reconciles each balance against the one before. |
 | `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
 
 PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
@@ -39,6 +40,9 @@ fixture statement; the golden test runs `docs/tools/extrato_para_csv.py` on it a
 with `docs/tools/bancoinvest_para_csv.py`.
 
 `tests/support/xtb.py` generates the fixture report.
+`tests/support/bpi.py` generates the BPI fixture; `python -m tests.support.bpi` (with `PYTHONPATH=.:src`)
+rewrites the shared copy in `tests/fixtures/bpi/` (the xlsx the import e2e tests upload and the rows the
+parser must return, read by `tests/domain/bpi-fixture-rules.test.ts`).
 
 ## Import specs
 

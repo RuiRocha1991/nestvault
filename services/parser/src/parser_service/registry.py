@@ -7,6 +7,7 @@ from .errors import UnknownParserError
 from .models import DetectResult, ParserInfo
 from .parsers.banco_invest import BancoInvestXlsx
 from .parsers.base import Parser
+from .parsers.bpi_xlsx import BpiXlsx
 from .parsers.generic_pdf_lines import GenericPdfLines
 from .parsers.investment_csv import InvestmentCsv
 from .parsers.trade_republic import TradeRepublicPdf
@@ -63,6 +64,7 @@ def default_registry() -> Registry:
         [
             TradeRepublicPdf(),
             BancoInvestXlsx(),
+            BpiXlsx(),
             XtbXlsx(),
             InvestmentCsv(),
             GenericPdfLines(),
