@@ -1161,6 +1161,12 @@
                           ],
                           "format": "uuid"
                         },
+                        "accountHint": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
                         "reconciled": {
                           "type": [
                             "boolean",
@@ -1456,6 +1462,7 @@
                         "parser",
                         "remembered",
                         "accountId",
+                        "accountHint",
                         "reconciled",
                         "openingBalance",
                         "closingBalance",
@@ -1658,6 +1665,12 @@
                       ],
                       "format": "uuid"
                     },
+                    "accountHint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "reconciled": {
                       "type": [
                         "boolean",
@@ -1953,6 +1966,7 @@
                     "parser",
                     "remembered",
                     "accountId",
+                    "accountHint",
                     "reconciled",
                     "openingBalance",
                     "closingBalance",
@@ -2068,6 +2082,158 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listImports",
+        "summary": "The history of committed imports",
+        "description": "The last 50 committed imports of the pool, newest first; `?accountId=` narrows it to one account. Needs `imports.run`.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "batchId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "fileName": {
+                            "type": "string"
+                          },
+                          "rowCount": {
+                            "type": "integer"
+                          },
+                          "inserted": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "parserId": {
+                            "type": "string"
+                          },
+                          "committedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "batchId",
+                          "accountId",
+                          "fileName",
+                          "rowCount",
+                          "inserted",
+                          "parserId",
+                          "committedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/pools/{poolId}/imports/{batchId}": {
@@ -2171,6 +2337,12 @@
                         "null"
                       ],
                       "format": "uuid"
+                    },
+                    "accountHint": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "reconciled": {
                       "type": [
@@ -2467,6 +2639,7 @@
                     "parser",
                     "remembered",
                     "accountId",
+                    "accountHint",
                     "reconciled",
                     "openingBalance",
                     "closingBalance",

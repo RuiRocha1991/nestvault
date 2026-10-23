@@ -200,6 +200,60 @@
           ],
           "default": null,
           "title": "External Id"
+        },
+        "subaccount": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subaccount"
+        },
+        "asset_type": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset Type"
+        },
+        "fee": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fee"
+        },
+        "tax": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tax"
         }
       },
       "required": [
@@ -279,6 +333,14 @@
           ],
           "default": null,
           "title": "Account Hint"
+        },
+        "subaccounts": {
+          "items": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "title": "Subaccounts",
+          "type": "array"
         }
       },
       "required": [

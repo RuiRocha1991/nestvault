@@ -22,6 +22,8 @@ export {
   CommitImportInput,
   CommitImportResultDto,
   GetImportQuery,
+  ImportHistoryDto,
+  ImportHistoryQuery,
   ImportChooseParserDto,
   ImportNeedsMappingDto,
   ImportPreviewDto,

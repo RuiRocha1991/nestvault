@@ -205,6 +205,9 @@ jobs:
       # The sign-in specs need the `_test` databases (global-setup.ts migrates and seeds them).
       - name: Start Postgres and Mailpit
         run: pnpm db:up
+      # The import specs upload generated statements to the real parser service (NES-64).
+      - name: Start the statement parser
+        run: pnpm parser:up
       - name: Playwright version
         id: playwright
         run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"

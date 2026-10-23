@@ -9,6 +9,7 @@ from .parsers.banco_invest import BancoInvestXlsx
 from .parsers.base import Parser
 from .parsers.bpi_xlsx import BpiXlsx
 from .parsers.generic_pdf_lines import GenericPdfLines
+from .parsers.investment_csv import InvestmentCsv
 from .parsers.trade_republic import TradeRepublicPdf
 from .parsers.xtb import XtbXlsx
 from .sniff import SniffedFile
@@ -65,6 +66,7 @@ def default_registry() -> Registry:
             BancoInvestXlsx(),
             BpiXlsx(),
             XtbXlsx(),
+            InvestmentCsv(),
             GenericPdfLines(),
             *specs,
         ]

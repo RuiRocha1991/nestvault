@@ -32,6 +32,10 @@ const broker = (overrides: Partial<Extract<ParsedRow, { kind: 'broker' }>>): Par
   currency: 'USD',
   holder: null,
   external_id: null,
+  subaccount: null,
+  asset_type: null,
+  fee: null,
+  tax: null,
   ...overrides,
 });
 

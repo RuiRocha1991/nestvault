@@ -5244,6 +5244,47 @@
           ]
         },
         {
+          "name": "History of imports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/imports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "imports"
+              ],
+              "query": [
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "The last 50 committed imports of the pool, newest first (file name, rows, rows written, format, date); `?accountId=` narrows it to one account. Needs `imports.run`: a viewer gets 403, a non-member 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has items', () => pm.expect(pm.response.json().items).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Preview of a pending import",
           "request": {
             "method": "GET",

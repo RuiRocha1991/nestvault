@@ -2,6 +2,8 @@ import {
   CommitImportInput,
   CommitImportResultDto,
   GetImportQuery,
+  ImportHistoryDto,
+  ImportHistoryQuery,
   ImportPreviewDto,
   ImportStartDto,
 } from '@nestvault/services';
@@ -58,6 +60,21 @@ registry.registerPath({
       ...json(ImportStartDto),
     },
     ...errorResponses(400, 401, 403, 404, 413, 415, 422, 429, 500, 502),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/imports',
+  operationId: 'listImports',
+  summary: 'The history of committed imports',
+  description:
+    'The last 50 committed imports of the pool, newest first; `?accountId=` narrows it to one account. Needs `imports.run`.',
+  tags: ['Imports'],
+  request: { params: poolParams, query: ImportHistoryQuery },
+  responses: {
+    200: { description: 'The history', ...json(ImportHistoryDto) },
+    ...errorResponses(400, 401, 403, 404, 429, 500),
   },
 });
 

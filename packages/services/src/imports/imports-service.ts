@@ -37,6 +37,9 @@ import {
   CommitImportInput,
   CommitImportResultDto,
   GetImportQuery,
+  IMPORT_HISTORY_MAX,
+  ImportHistoryDto,
+  ImportHistoryQuery,
   ImportStartDto,
   MAPPING_PREVIEW_ROWS,
   UploadFields,
@@ -78,6 +81,8 @@ export interface ImportsService {
     batchId: string,
     input: unknown,
   ): Promise<CommitImportResultDto>;
+  /** The last committed imports of the pool, or of one account (`imports.run`). */
+  history(headers: Headers, poolId: string, query?: unknown): Promise<ImportHistoryDto>;
   /** Drops a pending batch (`imports.run`). */
   discard(headers: Headers, poolId: string, batchId: string): Promise<void>;
 }
@@ -92,6 +97,12 @@ export interface ImportsServiceDeps {
   run?: PoolRunner;
   trustedProxyHops?: number;
   now?: () => Date;
+}
+
+/** `inserted` of a commit's stored result, when it has one. */
+function insertedOf(result: unknown): number | null {
+  const value = (result as { inserted?: unknown } | null)?.inserted;
+  return typeof value === 'number' && Number.isInteger(value) ? value : null;
 }
 
 const invalid = (path: string, message: string) =>
@@ -308,6 +319,31 @@ export function createImportsService(deps: ImportsServiceDeps): ImportsService {
         status: 'committed',
         accountId: result.accountId,
         ...result.outcome,
+      });
+    },
+
+    async history(headers, poolId, query = {}) {
+      const session = await requireSession(auth, headers);
+      const parsed = ImportHistoryQuery.safeParse(query);
+      if (!parsed.success) throw zodProblem(parsed.error, query);
+      const ctx = await requirePoolAccess(identity, session, poolId);
+      can(ctx, 'imports.run');
+      const rows = await run(ctx, (tx) =>
+        importBatchesRepo.listCommitted(tx, ctx, {
+          accountId: parsed.data.accountId?.toLowerCase(),
+          limit: IMPORT_HISTORY_MAX,
+        }),
+      );
+      return ImportHistoryDto.parse({
+        items: rows.map((row) => ({
+          batchId: row.id,
+          accountId: row.accountId,
+          fileName: row.fileName,
+          rowCount: row.rowCount,
+          inserted: insertedOf(row.result),
+          parserId: row.parserId,
+          committedAt: row.committedAt.toISOString(),
+        })),
       });
     },
 
