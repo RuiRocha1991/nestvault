@@ -37,7 +37,13 @@ const context: RuleContext = {
 
 const categorize = (row: ExpectedRow) =>
   applyRules(
-    { id: row.description, accountId: 'main', date: row.date, ...row } satisfies Transaction,
+    {
+      id: row.description,
+      accountId: 'main',
+      date: row.date,
+      amount: row.amount,
+      description: row.description,
+    } satisfies Transaction,
     context,
   );
 
