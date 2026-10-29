@@ -35,6 +35,8 @@ Constraints:
    recorded fixtures only (no network in CI).
 2. **Routing by capability, configured by env**: `MARKET_PRICES_PROVIDERS=twelvedata,alphavantage`,
    `MARKET_DIVIDENDS_PROVIDERS=eulerpool,alphavantage` — an ordered fallback chain per capability.
+   Crypto has its own chain, `MARKET_CRYPTO_PROVIDERS=coingecko` (no ISIN, independent quota; see
+   `docs/market-data-evaluation.md`, NES-91).
    Switching provider = add the adapter, change the env var, run the backfill command.
 3. **Global market tables** in `nestvault_app` (no `pool_id`, read-only for `app_rw`, written only by
    the worker's market-data role): `market_instruments` (isin, name, type, ccy, exchange),
