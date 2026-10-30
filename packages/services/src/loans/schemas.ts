@@ -120,6 +120,10 @@ export const CreateFieldInput = z
     label: Label,
     countsAsExpense: z.boolean().optional(),
     defaultAmount: Amount.nullable().optional(),
+    /** First due date the default amount applies to. */
+    appliesFrom: z.iso.date().nullable().optional(),
+    /** Shown as a column and counted from the start; defaults to true. */
+    enabled: z.boolean().optional(),
   })
   .strict();
 export type CreateFieldInput = z.input<typeof CreateFieldInput>;

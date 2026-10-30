@@ -302,6 +302,32 @@ describe('installments', () => {
     expect(kept).toMatchObject({ custom: { condominium: '15.2500' }, total: '110' });
   });
 
+  it('creates a custom field with its start date, optionally hidden from the start', async () => {
+    const created = await create();
+    const owner = await s.as('owner');
+    const added = await world.loans.addField(owner, s.poolA, created.id, {
+      key: 'paymentProtection',
+      label: 'Seguro de proteção',
+      defaultAmount: '12.5',
+      appliesFrom: '2026-10-01',
+      enabled: false,
+      countsAsExpense: false,
+    });
+    expect(added).toMatchObject({
+      key: 'paymentProtection',
+      enabled: false,
+      countsAsExpense: false,
+      appliesFrom: '2026-10-01',
+    });
+    await expect(
+      world.loans.addField(owner, s.poolA, created.id, {
+        key: 'other',
+        label: 'x',
+        appliesFrom: 'tomorrow',
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
   it('corrects and deletes an installment, but not through another loan’s URL', async () => {
     const created = await create();
     const other = await create('owner', { name: 'Outro' });

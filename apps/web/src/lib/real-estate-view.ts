@@ -197,40 +197,88 @@ export const ratesSince = (
   purchaseDate: string,
 ) => rates.filter((rate) => rate.year > Number(purchaseDate.slice(0, 4)));
 
+/** A field of the loan as the table sees it: its column, and whether it holds any value at all. */
+export interface InstallmentField {
+  key: string;
+  label: string;
+  kind: 'builtin' | 'custom';
+  enabled: boolean;
+  countsAsExpense: boolean;
+  defaultAmount: string | null;
+  appliesFrom: string | null;
+  /** Some installment entered has a value in it (disabling it asks first; the values stay). */
+  hasValues: boolean;
+}
+
 export interface InstallmentRow {
   number: number;
   dueDate: string;
   capital: string;
   interest: string;
-  /** Insurances, fees and taxes: what the bank charges besides capital and interest. */
+  /** Every field by key, enabled or not (a disabled one keeps its values but does not count). */
+  amounts: Record<string, string>;
+  /** Sum of the enabled fields: what the bank charges besides capital and interest. */
   extras: string;
+  /** Capital + interest + the enabled fields. */
   total: string;
   /** Installments left after this one. */
   remaining: number;
   status: 'paid' | 'projected';
 }
 
+type EnteredInstallment = LoanBundle['installments'][number];
+
+const amountIn = (item: EnteredInstallment, key: string): string =>
+  key in item.custom
+    ? (item.custom[key] ?? '0')
+    : ((item as Record<string, unknown>)[key] as string);
+
+const hasAmount = (value: string | undefined): boolean =>
+  value !== undefined && !dec(value).isZero();
+
+/** The loan's fields, builtin ones first, with whether any installment entered holds a value. */
+export function installmentFields(bundle: LoanBundle): InstallmentField[] {
+  return [...bundle.loan.fields]
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'builtin' ? -1 : 1))
+    .map((field) => ({
+      ...field,
+      hasValues: bundle.installments.some((item) => hasAmount(amountIn(item, field.key))),
+    }));
+}
+
+/** The default amount applies to a due date from `appliesFrom` on (always, without one). */
+const defaultApplies = (field: InstallmentField, dueDate: string): boolean =>
+  field.defaultAmount !== null && (field.appliesFrom === null || field.appliesFrom <= dueDate);
+
 /**
  * Every installment of a loan, entered ones first and the projection after them (mockup 29).
- * A projected row carries the extras of the last installment entered.
+ * A projected row carries the amounts of the last installment entered; a field with a default
+ * amount fills the projected rows from its start date instead. Only enabled fields count in the
+ * extras and the total.
  */
 export function installmentRows(bundle: LoanBundle): InstallmentRow[] {
+  const fields = installmentFields(bundle);
+  const enabled = fields.filter((field) => field.enabled);
   const entered = new Map(bundle.installments.map((item) => [item.number, item]));
   const last = bundle.installments.at(-1);
-  const carried = last ? dec(last.total).minus(last.capital).minus(last.interest) : dec(0);
   const rows = bundle.schedule.schedule;
   return rows.map((row, index) => {
     const actual = entered.get(row.number);
-    const extras = actual
-      ? dec(actual.total).minus(actual.capital).minus(actual.interest)
-      : row.source === 'actual'
-        ? dec(0)
-        : carried;
+    const amounts = Object.fromEntries(
+      fields.map((field) => {
+        if (actual) return [field.key, amountIn(actual, field.key)];
+        if (row.source === 'actual') return [field.key, '0'];
+        if (defaultApplies(field, row.dueDate)) return [field.key, field.defaultAmount ?? '0'];
+        return [field.key, last ? amountIn(last, field.key) : '0'];
+      }),
+    );
+    const extras = sum(enabled.map((field) => amounts[field.key] ?? '0'));
     return {
       number: row.number,
       dueDate: row.dueDate,
       capital: row.capital,
       interest: row.interest,
+      amounts,
       extras: toPlain(extras),
       total: toPlain(dec(row.payment).plus(extras)),
       remaining: rows.length - index - 1,
@@ -244,18 +292,88 @@ export interface InstallmentSummary {
   projected: number;
   capital: string;
   interest: string;
+  /** Sum of each field over the rows, enabled or not (only enabled ones are in `extras`). */
+  fields: Record<string, string>;
   extras: string;
   total: string;
 }
 
 /** What the rows on screen add up to (the period summary follows the filter). */
 export function summarizeInstallments(rows: readonly InstallmentRow[]): InstallmentSummary {
+  const keys = new Set(rows.flatMap((row) => Object.keys(row.amounts)));
   return {
     paid: rows.filter((row) => row.status === 'paid').length,
     projected: rows.filter((row) => row.status === 'projected').length,
     capital: toPlain(sum(rows.map((row) => row.capital))),
     interest: toPlain(sum(rows.map((row) => row.interest))),
+    fields: Object.fromEntries(
+      [...keys].map((key) => [key, toPlain(sum(rows.map((row) => row.amounts[key] ?? '0')))]),
+    ),
     extras: toPlain(sum(rows.map((row) => row.extras))),
     total: toPlain(sum(rows.map((row) => row.total))),
   };
+}
+
+/**
+ * The enabled fields to show as columns. With `hideEmpty`, a field with no value in the given
+ * rows is left out (the data is untouched; the column comes back when the period has a value).
+ */
+export function visibleFields(
+  fields: readonly InstallmentField[],
+  rows: readonly InstallmentRow[],
+  hideEmpty: boolean,
+): InstallmentField[] {
+  return fields.filter(
+    (field) =>
+      field.enabled && (!hideEmpty || rows.some((row) => hasAmount(row.amounts[field.key]))),
+  );
+}
+
+/** `Seguro de proteção` → `seguroDeProtecao`: a unique field key from a name (letters and digits). */
+export function fieldKeyFor(name: string, taken: readonly string[]): string {
+  const words = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+  const camel = words
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join('');
+  const base = (/^[a-zA-Z]/.test(camel) ? camel : `f${camel}`).slice(0, 36) || 'field';
+  let key = base;
+  for (let n = 2; taken.includes(key); n += 1) key = `${base}${n}`;
+  return key;
+}
+
+const csvCell = (value: string): string =>
+  /[";\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+
+/** The table as CSV (semicolons, decimal point): the fixed columns plus every enabled field. */
+export function installmentsCsv(
+  rows: readonly InstallmentRow[],
+  fields: readonly InstallmentField[],
+  head: { number: string; date: string; capital: string; interest: string; total: string },
+): string {
+  const enabled = fields.filter((field) => field.enabled);
+  const lines = [
+    [
+      head.number,
+      head.date,
+      head.capital,
+      head.interest,
+      ...enabled.map((f) => f.label),
+      head.total,
+    ],
+    ...rows.map((row) => [
+      String(row.number),
+      row.dueDate,
+      row.capital,
+      row.interest,
+      ...enabled.map((field) => row.amounts[field.key] ?? '0'),
+      row.total,
+    ]),
+  ];
+  return lines.map((line) => line.map(csvCell).join(';')).join('\n');
 }

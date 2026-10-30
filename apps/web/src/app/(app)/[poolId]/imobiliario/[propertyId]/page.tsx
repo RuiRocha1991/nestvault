@@ -33,7 +33,7 @@ export default async function PropertyPage({
   return (
     <>
       <Topbar title={data.property.name} />
-      <PropertyScreen data={data} today={todayInLisbon()} />
+      <PropertyScreen poolId={poolId} data={data} today={todayInLisbon()} />
     </>
   );
 }
