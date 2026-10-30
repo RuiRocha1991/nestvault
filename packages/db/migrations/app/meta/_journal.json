@@ -127,6 +127,13 @@
       "when": 1793378056176,
       "tag": "0017_property_costs",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793380337339,
+      "tag": "0018_installment_split",
+      "breakpoints": true
     }
   ]
 }

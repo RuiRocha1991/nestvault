@@ -1,4 +1,4 @@
-import { addMonths } from './dates';
+import { addMonths, daysBetween } from './dates';
 import { dec, roundCents, sum, toPlain, type Dec, type DecInput } from './decimal';
 
 /**
@@ -264,4 +264,92 @@ export function mergeSchedule(
     .filter((row) => !taken.has(row.number))
     .map<MergedInstallment>((row) => ({ ...row, source: 'projected' }));
   return [...fromActual, ...fromProjection].sort((a, b) => a.number - b.number);
+}
+
+const INSURANCE_FIELDS: ReadonlySet<string> = new Set([
+  'lifeInsurance',
+  'homeInsurance',
+  'creditInsurance',
+]);
+
+/** An installment as the expense rule reads it: where each part of a bank debit goes. */
+export interface InstallmentCostSplit {
+  /** Interest, fees, taxes and the other expense fields. */
+  interest: string;
+  /** Life, home and credit insurance (enabled ones that count as an expense). */
+  insurance: string;
+  /** The capital: savings / equity, not an expense. */
+  capital: string;
+}
+
+/**
+ * Splits an installment for the expense rule (PRD, "Installment split"): the interest and every
+ * enabled expense field but the insurances go to `interest`, the insurances to `insurance`, the
+ * capital stays apart. A disabled field, or one that does not count as an expense, adds to nothing.
+ */
+export function installmentCostSplit(
+  row: InstallmentAmounts,
+  fields: readonly LoanFieldSetting[],
+): InstallmentCostSplit {
+  const expense = fields.filter((field) => field.enabled && field.countsAsExpense);
+  const insurances = expense.filter((field) => INSURANCE_FIELDS.has(field.key));
+  const others = expense.filter((field) => !INSURANCE_FIELDS.has(field.key));
+  return {
+    interest: toPlain(sum([row.interest, ...others.map((field) => amountOf(row, field.key))])),
+    insurance: toPlain(sum(insurances.map((field) => amountOf(row, field.key)))),
+    capital: toPlain(dec(row.capital)),
+  };
+}
+
+/** How far apart (days) an installment and its bank debit may be, and the amount tolerance (euros). */
+export const MATCH_DAYS = 5;
+export const MATCH_TOLERANCE = '0.05';
+
+export interface InstallmentToMatch {
+  id: string;
+  dueDate: string;
+  /** What the bank charges: capital + interest + enabled fields. */
+  total: DecInput;
+}
+
+export interface DebitToMatch {
+  id: string;
+  date: string;
+  /** Negative: it leaves the account. */
+  amount: DecInput;
+}
+
+export interface InstallmentMatch {
+  installmentId: string;
+  transactionId: string;
+}
+
+/**
+ * Pairs installments with the bank debits that paid them: the amount equals the installment total
+ * to within a few cents and the date is within `MATCH_DAYS` of the due date. The closest date wins,
+ * an earlier installment before a later one, and a debit is used once. The caller passes only the
+ * debits of the loan's account that are not transfers and not linked yet.
+ */
+export function matchInstallments(
+  installments: readonly InstallmentToMatch[],
+  debits: readonly DebitToMatch[],
+): InstallmentMatch[] {
+  const taken = new Set<string>();
+  const matches: InstallmentMatch[] = [];
+  const ordered = [...installments].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  for (const installment of ordered) {
+    let best: { debit: DebitToMatch; days: number } | undefined;
+    for (const debit of debits) {
+      if (taken.has(debit.id) || !dec(debit.amount).isNegative()) continue;
+      const days = Math.abs(daysBetween(installment.dueDate, debit.date));
+      if (days > MATCH_DAYS) continue;
+      if (dec(debit.amount).abs().minus(installment.total).abs().gt(MATCH_TOLERANCE)) continue;
+      if (!best || days < best.days) best = { debit, days };
+    }
+    if (best) {
+      taken.add(best.debit.id);
+      matches.push({ installmentId: installment.id, transactionId: best.debit.id });
+    }
+  }
+  return matches;
 }

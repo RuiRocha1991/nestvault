@@ -54,6 +54,7 @@ const DATA: OverviewScreenProps['data'] = {
       spark,
     },
   },
+  realEstate: null,
   evolution: { months, total: spark, investments: spark },
   goals: [
     {

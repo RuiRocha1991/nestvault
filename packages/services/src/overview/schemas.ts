@@ -89,6 +89,18 @@ export const OverviewDto = z.object({
       spark: z.array(Decimal),
     }),
   }),
+  /**
+   * The property and debt lines of the net worth; `null` when the pool has no property and no loan
+   * (the screen then shows nothing new).
+   */
+  realEstate: z
+    .object({
+      /** The household's share of the properties, at their latest valuation. */
+      value: Decimal,
+      /** What the loans still owe. */
+      liabilities: Decimal,
+    })
+    .nullable(),
   evolution: z.object({
     /** `yyyy-mm`, oldest first. */
     months: z.array(z.string()),

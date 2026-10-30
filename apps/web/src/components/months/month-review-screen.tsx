@@ -50,6 +50,9 @@ export function MonthReviewScreen({
     { key: 'savings', value: review.savings, tone: true },
     { key: 'netWorthChange', value: review.netWorthChange, tone: true },
     { key: 'invested', value: review.invested, tone: false },
+    ...(Number(review.loanCapital) > 0
+      ? [{ key: 'loanCapital', value: review.loanCapital, tone: false } as const]
+      : []),
     { key: 'dividends', value: review.dividendsReceived, tone: false },
     { key: 'interest', value: review.interestReceived, tone: false },
   ] as const;

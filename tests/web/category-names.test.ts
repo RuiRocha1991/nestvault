@@ -15,8 +15,8 @@ describe('category names (ADR 0004)', () => {
     expect(categoryMessageKey('external-transfers')).toBe('externalTransfers');
   });
 
-  it('has a name in pt-PT for each of the 26 global categories, and no other', () => {
-    expect(GLOBAL_CATEGORIES).toHaveLength(26);
+  it('has a name in pt-PT for each of the 27 global categories, and no other', () => {
+    expect(GLOBAL_CATEGORIES).toHaveLength(27);
     const keys = GLOBAL_CATEGORIES.map((category) => categoryMessageKey(category.systemKey));
     expect(Object.keys(names).sort()).toEqual([...keys].sort());
     for (const key of keys) expect(names[key]?.length ?? 0).toBeGreaterThan(0);

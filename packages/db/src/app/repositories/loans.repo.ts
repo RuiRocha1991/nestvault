@@ -190,6 +190,15 @@ export const loansRepo = {
       .orderBy(asc(loanInstallments.number));
   },
 
+  /** Every installment of the pool, by loan and number (the overview and the month review read all). */
+  async listAllInstallments(tx: PoolTx, ctx: PoolContext): Promise<LoanInstallmentRow[]> {
+    return tx
+      .select()
+      .from(loanInstallments)
+      .where(eq(loanInstallments.poolId, ctx.poolId))
+      .orderBy(asc(loanInstallments.loanId), asc(loanInstallments.number));
+  },
+
   async findInstallment(
     tx: PoolTx,
     ctx: PoolContext,

@@ -569,6 +569,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (CRUD, checks, cascade on a deleted movement, injection payloads, `expectIsolated`, RLS, composite
   keys), `tests/domain/property-costs.test.ts` and the route isolation suite (eight routes).
 
+- **Net worth with real estate and the installment split (NES-100).** `PUT/DELETE
+  /api/v1/pools/:poolId/loans/:id/installments/:installmentId/transaction` and `POST …/installments/match`
+  follow the real-estate guards (session, zod `.strict()`, membership 404, `realestate.write` 403,
+  `assertFeature('real_estate')`, `withPool`, audit `loan.installment_linked|unlinked` and
+  `loan.installments_matched` with the loan id only). `transactions.loan_installment_id` has a composite
+  foreign key with `pool_id` (a debit cannot point at another pool's installment; set null when the
+  installment is deleted) and a partial unique index (one debit per installment). Linking requires the
+  pool's own debit that is not a transfer and never rewrites the movement; the automatic match only
+  reads debits of the loan's debit account. The overview, the month review and the expenses screen read
+  the property and loan data through one loader in `packages/services`, so net worth = assets −
+  liabilities is the same number everywhere; pools without properties and loans get no new figures.
+- **Verified by:** `tests/services/real-estate-ledger.integration.test.ts` (link/unlink/match, roles,
+  404, plan, audit without amounts, net worth consistent between overview and month review,
+  regression for pools without real estate), `tests/db/installment-link.repo.integration.test.ts`
+  (unique, set null, composite key, injection payloads, `expectIsolated`),
+  `tests/domain/real-estate.test.ts` (reference month 09/2026) and the route isolation suite (three routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

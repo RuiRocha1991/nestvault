@@ -79,6 +79,8 @@ export const MonthReviewDto = z.object({
   netWorthPrevious: Amount,
   netWorthChange: Amount,
   invested: Amount,
+  /** Capital of loan installments paid in the month: savings (equity), not an expense. */
+  loanCapital: Amount,
   dividendsReceived: Amount,
   interestReceived: Amount,
   categories: z.array(MonthCategoryDto),

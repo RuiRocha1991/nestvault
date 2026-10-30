@@ -31,6 +31,18 @@ export const loanEventsRepo = {
       .orderBy(asc(loanEvents.effectiveFrom), asc(loanEvents.createdAt), asc(loanEvents.id));
   },
 
+  /** The prepayments of every loan of the pool, with the date each was paid. */
+  async listPrepayments(
+    tx: PoolTx,
+    ctx: PoolContext,
+  ): Promise<{ loanId: string; date: string; amount: string }[]> {
+    const rows = await tx
+      .select({ loanId: loanEvents.loanId, date: loanEvents.date, amount: loanEvents.amount })
+      .from(loanEvents)
+      .where(and(eq(loanEvents.poolId, ctx.poolId), eq(loanEvents.kind, 'prepayment')));
+    return rows.flatMap((row) => (row.amount === null ? [] : [{ ...row, amount: row.amount }]));
+  },
+
   async find(
     tx: PoolTx,
     ctx: PoolContext,

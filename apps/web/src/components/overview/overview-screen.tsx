@@ -228,6 +228,25 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
           to="#6A2BD9"
         />
 
+        {!!data.realEstate && (
+          <Card className="col-span-12" data-testid="real-estate-lines">
+            <dl className="flex flex-wrap gap-x-10 gap-y-2">
+              <div>
+                <dt className="text-sm text-fg-3">{t('realEstate.properties')}</dt>
+                <dd className="text-lg font-semibold" data-testid="real-estate-value">
+                  {money0(data.realEstate.value)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-fg-3">{t('realEstate.liabilities')}</dt>
+                <dd className="text-lg font-semibold" data-testid="real-estate-liabilities">
+                  {money0(data.realEstate.liabilities)}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+        )}
+
         <Card className="col-span-8 kpi2:col-span-12">
           <CardHeader
             title={t('evolution.title')}

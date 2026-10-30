@@ -1,8 +1,9 @@
 import { accountBalancesAt, type LedgerData } from './account-balance';
-import { sum, type Money } from './decimal';
+import { dec, sum, type Money } from './decimal';
 import { addTo, sumToEur, toEur, type ByCurrency } from './fx';
 import { portfolioCash } from './portfolio-cash';
 import { computeHoldingsAt } from './positions';
+import { realEstateAt } from './real-estate';
 
 export interface NetWorth {
   /** Checking and brokerage accounts plus the cash kept in portfolios. */
@@ -11,6 +12,11 @@ export interface NetWorth {
   savings: Money;
   /** Market value of the open positions. */
   investments: Money;
+  /** The properties' value to the household (zero without real estate). */
+  realEstate: Money;
+  /** What the loans still owe (zero without loans). */
+  liabilities: Money;
+  /** Assets minus liabilities. */
   net: Money;
   /** Native-currency totals; a term deposit counts as EUR. */
   byCurrency: ByCurrency;
@@ -59,11 +65,19 @@ export function netWorths(
     const cash = sum(cashParts);
     const savings = sum(savingsParts);
     const investments = sumToEur(investmentsByCurrency, rates);
+    const { realEstate, liabilities } = data.realEstate
+      ? realEstateAt(data.realEstate, asOf)
+      : { realEstate: dec(0), liabilities: dec(0) };
+    if (!realEstate.isZero() || !liabilities.isZero()) {
+      addTo(byCurrency, 'EUR', realEstate.minus(liabilities));
+    }
     return {
       cash,
       savings,
       investments,
-      net: cash.plus(savings).plus(investments),
+      realEstate,
+      liabilities,
+      net: cash.plus(savings).plus(investments).plus(realEstate).minus(liabilities),
       byCurrency,
       investmentsByCurrency,
     };

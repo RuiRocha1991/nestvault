@@ -7,7 +7,10 @@ import {
   CreateInstallmentInput,
   CreateLoanInput,
   InstallmentDto,
+  InstallmentLinkDto,
   InstallmentListDto,
+  LinkInstallmentInput,
+  MatchResultDto,
   LoanDto,
   LoanFieldDto,
   LoanListDto,
@@ -174,6 +177,54 @@ registry.registerPath({
   request: { params: Params.extend({ installmentId: z.uuid() }) },
   responses: {
     204: { description: 'Deleted' },
+    ...errorResponses(400, 401, 403, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/api/v1/pools/{poolId}/loans/{id}/installments/{installmentId}/transaction',
+  operationId: 'linkLoanInstallment',
+  summary: 'Pay an installment with a bank debit',
+  description:
+    'Needs `realestate.write` and the Pro plan. The movement must be a debit of the pool that is not a transfer; it pays at most one installment and an installment has at most one debit (409 otherwise). From then on only the interest, fees, taxes and insurances of the installment count as an expense; the capital is savings. The movement itself is never changed.',
+  tags: ['Loans'],
+  request: {
+    params: Params.extend({ installmentId: z.uuid() }),
+    body: { required: true, ...json(LinkInstallmentInput) },
+  },
+  responses: {
+    200: { description: 'The link and how the debit counts', ...json(InstallmentLinkDto) },
+    ...errorResponses(400, 401, 403, 404, 409, 413, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/pools/{poolId}/loans/{id}/installments/{installmentId}/transaction',
+  operationId: 'unlinkLoanInstallment',
+  summary: 'Take the link away',
+  description:
+    'Needs `realestate.write` and the Pro plan. The debit counts as a plain expense again.',
+  tags: ['Loans'],
+  request: { params: Params.extend({ installmentId: z.uuid() }) },
+  responses: {
+    204: { description: 'Unlinked' },
+    ...errorResponses(400, 401, 403, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/pools/{poolId}/loans/{id}/installments/match',
+  operationId: 'matchLoanInstallments',
+  summary: 'Link the installments to their bank debits',
+  description:
+    'Needs `realestate.write` and the Pro plan, and a debit account on the loan (400 otherwise). Every unlinked installment is linked to the debit of that account that is not a transfer, equals its total to within 5 cents and falls within 5 days of its due date (the closest date wins, a debit is used once). No body.',
+  tags: ['Loans'],
+  request: { params: Params },
+  responses: {
+    200: { description: 'What was linked', ...json(MatchResultDto) },
     ...errorResponses(400, 401, 403, 404, 429, 500),
   },
 });

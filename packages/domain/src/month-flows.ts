@@ -17,6 +17,8 @@ export interface MonthFlow {
   transfers: Money;
   /** Buys of the month, in EUR. */
   invested: Money;
+  /** Capital of loan installments paid in the month: savings (equity), not an expense. */
+  loanCapital: Money;
   savings: Money;
   /** `savings / income`, `null` without income. */
   savingsRate: Dec | null;
@@ -29,6 +31,7 @@ interface Accumulator {
   refunds: Dec;
   transfers: Dec;
   invested: Dec;
+  loanCapital: Dec;
 }
 
 /**
@@ -39,7 +42,14 @@ export function monthFlows(data: LedgerData, months: readonly string[]): MonthFl
   const acc = new Map<string, Accumulator>(
     months.map((m) => [
       m,
-      { income: dec(0), expense: dec(0), refunds: dec(0), transfers: dec(0), invested: dec(0) },
+      {
+        income: dec(0),
+        expense: dec(0),
+        refunds: dec(0),
+        transfers: dec(0),
+        invested: dec(0),
+        loanCapital: dec(0),
+      },
     ]),
   );
   const { rates } = data;
@@ -55,7 +65,15 @@ export function monthFlows(data: LedgerData, months: readonly string[]): MonthFl
     // EUR needs no conversion (the common case, and thousands of rows): skip the multiplication.
     const eur =
       !currency || currency === 'EUR' ? dec(tx.amount) : toEur(tx.amount, currency, rates);
-    if (kind === 'expense') a.expense = a.expense.minus(eur);
+    if (tx.installment && !tx.transfer && dec(tx.amount).isNegative()) {
+      // A debit that paid a loan installment: interest, fees, taxes and insurances are the expense;
+      // the capital is savings (equity).
+      const split = tx.installment;
+      const toEurOf = (value: DecInput) =>
+        !currency || currency === 'EUR' ? dec(value) : toEur(value, currency, rates);
+      a.expense = a.expense.plus(toEurOf(split.interest)).plus(toEurOf(split.insurance));
+      a.loanCapital = a.loanCapital.plus(toEurOf(split.capital));
+    } else if (kind === 'expense') a.expense = a.expense.minus(eur);
     else if (kind === 'refund') a.refunds = a.refunds.plus(eur);
     else if (kind === 'income') a.income = a.income.plus(eur);
     else if (kind === 'transfer') a.transfers = a.transfers.plus(eur);
@@ -82,6 +100,7 @@ export function monthFlows(data: LedgerData, months: readonly string[]): MonthFl
       refunds: a.refunds,
       transfers: a.transfers,
       invested: a.invested,
+      loanCapital: a.loanCapital,
       savings,
       savingsRate: a.income.isZero() ? null : savings.div(a.income),
     };
@@ -117,9 +136,26 @@ export function expensesByCategory(data: LedgerData, month: string): CategoryExp
   const currencyOf = new Map(data.accounts.map((a) => [a.id, a.currency]));
   const kindById = indexCategoryKinds(data.categories);
 
+  const idOfKey = (systemKey: string) =>
+    data.categories.find((category) => category.systemKey === systemKey)?.id ?? null;
+  const interestId = idOfKey('mortgage-interest');
+  const insuranceId = idOfKey('insurance');
+
   for (const tx of data.transactions) {
     const totals = perMonth.get(tx.date.slice(0, 7));
-    if (!totals || kindFromCategory(tx, kindById) !== 'expense') continue;
+    if (!totals) continue;
+    if (tx.installment && !tx.transfer && dec(tx.amount).isNegative()) {
+      // Interest and insurances are expenses, each under its own category; the capital is not.
+      const currency = currencyOf.get(tx.accountId);
+      const add = (key: string | null, value: DecInput) => {
+        if (dec(value).isZero()) return;
+        totals.set(key, (totals.get(key) ?? dec(0)).plus(toEur(value, currency, data.rates)));
+      };
+      add(interestId ?? tx.categoryId ?? null, tx.installment.interest);
+      add(insuranceId ?? tx.categoryId ?? null, tx.installment.insurance);
+      continue;
+    }
+    if (kindFromCategory(tx, kindById) !== 'expense') continue;
     const key = tx.categoryId ?? null;
     const eur = toEur(tx.amount, currencyOf.get(tx.accountId), data.rates);
     totals.set(key, (totals.get(key) ?? dec(0)).minus(eur));

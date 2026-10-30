@@ -39,6 +39,19 @@ export interface Transaction {
   transferLocked?: boolean;
   /** Linked to a term deposit's interest (see `linkDepositFlows`), so it is not counted twice. */
   depositInterest?: boolean;
+  /**
+   * The split of the loan installment this debit paid (NES-100): only `interest` and `insurance`
+   * are expenses, the `capital` is savings (equity). Amounts are positive decimal strings.
+   */
+  installment?: InstallmentSplit | null;
+}
+
+export interface InstallmentSplit {
+  /** Interest, fees, taxes and the other expense fields. */
+  interest: string;
+  /** Life, home and credit insurance. */
+  insurance: string;
+  capital: string;
 }
 
 /** Transfer flag first, then the category's kind, then the sign (negative = expense). */

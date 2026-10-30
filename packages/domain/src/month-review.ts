@@ -44,6 +44,8 @@ export interface MonthReview {
   netWorthPrevious: Money;
   netWorthChange: Money;
   invested: Money;
+  /** Capital of loan installments paid in the month: savings, not an expense. */
+  loanCapital: Money;
   dividendsReceived: Money;
   interestReceived: Money;
   categories: CategoryExpense[];
@@ -101,6 +103,7 @@ export function monthReview(data: LedgerData, month: string, today: string): Mon
     netWorthPrevious: worthPrevious,
     netWorthChange: worthEnd.minus(worthPrevious),
     invested: flow.invested,
+    loanCapital: flow.loanCapital,
     dividendsReceived: dividendsReceived(data.ops, data.assets, data.rates, [month])[0] ?? dec(0),
     interestReceived: interestOfMonth(window, month),
     categories: expensesByCategory(window, month),

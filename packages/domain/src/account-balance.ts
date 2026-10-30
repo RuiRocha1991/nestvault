@@ -11,6 +11,7 @@ import {
   type InvestmentAsset,
   type InvestmentOp,
 } from './positions';
+import type { RealEstateData } from './real-estate';
 import type { Category, Transaction } from './transactions';
 
 /** `term` deposits and `savings` accounts count as savings; everything else is cash. */
@@ -51,6 +52,8 @@ export interface LedgerData {
   rates: FxRates;
   /** Default tax on deposit interest, in percent. */
   defaultTax: DecInput;
+  /** Properties and loans; without them net worth has no real estate and no liabilities. */
+  realEstate?: RealEstateData;
 }
 
 /** Effect of an operation on the balance of the account it settles in, in the account's currency. */

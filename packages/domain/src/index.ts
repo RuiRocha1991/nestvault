@@ -25,6 +25,7 @@ export * from './goals';
 export * from './loan-events';
 export * from './loans';
 export * from './property';
+export * from './real-estate';
 export * from './transactions';
 export * from './transfers';
 export * from './transaction-hash';

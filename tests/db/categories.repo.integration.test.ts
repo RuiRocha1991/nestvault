@@ -32,11 +32,11 @@ const own = (tx: PoolTx, ctx: PoolContext, name = 'Cantina', kind = 'expense') =
   categoriesRepo.insert(tx, ctx, newId(), { name, kind, color: '#112233' });
 
 describe('the global catalogue (ADR 0004)', () => {
-  it('is seeded once with the 26 defaults and every pool sees them without a copy', async () => {
+  it('is seeded once with the 27 defaults and every pool sees them without a copy', async () => {
     const { a, b } = createTwoPools();
     const seenByA = await withPool(a.ctx, (tx) => categoriesRepo.list(tx, a.ctx));
     const seenByB = await withPool(b.ctx, (tx) => categoriesRepo.list(tx, b.ctx));
-    expect(seenByA).toHaveLength(26);
+    expect(seenByA).toHaveLength(27);
     expect(seenByB.map((row) => row.id)).toEqual(seenByA.map((row) => row.id));
     expect(seenByA.every((row) => row.poolId === null && row.name === null)).toBe(true);
     expect(
@@ -45,7 +45,7 @@ describe('the global catalogue (ADR 0004)', () => {
         .sort((x, y) => (x.systemKey ?? '').localeCompare(y.systemKey ?? '')),
     ).toEqual([...GLOBAL_CATEGORIES].sort((x, y) => x.systemKey.localeCompare(y.systemKey)));
     const stored = await database.app.pool.query('select count(*)::int as n from categories');
-    expect(stored.rows).toEqual([{ n: 26 }]);
+    expect(stored.rows).toEqual([{ n: 27 }]);
   });
 
   it('cannot be changed or removed through a pool context', async () => {
@@ -103,7 +103,7 @@ describe('the global catalogue (ADR 0004)', () => {
     const seen = await withPool(a.ctx, (tx) =>
       tx.execute(sql`select pool_id, name from categories`),
     );
-    expect(seen.rows).toHaveLength(27);
+    expect(seen.rows).toHaveLength(28);
     expect(seen.rows.filter((row) => row.pool_id !== null)).toEqual([
       { pool_id: a.poolId, name: 'só da A' },
     ]);
@@ -123,7 +123,7 @@ describe('categories of a pool', () => {
     expect(
       await withPool(b.ctx, (tx) => categoriesRepo.find(tx, b.ctx, created.id)),
     ).toBeUndefined();
-    expect(await withPool(b.ctx, (tx) => categoriesRepo.list(tx, b.ctx))).toHaveLength(26);
+    expect(await withPool(b.ctx, (tx) => categoriesRepo.list(tx, b.ctx))).toHaveLength(27);
 
     const updated = await withPool(a.ctx, (tx) =>
       categoriesRepo.update(tx, a.ctx, created.id, {
@@ -134,7 +134,7 @@ describe('categories of a pool', () => {
     );
     expect(updated).toMatchObject({ name: 'Refeitório', kind: 'income', color: '#445566' });
     expect(await withPool(a.ctx, (tx) => categoriesRepo.remove(tx, a.ctx, created.id))).toBe(true);
-    expect(await withPool(a.ctx, (tx) => categoriesRepo.list(tx, a.ctx))).toHaveLength(26);
+    expect(await withPool(a.ctx, (tx) => categoriesRepo.list(tx, a.ctx))).toHaveLength(27);
   });
 
   it('counts no uses and reassigns nothing until the tables exist (NES-44)', async () => {
@@ -154,7 +154,7 @@ describe('categories of a pool', () => {
       .map((row) => row.name)
       .filter((name) => name !== null);
     expect(names.sort()).toEqual([payload, "' OR 1=1 --"].sort());
-    expect(await withPool(a.ctx, (tx) => categoriesRepo.list(tx, a.ctx))).toHaveLength(28);
+    expect(await withPool(a.ctx, (tx) => categoriesRepo.list(tx, a.ctx))).toHaveLength(29);
   });
 
   it('keeps a name unique inside a pool only', async () => {
