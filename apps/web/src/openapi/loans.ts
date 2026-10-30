@@ -1,5 +1,9 @@
 import {
+  CreateEventInput,
   CreateFieldInput,
+  EventDto,
+  EventListDto,
+  ReviewPreviewDto,
   CreateInstallmentInput,
   CreateLoanInput,
   InstallmentDto,
@@ -204,5 +208,65 @@ registry.registerPath({
   responses: {
     200: { description: 'The updated field', ...json(LoanFieldDto) },
     ...errorResponses(400, 401, 403, 404, 413, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/loans/{id}/events',
+  operationId: 'listLoanEvents',
+  summary: 'Events of a loan',
+  description:
+    'Any member of a Pro pool may read. In the order they take effect. `impact` says what each event did to the installment, the rate and the installments left from `impact.number` on.',
+  tags: ['Loans'],
+  request: { params: Params },
+  responses: {
+    200: { description: 'The events', ...json(EventListDto) },
+    ...errorResponses(401, 403, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/pools/{poolId}/loans/{id}/events',
+  operationId: 'addLoanEvent',
+  summary: 'Record a loan event',
+  description:
+    'Needs `realestate.write` and the Pro plan. `kind` is prepayment (amount, effect reduce_installment or reduce_term, optional fee), rate_review (annualRate, optional indexValue, spread and announced newInstallment) or renegotiation (annualRate and/or termMonths). `effectiveFrom` is the date from which the installments feel it; left out it is the first day of the next month for a prepayment and the date itself for the others. An event the loan cannot work with (an installment below the interest) answers 400.',
+  tags: ['Loans'],
+  request: { params: Params, body: { required: true, ...json(CreateEventInput) } },
+  responses: {
+    201: { description: 'Recorded', ...json(EventDto) },
+    ...errorResponses(400, 401, 403, 404, 413, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/pools/{poolId}/loans/{id}/events/{eventId}',
+  operationId: 'deleteLoanEvent',
+  summary: 'Delete a loan event',
+  description:
+    'Needs `realestate.write` and the Pro plan. The projection goes back to what it was without the event.',
+  tags: ['Loans'],
+  request: { params: Params.extend({ eventId: z.uuid() }) },
+  responses: {
+    204: { description: 'Deleted' },
+    ...errorResponses(400, 401, 403, 404, 429, 500),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/pools/{poolId}/loans/{id}/review-preview',
+  operationId: 'getLoanReviewPreview',
+  summary: 'Next review preview',
+  description:
+    'Only for a variable or mixed rate (400 otherwise). With the newest Euribor month the job has stored, the new rate (index plus spread, never below zero) and the installment it would give over the installments left. `newRate` and `newPayment` are null until the job has run.',
+  tags: ['Loans'],
+  request: { params: Params },
+  responses: {
+    200: { description: 'The preview', ...json(ReviewPreviewDto) },
+    ...errorResponses(400, 401, 403, 404, 409, 429, 500),
   },
 });

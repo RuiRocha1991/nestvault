@@ -318,6 +318,7 @@ export async function createApiWorld(): Promise<ApiWorld> {
       entitlements: createEntitlements({ identity, billingEnabled: false }),
       run: database.withPool,
       trustedProxyHops: 1,
+      now: clock.now,
     }),
     goals: createGoalsService({
       auth,

@@ -1,7 +1,8 @@
 import { workerEnv } from '@nestvault/config/node';
+import { createAppDatabase } from '@nestvault/db';
 import { createLogger } from '@nestvault/services';
 
-import { PRODUCTION_JOBS } from './jobs/registry';
+import { createProductionJobs } from './jobs/registry';
 import { samplePing } from './jobs/sample';
 import { createWorker } from './runtime';
 
@@ -9,7 +10,10 @@ const log = createLogger();
 const env = workerEnv();
 
 // The sample job only runs outside production, to see the runtime working.
-const jobs = env.NODE_ENV === 'production' ? PRODUCTION_JOBS : [...PRODUCTION_JOBS, samplePing];
+// Jobs about global data (no pool) write through the worker's own connection.
+const database = createAppDatabase(env.DATABASE_URL_WORKER, 2);
+const production = createProductionJobs({ db: database.db });
+const jobs = env.NODE_ENV === 'production' ? production : [...production, samplePing];
 const worker = createWorker({ connectionString: env.DATABASE_URL_WORKER, jobs, log });
 
 let stopping = false;
@@ -19,6 +23,7 @@ async function shutdown(signal: string): Promise<void> {
   log.info({ signal }, 'shutting down');
   try {
     await worker.stop();
+    await database.close();
     process.exit(0);
   } catch (error) {
     log.error({ err: error }, 'shutdown failed');

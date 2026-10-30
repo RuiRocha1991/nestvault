@@ -71,3 +71,23 @@ Constraints:
   provider is plugged in.
 - Some European dividends will be estimates or come from statements until a paid provider is used.
 - Extra tables and a quota manager to maintain.
+
+## Addendum (NES-97): index rates for variable-rate loans
+
+Loans with a variable or mixed rate need the Euribor (3, 6 and 12 months) to preview a review.
+This is reference data, not a quote, so it does not go through `MarketDataProvider`; it follows the
+same pattern at a smaller scale:
+
+- **Source:** the ECB Data Portal, dataset `FM`, series `M.U2.EUR.RT.MM.EURIBOR{3M,6M,1Y}D_.HSTA`: the
+  **monthly average** in percent, published at the start of the next month, history back to the 1990s.
+  Free and keyless. A daily value is not published there, so the app shows "the Euribor of month X",
+  which is what a review uses in practice. Checked on 2026-10-30: all three series answer, last month
+  2026-09. Before billing is turned on, check the ECB's reuse terms (source acknowledgement).
+- **Adapter:** `IndexRateProvider` in `apps/worker/src/index-rates` (`monthly(index, fromPeriod)`); the
+  ECB class validates the answer with zod and is tested with recorded answers only. Another source is
+  another class and a line in the job registry.
+- **Table:** global `index_rates (rate_index, period, rate, source, fetched_at)`, no `pool_id`, RLS
+  exempt, `app_rw` read only, written by the worker.
+- **Job:** `indexrates.refresh`, day 3 of each month at 09:00 (Europe/Lisbon); the first run reads the
+  history from 2015, later runs re-read the last 14 months so a corrected month is corrected here.
+  Idempotent (upsert per month).

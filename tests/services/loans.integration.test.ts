@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { testEnv } from '@nestvault/config/node';
+import { createAppDatabase, indexRatesRepo } from '@nestvault/db';
+import { frenchPayment } from '@nestvault/domain';
 import {
   ConflictError,
   createEntitlements,
@@ -9,9 +12,12 @@ import {
   InstallmentDto,
   LoanDto,
   LoanListDto,
+  EventDto,
+  EventListDto,
   logger,
   NotFoundError,
   PlanLimitError,
+  ReviewPreviewDto,
   ScheduleDto,
   UnauthorizedError,
   ValidationError,
@@ -490,5 +496,287 @@ describe('audit', () => {
     const text = JSON.stringify(log);
     expect(text).not.toContain('987654');
     expect(text).not.toContain('555444');
+  });
+});
+
+const prepayment = (patch: object = {}) => ({
+  kind: 'prepayment',
+  date: '2023-02-01',
+  amount: '15000',
+  effect: 'reduce_installment',
+  ...patch,
+});
+const addEvent = async (loanId: string, body: object, as: Persona = 'owner', poolId = s.poolA) =>
+  world.loans.addEvent(await s.as(as), poolId, loanId, body);
+
+describe('loan events', () => {
+  it('a 15 000 € prepayment on 01/02/2023 is felt from the 03/2023 installment', async () => {
+    const created = await create();
+    const before = await world.loans.schedule(await s.as('owner'), s.poolA, created.id);
+    const event = await addEvent(created.id, prepayment({ fee: '150' }));
+    expect(EventDto.parse(event)).toEqual(event);
+    expect(event).toMatchObject({
+      kind: 'prepayment',
+      date: '2023-02-01',
+      effectiveFrom: '2023-03-01',
+      amount: '15000.0000',
+      fee: '150.0000',
+      effect: 'reduce_installment',
+      impact: { number: 30, remainingBefore: 451, remainingAfter: 451 },
+    });
+    const after = await world.loans.schedule(await s.as('owner'), s.poolA, created.id);
+    expect(before.schedule).toHaveLength(480);
+    expect(after.schedule.slice(0, 29)).toEqual(before.schedule.slice(0, 29));
+    expect(after.schedule[29]).toMatchObject({ number: 30, dueDate: '2023-03-05' });
+    expect(Number(after.schedule[29]?.payment)).toBeLessThan(Number(before.schedule[29]?.payment));
+    expect(after.schedule.at(-1)?.balanceAfter).toBe('0');
+  });
+
+  it('records the reference rate changes and shows the rate in force on each installment', async () => {
+    const created = await create('owner', {
+      rateType: 'variable',
+      rateIndex: 'euribor_6m',
+      spread: '1',
+    });
+    await addEvent(created.id, { kind: 'rate_review', date: '2021-09-05', annualRate: '1.1' });
+    await addEvent(created.id, { kind: 'rate_review', date: '2022-09-05', annualRate: '2.4' });
+    await addEvent(created.id, {
+      kind: 'rate_review',
+      date: '2023-03-05',
+      annualRate: '4.6',
+      indexValue: '3.6',
+      spread: '1',
+    });
+    await addEvent(created.id, {
+      kind: 'renegotiation',
+      date: '2023-10-01',
+      annualRate: '3.2',
+      spread: '0.9',
+    });
+    await addEvent(created.id, { kind: 'rate_review', date: '2026-04-05', annualRate: '2.9' });
+    const { schedule } = await world.loans.schedule(await s.as('owner'), s.poolA, created.id);
+    const rate = (n: number) => schedule[n - 1]?.annualRate;
+    expect([
+      rate(11),
+      rate(12),
+      rate(23),
+      rate(24),
+      rate(29),
+      rate(30),
+      rate(36),
+      rate(37),
+      rate(66),
+      rate(67),
+    ]).toEqual(['1.5', '1.1', '1.1', '2.4', '2.4', '4.6', '4.6', '3.2', '3.2', '2.9']);
+    const list = await world.loans.listEvents(await s.as('owner'), s.poolA, created.id);
+    expect(EventListDto.parse(list)).toEqual(list);
+    expect(list.events.map((event) => event.impact?.number)).toEqual([12, 24, 30, 37, 67]);
+    expect(
+      list.events.every((event) => event.impact && Number(event.impact.paymentAfter) > 0),
+    ).toBe(true);
+  });
+
+  it('takes the prepayment out of the outstanding capital, once it has happened', async () => {
+    const created = await create();
+    await addEvent(created.id, prepayment());
+    expect(await world.loans.get(await s.as('owner'), s.poolA, created.id)).toMatchObject({
+      prepaid: '15000',
+      outstanding: '96600',
+    });
+    // Dated after today: recorded, but not paid yet.
+    const later = await create('owner', { name: 'Outro' });
+    await addEvent(later.id, prepayment({ date: '2099-01-01' }));
+    expect((await world.loans.get(await s.as('owner'), s.poolA, later.id)).outstanding).toBe(
+      '111600',
+    );
+  });
+
+  it('keeps the plan going from the installments paid, with the events in it', async () => {
+    const created = await create('owner', { termMonths: 12, principal: '1200', annualRate: '0' });
+    await addInstallment(created.id, {
+      number: 1,
+      dueDate: '2020-10-05',
+      capital: '100',
+      interest: '0',
+    });
+    await addEvent(
+      created.id,
+      prepayment({ date: '2020-11-01', amount: '300', effect: 'reduce_term' }),
+    );
+    const { schedule } = await world.loans.schedule(await s.as('owner'), s.poolA, created.id);
+    expect(schedule[0]).toMatchObject({ number: 1, source: 'actual', balanceAfter: '1100' });
+    // 1 100 € - 300 € = 800 € at 100 €: eight more installments instead of eleven.
+    expect(schedule).toHaveLength(9);
+    expect(schedule.at(-1)?.balanceAfter).toBe('0');
+  });
+
+  it('deleting an event gives back the plan without it', async () => {
+    const created = await create();
+    const owner = await s.as('owner');
+    const event = await addEvent(created.id, prepayment());
+    await world.loans.removeEvent(owner, s.poolA, created.id, event.id);
+    const { schedule } = await world.loans.schedule(owner, s.poolA, created.id);
+    expect(schedule[29]?.dueDate).toBe('2023-03-05');
+    expect(schedule.every((row) => row.annualRate === '1.5')).toBe(true);
+    expect((await world.loans.get(owner, s.poolA, created.id)).outstanding).toBe('111600');
+    await expect(
+      world.loans.removeEvent(owner, s.poolA, created.id, event.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('refuses what the loan cannot work with, and bodies the schema does not know (400)', async () => {
+    const created = await create();
+    const bad = (body: object) => addEvent(created.id, body);
+    await expect(
+      bad({ kind: 'rate_review', date: '2023-03-05', annualRate: '3', newInstallment: '1' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      bad({ kind: 'prepayment', date: '2023-02-01', amount: '1000' }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(bad(prepayment({ amount: '0' }))).rejects.toBeInstanceOf(ValidationError);
+    await expect(bad(prepayment({ effectiveFrom: '2023-01-01' }))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(bad({ kind: 'renegotiation', date: '2023-10-01' })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    await expect(bad({ kind: 'gift', date: '2023-10-01' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(bad(prepayment({ poolId: s.poolB }))).rejects.toBeInstanceOf(ValidationError);
+    await expect(bad(prepayment({ loanId: created.id }))).rejects.toBeInstanceOf(ValidationError);
+    expect((await world.loans.listEvents(await s.as('owner'), s.poolA, created.id)).events).toEqual(
+      [],
+    );
+  });
+
+  it('answers 403 to member and viewer on writes, 404 to another pool, 401 without a session', async () => {
+    const created = await create();
+    const other = await create('outsider', {}, s.poolB);
+    const event = await addEvent(created.id, prepayment());
+    for (const as of ['member', 'viewer'] as const) {
+      await expect(addEvent(created.id, prepayment(), as)).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(
+        world.loans.removeEvent(await s.as(as), s.poolA, created.id, event.id),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+      expect(
+        (await world.loans.listEvents(await s.as(as), s.poolA, created.id)).events,
+      ).toHaveLength(1);
+    }
+    const owner = await s.as('owner');
+    await expect(world.loans.listEvents(owner, s.poolA, other.id)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(
+      world.loans.addEvent(owner, s.poolA, other.id, prepayment()),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      world.loans.removeEvent(owner, s.poolA, other.id, event.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    // Another loan of the same pool does not own the event either.
+    const second = await create('owner', { name: 'Segundo' });
+    await expect(
+      world.loans.removeEvent(owner, s.poolA, second.id, event.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(world.loans.listEvents(new Headers(), s.poolA, created.id)).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+    await expect(
+      world.loans.listEvents(await s.as('outsider'), s.poolA, created.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('is Pro: a Free pool gets plan_limit on events and on the preview', async () => {
+    const owner = await s.as('owner');
+    const anyId = '0192f2c8-7a1e-7000-8000-000000000001';
+    const calls = [
+      () => billed.listEvents(owner, s.poolA, anyId),
+      () => billed.addEvent(owner, s.poolA, anyId, prepayment()),
+      () => billed.removeEvent(owner, s.poolA, anyId, anyId),
+      () => billed.reviewPreview(owner, s.poolA, anyId),
+    ];
+    for (const call of calls) {
+      await expect(call()).rejects.toBeInstanceOf(PlanLimitError);
+    }
+  });
+});
+
+describe('review preview', () => {
+  const worker = createAppDatabase(testEnv().TEST_DATABASE_URL_WORKER, 2);
+  afterAll(async () => {
+    await worker.close();
+  });
+  const variable = (patch: object = {}) =>
+    create('owner', {
+      rateType: 'variable',
+      rateIndex: 'euribor_6m',
+      spread: '1.2',
+      reviewMonths: 6,
+      ...patch,
+    });
+
+  it('has nothing to preview for a fixed rate (400)', async () => {
+    const created = await create();
+    await expect(
+      world.loans.reviewPreview(await s.as('owner'), s.poolA, created.id),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('shows the current installment and no new one until the Euribor job has run', async () => {
+    const created = await variable();
+    const preview = await world.loans.reviewPreview(await s.as('owner'), s.poolA, created.id);
+    expect(ReviewPreviewDto.parse(preview)).toEqual(preview);
+    expect(preview).toMatchObject({
+      rateIndex: 'euribor_6m',
+      indexValue: null,
+      newRate: null,
+      newPayment: null,
+      outstanding: '111600',
+      remainingInstallments: 480,
+    });
+    expect(Number(preview.currentPayment)).toBeGreaterThan(0);
+  });
+
+  it('with the newest Euribor: index plus spread, and the installment it gives', async () => {
+    const created = await variable();
+    await indexRatesRepo.upsertMany(worker.db, [
+      { rateIndex: 'euribor_6m', period: '2026-08-01', rate: '2.1', source: 'ecb' },
+      { rateIndex: 'euribor_6m', period: '2026-09-01', rate: '2.3', source: 'ecb' },
+      { rateIndex: 'euribor_3m', period: '2026-09-01', rate: '9', source: 'ecb' },
+    ]);
+    const preview = await world.loans.reviewPreview(await s.as('owner'), s.poolA, created.id);
+    expect(preview).toMatchObject({
+      indexPeriod: '2026-09-01',
+      indexValue: '2.300000',
+      spread: '1.200000',
+      newRate: '3.5',
+      newPayment: frenchPayment('111600', '3.5', 480),
+    });
+    expect(preview.nextReviewDate).not.toBeNull();
+  });
+
+  it('answers 404 to another pool and to a non-member', async () => {
+    const other = await variable();
+    await expect(
+      world.loans.reviewPreview(await s.as('outsider'), s.poolA, other.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    const mine = await create('outsider', {}, s.poolB);
+    await expect(
+      world.loans.reviewPreview(await s.as('owner'), s.poolA, mine.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe('audit of events', () => {
+  it('records them without amounts', async () => {
+    const created = await create();
+    const event = await addEvent(created.id, prepayment({ amount: '424242', fee: '171717' }));
+    await world.loans.removeEvent(await s.as('owner'), s.poolA, created.id, event.id);
+    const log = await rows<{ action: string; entry: string }>(
+      world.identity,
+      sql`select action, to_jsonb(audit_log)::text as entry from audit_log where action like 'loan.event_%' and target = ${created.id} order by at`,
+    );
+    expect(log.map((entry) => entry.action)).toEqual(['loan.event_added', 'loan.event_deleted']);
+    const text = JSON.stringify(log);
+    expect(text).not.toContain('424242');
+    expect(text).not.toContain('171717');
   });
 });

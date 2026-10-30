@@ -9,3 +9,7 @@ export type { Worker, WorkerOptions } from './runtime';
 export { formatRuns, lastRuns } from './runs';
 export type { RunRow } from './runs';
 export { samplePing } from './jobs/sample';
+export { createProductionJobs } from './jobs/registry';
+export { createIndexRatesJob } from './jobs/index-rates';
+export { createEcbProvider, parseEcbResponse } from './index-rates/ecb';
+export type { IndexRateProvider } from './index-rates/ecb';

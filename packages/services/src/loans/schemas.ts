@@ -1,5 +1,7 @@
 import {
   FIELD_KINDS,
+  PREPAYMENT_EFFECT_KINDS,
+  type LoanEventRow,
   LOAN_KINDS,
   RATE_INDEXES,
   RATE_TYPES,
@@ -15,7 +17,9 @@ import {
   outstandingBalance,
   remainingInstallments,
   totalsOf,
+  type EventImpact,
   type InstallmentAmounts,
+  type LoanEvent,
   type LoanFieldSetting,
 } from '@nestvault/domain';
 import { z } from 'zod';
@@ -122,6 +126,50 @@ export type CreateFieldInput = z.input<typeof CreateFieldInput>;
 
 const Decimal = z.string();
 
+/** A signed percentage with up to 6 decimals, from -10 to 100 (an index value can be negative). */
+const SignedPercent = Spread;
+
+const EventDate = z.iso.date();
+export const PrepaymentEffect = z.enum(PREPAYMENT_EFFECT_KINDS);
+
+/** One event of a loan. The pool and the loan come from the URL; `effectiveFrom` defaults per kind. */
+export const CreateEventInput = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('prepayment'),
+      date: EventDate,
+      effectiveFrom: EventDate.optional(),
+      amount: PositiveAmount,
+      fee: Amount.optional(),
+      effect: PrepaymentEffect,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('rate_review'),
+      date: EventDate,
+      effectiveFrom: EventDate.optional(),
+      indexValue: SignedPercent.optional(),
+      spread: SignedPercent.optional(),
+      annualRate: Percent,
+      newInstallment: PositiveAmount.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('renegotiation'),
+      date: EventDate,
+      effectiveFrom: EventDate.optional(),
+      spread: SignedPercent.optional(),
+      annualRate: Percent.optional(),
+      termMonths: z.number().int().min(1).max(600).optional(),
+      newInstallment: PositiveAmount.optional(),
+    })
+    .strict()
+    .refine((event) => event.annualRate !== undefined || event.termMonths !== undefined),
+]);
+export type CreateEventInput = z.input<typeof CreateEventInput>;
+
 export const LoanFieldDto = z.object({
   id: z.uuid(),
   key: z.string(),
@@ -166,6 +214,56 @@ const Totals = z.object({
   costOfCredit: Decimal,
 });
 
+export const EventImpactDto = z.object({
+  /** First installment that feels the event. */
+  number: z.number().int(),
+  paymentBefore: Decimal,
+  paymentAfter: Decimal,
+  remainingBefore: z.number().int(),
+  remainingAfter: z.number().int(),
+  annualRateBefore: Decimal,
+  annualRateAfter: Decimal,
+});
+
+export const EventDto = z.object({
+  id: z.uuid(),
+  loanId: z.uuid(),
+  kind: z.enum(['prepayment', 'rate_review', 'renegotiation']),
+  date: z.iso.date(),
+  effectiveFrom: z.iso.date(),
+  amount: Decimal.nullable(),
+  fee: Decimal.nullable(),
+  effect: PrepaymentEffect.nullable(),
+  indexValue: Decimal.nullable(),
+  spread: Decimal.nullable(),
+  annualRate: Decimal.nullable(),
+  newInstallment: Decimal.nullable(),
+  termMonths: z.number().int().nullable(),
+  /** What it did to the installment and the term; `null` when the schedule does not reach it. */
+  impact: EventImpactDto.nullable(),
+});
+export type EventDto = z.infer<typeof EventDto>;
+
+export const EventListDto = z.object({ events: z.array(EventDto) });
+export type EventListDto = z.infer<typeof EventListDto>;
+
+export const ReviewPreviewDto = z.object({
+  rateIndex: RateIndex,
+  /** The month of the newest index value known, or `null` before the first run of the job. */
+  indexPeriod: z.iso.date().nullable(),
+  indexValue: Decimal.nullable(),
+  spread: Decimal,
+  currentRate: Decimal,
+  /** Index plus spread, never below zero. */
+  newRate: Decimal.nullable(),
+  outstanding: Decimal,
+  remainingInstallments: z.number().int(),
+  currentPayment: Decimal,
+  newPayment: Decimal.nullable(),
+  nextReviewDate: z.iso.date().nullable(),
+});
+export type ReviewPreviewDto = z.infer<typeof ReviewPreviewDto>;
+
 export const LoanDto = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -188,6 +286,8 @@ export const LoanDto = z.object({
   fields: z.array(LoanFieldDto),
   /** Derived from the installments entered so far. */
   paid: Totals,
+  /** Capital paid off early by the prepayments recorded up to today. */
+  prepaid: Decimal,
   outstanding: Decimal,
   remainingInstallments: z.number().int(),
 });
@@ -203,6 +303,8 @@ export const ScheduleRowDto = z.object({
   interest: Decimal,
   payment: Decimal,
   balanceAfter: Decimal,
+  /** Nominal annual rate in force for the row. */
+  annualRate: Decimal,
   source: z.enum(['actual', 'projected']),
 });
 export const ScheduleDto = z.object({
@@ -289,10 +391,66 @@ export function toInstallmentDto(
   };
 }
 
+export const toDomainEvent = (row: LoanEventRow): LoanEvent => {
+  if (row.kind === 'prepayment') {
+    return {
+      kind: 'prepayment',
+      effectiveFrom: row.effectiveFrom,
+      amount: row.amount ?? '0',
+      effect: PrepaymentEffect.parse(row.effect),
+    };
+  }
+  if (row.kind === 'rate_review') {
+    return {
+      kind: 'rate_review',
+      effectiveFrom: row.effectiveFrom,
+      annualPct: row.annualRate ?? '0',
+      newInstallment: row.newInstallment,
+    };
+  }
+  return {
+    kind: 'renegotiation',
+    effectiveFrom: row.effectiveFrom,
+    annualPct: row.annualRate,
+    termMonths: row.termMonths,
+    newInstallment: row.newInstallment,
+  };
+};
+
+export function toEventDto(row: LoanEventRow, impact: EventImpact | undefined): EventDto {
+  return {
+    id: row.id,
+    loanId: row.loanId,
+    kind: row.kind === 'prepayment' || row.kind === 'rate_review' ? row.kind : 'renegotiation',
+    date: row.date,
+    effectiveFrom: row.effectiveFrom,
+    amount: row.amount,
+    fee: row.fee,
+    effect: row.effect ? PrepaymentEffect.parse(row.effect) : null,
+    indexValue: row.indexValue,
+    spread: row.spread,
+    annualRate: row.annualRate,
+    newInstallment: row.newInstallment,
+    termMonths: row.termMonths,
+    impact: impact
+      ? {
+          number: impact.number,
+          paymentBefore: impact.paymentBefore,
+          paymentAfter: impact.paymentAfter,
+          remainingBefore: impact.remainingBefore,
+          remainingAfter: impact.remainingAfter,
+          annualRateBefore: impact.annualPctBefore,
+          annualRateAfter: impact.annualPctAfter,
+        }
+      : null,
+  };
+}
+
 export function toLoanDto(
   row: LoanRow,
   fields: readonly LoanFieldRow[],
   installments: readonly InstallmentAmounts[],
+  prepaid: string,
 ): LoanDto {
   const paid = totalsOf(installments, fieldSettings(fields));
   return {
@@ -316,7 +474,8 @@ export function toLoanDto(
     tan: row.tan,
     fields: fields.map(toFieldDto),
     paid,
-    outstanding: outstandingBalance(row.principal, paid.capital),
+    prepaid,
+    outstanding: outstandingBalance(row.principal, paid.capital, prepaid),
     remainingInstallments: remainingInstallments(row.termMonths, installments.length),
   };
 }
