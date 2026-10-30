@@ -14,7 +14,15 @@ import type { PropertyPageData } from '@webapp/server/real-estate';
 const TABS = ['summary', 'installments', 'events', 'works', 'sale'] as const;
 
 /** The property page (mockups 28 to 32): a header and five tabs. */
-export function PropertyScreen({ data, today }: { data: PropertyPageData; today: string }) {
+export function PropertyScreen({
+  poolId,
+  data,
+  today,
+}: {
+  poolId: string;
+  data: PropertyPageData;
+  today: string;
+}) {
   const t = useTranslations('realEstate.property');
   const tType = useTranslations('realEstate.propertyType');
   const { property, bundles, works, holders, costs } = data;
@@ -46,7 +54,7 @@ export function PropertyScreen({ data, today }: { data: PropertyPageData; today:
           {costs.length > 0 && <CostsNote count={costs.length} />}
         </TabsContent>
         <TabsContent value="installments">
-          <InstallmentsTab bundle={bundle} today={today} />
+          <InstallmentsTab poolId={poolId} bundle={bundle} today={today} />
         </TabsContent>
         <TabsContent value="events">
           <EventsTab bundle={bundle} />

@@ -12,6 +12,7 @@ import {
 } from '@nestvault/db';
 import {
   BUILTIN_LOAN_FIELDS,
+  RESERVED_LOAN_FIELD_KEYS,
   dec,
   installmentTotal,
   outstandingBalance,
@@ -116,10 +117,18 @@ export const CreateFieldInput = z
     key: z
       .string()
       .regex(/^[a-zA-Z][a-zA-Z0-9]{0,39}$/)
-      .refine((key) => !(BUILTIN_LOAN_FIELDS as readonly string[]).includes(key)),
+      .refine(
+        (key) =>
+          !(BUILTIN_LOAN_FIELDS as readonly string[]).includes(key) &&
+          !RESERVED_LOAN_FIELD_KEYS.includes(key),
+      ),
     label: Label,
     countsAsExpense: z.boolean().optional(),
     defaultAmount: Amount.nullable().optional(),
+    /** First due date the default amount applies to. */
+    appliesFrom: z.iso.date().nullable().optional(),
+    /** Shown as a column and counted from the start; defaults to true. */
+    enabled: z.boolean().optional(),
   })
   .strict();
 export type CreateFieldInput = z.input<typeof CreateFieldInput>;

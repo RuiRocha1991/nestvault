@@ -12691,6 +12691,16 @@
                       "string",
                       "null"
                     ]
+                  },
+                  "appliesFrom": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "enabled": {
+                    "type": "boolean"
                   }
                 },
                 "required": [

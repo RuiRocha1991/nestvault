@@ -2576,7 +2576,67 @@
       "statusPaid": "Paga",
       "statusProjected": "Projetada",
       "totalRow": "Total",
-      "note": "Quando ligas o débito do banco a uma prestação, só juros, comissões, impostos e seguros contam como despesa; a amortização conta como poupança (capital próprio), não como despesa."
+      "note": "Quando ligas o débito do banco a uma prestação, só juros, comissões, impostos e seguros contam como despesa; a amortização conta como poupança (capital próprio), não como despesa.",
+      "csvName": "prestacoes",
+      "exportCsv": "Exportar CSV",
+      "fields": {
+        "lifeInsurance": "Seguro vida",
+        "homeInsurance": "Seguro casa",
+        "creditInsurance": "Seguro crédito",
+        "fees": "Comissões",
+        "stampTax": "Imposto de selo"
+      },
+      "columns": {
+        "button": "Colunas",
+        "title": "Colunas e campos",
+        "reset": "Repor predefinição",
+        "basic": "Básicas",
+        "number": "Nº e data",
+        "capital": "Amortização (capital)",
+        "interest": "Juros",
+        "total": "Total da prestação",
+        "fields": "Campos da prestação",
+        "fieldsHint": "contam no total e nos sumários",
+        "default": "predefinido",
+        "newField": "Novo campo",
+        "hideEmpty": "Ocultar colunas sem valores no período",
+        "hideEmptyHint": "Os valores não se perdem; a coluna volta quando há valores.",
+        "failed": "Não foi possível guardar a alteração."
+      },
+      "disable": {
+        "title": "Desativar campo",
+        "close": "Fechar",
+        "cancel": "Cancelar",
+        "confirm": "Desativar",
+        "text": "«{name}» tem valores nas prestações. Os valores ficam guardados, mas deixam de contar no total, nos sumários, no pago por ano e no custo do crédito."
+      },
+      "fieldDialog": {
+        "title": "Novo campo da prestação",
+        "close": "Fechar",
+        "cancel": "Cancelar",
+        "save": "Guardar campo",
+        "name": "Nome",
+        "counts": "Conta como",
+        "countsExpense": "Despesa (seguro, comissão, imposto)",
+        "countsOther": "Outro custo do imóvel",
+        "countsExpenseHint": "Entra no custo do crédito e nas despesas quando ligas o débito.",
+        "countsOtherHint": "Entra no total da prestação, mas não conta como despesa.",
+        "amount": "Valor mensal por defeito (€)",
+        "amountHint": "Opcional. Preenche as prestações novas e projetadas.",
+        "from": "A partir de",
+        "show": "Mostrar como coluna na tabela de prestações",
+        "whatChanges": "O que muda ao guardar",
+        "changeColumn": "Nova coluna na tabela de prestações",
+        "changeTotals": "O valor passa a somar no Total de cada prestação, no sumário do período e no custo do crédito",
+        "changePaid": "As prestações já pagas ficam com 0,00 € até editares",
+        "problem": {
+          "invalid": "Indica um nome (até 60 letras) e um valor válido.",
+          "forbidden": "Não tens permissão para alterar este empréstimo.",
+          "error": "Não foi possível guardar o campo."
+        },
+        "amountPlaceholder": "0,00"
+      },
+      "noValue": "—"
     },
     "events": {
       "kinds": {

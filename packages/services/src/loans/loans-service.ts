@@ -807,10 +807,10 @@ export function createLoansService(deps: LoansServiceDeps): LoansService {
             key: parsed.data.key,
             label: parsed.data.label,
             kind: 'custom',
-            enabled: true,
+            enabled: parsed.data.enabled ?? true,
             countsAsExpense: parsed.data.countsAsExpense ?? true,
             defaultAmount: parsed.data.defaultAmount ?? null,
-            appliesFrom: null,
+            appliesFrom: parsed.data.appliesFrom ?? null,
           },
         ]);
         const fields = await loansRepo.listFields(tx, ctx, [loanId]);

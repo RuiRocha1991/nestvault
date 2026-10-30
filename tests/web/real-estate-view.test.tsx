@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { EventsTab } from '@webapp/components/real-estate/events-tab';
 import { InstallmentsTab } from '@webapp/components/real-estate/installments-tab';
@@ -8,11 +8,15 @@ import { SaleSimulatorTab } from '@webapp/components/real-estate/sale-simulator-
 import { WorksTab } from '@webapp/components/real-estate/works-tab';
 import {
   camelKey,
+  fieldKeyFor,
+  installmentFields,
   installmentRows,
+  installmentsCsv,
   loanFacts,
   propertyFigures,
   ratesSince,
   summarizeInstallments,
+  visibleFields,
   yearBars,
   yearPeriod,
   DEFAULT_CPI,
@@ -21,6 +25,10 @@ import type { LoanBundle, PropertyPageData } from '@webapp/server/real-estate';
 
 import messages from '../../apps/web/messages/pt-PT.json';
 import { NextIntlClientProvider } from '../../apps/web/node_modules/next-intl';
+
+vi.mock('../../apps/web/node_modules/next/navigation', () => ({
+  useRouter: () => ({ refresh: () => undefined }),
+}));
 
 const wrap = (node: React.ReactNode) =>
   renderToStaticMarkup(
@@ -76,6 +84,15 @@ const row = (
   source,
 });
 
+const zeroFields = {
+  lifeInsurance: '0',
+  homeInsurance: '0',
+  creditInsurance: '0',
+  fees: '0',
+  stampTax: '0',
+  custom: {},
+};
+
 const bundle = {
   loan: {
     id: ID,
@@ -96,7 +113,30 @@ const bundle = {
     debitAccountId: null,
     taeg: null,
     tan: null,
-    fields: [],
+    fields: [
+      ...(['lifeInsurance', 'homeInsurance', 'creditInsurance', 'fees', 'stampTax'] as const).map(
+        (key) => ({
+          id: ID,
+          key,
+          label: key,
+          kind: 'builtin',
+          enabled: key === 'lifeInsurance' || key === 'fees',
+          countsAsExpense: true,
+          defaultAmount: null,
+          appliesFrom: null,
+        }),
+      ),
+      {
+        id: ID,
+        key: 'protection',
+        label: 'Seguro de proteção',
+        kind: 'custom',
+        enabled: true,
+        countsAsExpense: false,
+        defaultAmount: '3',
+        appliesFrom: '2020-12-01',
+      },
+    ],
     paid: {
       count: 2,
       capital: '100',
@@ -129,8 +169,30 @@ const bundle = {
     ],
   },
   installments: [
-    { id: ID, loanId: ID, number: 1, capital: '50', interest: '25', total: '81' },
-    { id: ID, loanId: ID, number: 2, capital: '50', interest: '25', total: '81' },
+    {
+      ...zeroFields,
+      id: ID,
+      loanId: ID,
+      number: 1,
+      capital: '50',
+      interest: '25',
+      lifeInsurance: '4',
+      fees: '2',
+      homeInsurance: '9',
+      total: '81',
+    },
+    {
+      ...zeroFields,
+      id: ID,
+      loanId: ID,
+      number: 2,
+      capital: '50',
+      interest: '25',
+      lifeInsurance: '4',
+      fees: '2',
+      homeInsurance: '9',
+      total: '81',
+    },
   ],
   events: [
     {
@@ -227,6 +289,114 @@ describe('real estate view', () => {
     expect(projected).toMatchObject({ paid: 0, projected: 2, capital: '103', interest: '47' });
   });
 
+  it('counts only the enabled fields in the row, the summary and the footer', () => {
+    const rows = installmentRows(bundle);
+    // life insurance (4) + fees (2) + the custom field; the disabled home insurance (9) stays out
+    expect(rows[0]).toMatchObject({ extras: '6', total: '81' });
+    expect(rows[0]?.amounts.homeInsurance).toBe('9');
+    // the custom field has a default of 3 from December: the projected rows take it
+    expect(rows[2]?.amounts.protection).toBe('3');
+    expect(rows[3]?.amounts.protection).toBe('3');
+    const all = summarizeInstallments(rows);
+    expect(all.fields).toMatchObject({
+      lifeInsurance: '16',
+      homeInsurance: '36',
+      fees: '8',
+      protection: '6',
+    });
+    expect(all.extras).toBe('30');
+  });
+
+  it('enabling a field changes the row total and every summary consistently', () => {
+    const enabled = {
+      ...bundle,
+      loan: {
+        ...bundle.loan,
+        fields: bundle.loan.fields.map((f) =>
+          f.key === 'homeInsurance' ? { ...f, enabled: true } : f,
+        ),
+      },
+    };
+    const before = installmentRows(bundle);
+    const after = installmentRows(enabled);
+    expect(Number(after[0]?.total) - Number(before[0]?.total)).toBe(9);
+    expect(
+      Number(summarizeInstallments(after).total) - Number(summarizeInstallments(before).total),
+    ).toBe(36);
+  });
+
+  it('hides empty columns only on request and never drops data', () => {
+    const rows = installmentRows(bundle);
+    const fields = installmentFields(bundle);
+    expect(fields.find((f) => f.key === 'homeInsurance')?.hasValues).toBe(true);
+    expect(fields.find((f) => f.key === 'creditInsurance')?.hasValues).toBe(false);
+    const withEmpty = visibleFields(fields, rows, false).map((f) => f.key);
+    expect(withEmpty).toEqual(['lifeInsurance', 'fees', 'protection']);
+    const onlyProjected = rows.filter((r) => r.status === 'paid');
+    expect(visibleFields(fields, onlyProjected, true).map((f) => f.key)).toEqual([
+      'lifeInsurance',
+      'fees',
+    ]);
+  });
+
+  it('does not let a custom field read the installment’s own properties', () => {
+    const clash = {
+      ...bundle,
+      loan: {
+        ...bundle.loan,
+        fields: [
+          ...bundle.loan.fields,
+          ...['total', 'status'].map((key) => ({
+            id: ID,
+            key,
+            label: key,
+            kind: 'custom',
+            enabled: true,
+            countsAsExpense: true,
+            defaultAmount: null,
+            appliesFrom: null,
+          })),
+        ],
+      },
+    } as unknown as LoanBundle;
+    const [first] = installmentRows(clash);
+    expect(first?.amounts.total).toBe('0');
+    expect(first?.amounts.status).toBe('0');
+    expect(first?.total).toBe('81');
+    expect(fieldKeyFor('Total', [])).toBe('total2');
+    expect(fieldKeyFor('Status', [])).toBe('status2');
+  });
+
+  it('guards CSV cells that a spreadsheet would run as a formula', () => {
+    const fields = installmentFields(bundle).map((f) =>
+      f.key === 'protection' ? { ...f, label: '=HYPERLINK("x")' } : f,
+    );
+    const csv = installmentsCsv(installmentRows(bundle), fields, {
+      number: 'Nº',
+      date: 'Data',
+      capital: 'Cap',
+      interest: 'Juros',
+      total: 'Total',
+    });
+    expect(csv.split('\n')[0]).toContain('"\'=HYPERLINK(""x"")"');
+  });
+
+  it('builds a unique field key from a name and exports enabled fields to CSV', () => {
+    expect(fieldKeyFor('Seguro de proteção', [])).toBe('seguroDeProtecao');
+    expect(fieldKeyFor('Seguro de proteção', ['seguroDeProtecao'])).toBe('seguroDeProtecao2');
+    expect(fieldKeyFor('2024 fee', [])).toMatch(/^[a-zA-Z][a-zA-Z0-9]*$/);
+    const csv = installmentsCsv(installmentRows(bundle), installmentFields(bundle), {
+      number: 'Nº',
+      date: 'Data',
+      capital: 'Cap',
+      interest: 'Juros',
+      total: 'Total',
+    });
+    const [header, first] = csv.split('\n');
+    expect(header).toBe('Nº;Data;Cap;Juros;lifeInsurance;fees;Seguro de proteção;Total');
+    expect(first).toBe('1;2020-10-01;50;25;4;2;0;81');
+  });
+
   it('only applies the price index after the purchase year', () => {
     expect(ratesSince(DEFAULT_CPI, '2020-09-01')).toHaveLength(5);
     expect(ratesSince(DEFAULT_CPI, '2024-01-01').map((r) => r.year)).toEqual([2025]);
@@ -243,7 +413,7 @@ describe('PropertyScreen', () => {
   } as unknown as PropertyPageData;
 
   it('renders the five tabs and the summary of the first one', () => {
-    const html = wrap(<PropertyScreen data={data} today="2026-10-30" />);
+    const html = wrap(<PropertyScreen poolId={ID} data={data} today="2026-10-30" />);
     for (const tab of ['Resumo', 'Prestações', 'Eventos e anos', 'Obras', 'Venda e simulador']) {
       expect(html).toContain(tab);
     }
@@ -262,9 +432,13 @@ describe('PropertyScreen', () => {
     expect(sale).toContain('Preço de equilíbrio');
     expect(sale).toContain('compostas');
     expect(sale).toContain('Simulador');
-    const installments = wrap(<InstallmentsTab bundle={bundle} today="2020-10-30" />);
+    const installments = wrap(<InstallmentsTab poolId={ID} bundle={bundle} today="2020-10-30" />);
     expect(installments).toContain('Projetada');
     expect(installments).toContain('Paga');
+    expect(installments).toContain('Colunas');
+    expect(installments).toContain('Seguro vida');
+    expect(installments).toContain('Seguro de proteção');
+    expect(installments).toContain('Exportar CSV');
     const events = wrap(<EventsTab bundle={bundle} />);
     expect(events).toContain('Revisão da taxa');
     expect(events).toContain('Taxa 4,10% → 2,40%');
@@ -274,7 +448,9 @@ describe('PropertyScreen', () => {
   });
 
   it('renders without a loan', () => {
-    const html = wrap(<PropertyScreen data={{ ...data, bundles: [] }} today="2026-10-30" />);
+    const html = wrap(
+      <PropertyScreen poolId={ID} data={{ ...data, bundles: [] }} today="2026-10-30" />,
+    );
     expect(html).toContain('Sem empréstimo associado a este imóvel.');
   });
 });
