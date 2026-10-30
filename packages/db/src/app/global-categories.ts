@@ -40,4 +40,5 @@ export const GLOBAL_CATEGORIES: readonly GlobalCategorySeed[] = [
   { systemKey: 'refunds', kind: 'refund', color: '#2BC6B4' },
   { systemKey: 'internal-transfer', kind: 'transfer', color: '#7779A6' },
   { systemKey: 'investment', kind: 'invest', color: '#9D6BFF' },
+  { systemKey: 'works', kind: 'expense', color: '#C9A227' },
 ];

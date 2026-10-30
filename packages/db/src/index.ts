@@ -89,6 +89,15 @@ export type {
 export { PERIOD_UNITS } from './app/schema/savings';
 export { GOAL_MODES, GOAL_TYPES } from './app/schema/goals';
 export type { GoalMode, GoalType } from './app/schema/goals';
+export { worksRepo } from './app/repositories/works.repo';
+export type {
+  WorksPaymentRow,
+  WorksPaymentValues,
+  WorksProjectRow,
+  WorksProjectValues,
+} from './app/repositories/works.repo';
+export { PAYMENT_STATUSES, WORK_STATUSES } from './app/schema/works';
+export type { PaymentStatus, WorkStatus } from './app/schema/works';
 export { loanEventsRepo } from './app/repositories/loan-events.repo';
 export type { LoanEventRow, LoanEventValues } from './app/repositories/loan-events.repo';
 export { indexRatesRepo } from './app/repositories/index-rates.repo';

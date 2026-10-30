@@ -28,3 +28,4 @@ export * from './property';
 export * from './transactions';
 export * from './transfers';
 export * from './transaction-hash';
+export * from './works';

@@ -68,3 +68,4 @@ export type {
 } from './loans';
 export * from './loan-events';
 export * from './index-rates';
+export * from './works';

@@ -13,6 +13,7 @@ import {
   type EntitlementsService,
   type GoalsService,
   type LoansService,
+  type WorksService,
   type PropertiesService,
   type PlansService,
   type ProductsService,
@@ -175,6 +176,10 @@ export async function getPropertiesService(): Promise<PropertiesService> {
 
 export async function getLoansService(): Promise<LoansService> {
   return (await getRuntime()).loans;
+}
+
+export async function getWorksService(): Promise<WorksService> {
+  return (await getRuntime()).works;
 }
 
 export async function getGoalsService(): Promise<GoalsService> {

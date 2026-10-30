@@ -534,6 +534,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   fixed URL, no body in errors), `tests/worker/index-rates-job.integration.test.ts` (backfill,
   idempotence, partial failure, log without message) and the route isolation suite (four routes).
 
+- **Works projects (NES-98).** `/api/v1/pools/:poolId/works` (+ phases, `upcoming` and the movement
+  link) follows the real-estate guards: session, zod `.strict()` (the property of a project cannot be
+  changed), membership (404), `pool.read` or `realestate.write` (403), `assertFeature(ctx,
+  'real_estate')` (403 `plan_limit`, reads included), `withPool` (RLS), audit (`work.*`, the project
+  id; never amounts, names or notes). `works_projects` and `works_payments` carry `pool_id`, RLS and
+  composite keys (property, project, movement), so a phase cannot point at another pool's rows; a
+  property with works cannot be deleted (restrict, 409). Linking a bank movement checks that it is the
+  pool's own debit and not a transfer, is unique per phase (partial unique index, 409), and may only
+  change the movement's category to the global "works" one (marked manual); its amount and description
+  are never touched. `description` and `notes` are user content: stored as typed, escaped on render,
+  never logged. Totals are derived in `packages/domain`, never stored.
+- **Verified by:** `tests/services/works.integration.test.ts` (roles, 401/404, validation, other
+  pool's ids and movements, link/unlink and the category, `plan_limit`, restrict, audit without
+  amounts), `tests/db/works.repo.integration.test.ts` (CRUD, checks, cascade, set null on a deleted
+  movement, injection payloads, `expectIsolated`, RLS, composite keys), `tests/domain/works.test.ts`
+  and the route isolation suite (eleven routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

@@ -49,6 +49,7 @@ import {
 } from '../savings';
 import { createSettingsService, type SettingsService } from '../settings';
 import { createTransactionsService, type TransactionsService } from '../transactions';
+import { createWorksService, type WorksService } from '../works';
 
 import { createAuth, type Auth } from './create-auth';
 
@@ -104,6 +105,8 @@ export interface AuthRuntime {
   properties: PropertiesService;
   /** Loans and their installments (Pro). */
   loans: LoansService;
+  /** Works projects with their payment phases (Pro). */
+  works: WorksService;
   /** Savings products, term deposits and manual interest entries. */
   products: ProductsService;
   deposits: DepositsService;
@@ -184,6 +187,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     goals: createGoalsService({ auth, identity, ...hops }),
     properties: createPropertiesService({ auth, identity, entitlements, ...hops }),
     loans: createLoansService({ auth, identity, entitlements, ...hops }),
+    works: createWorksService({ auth, identity, entitlements, ...hops }),
     products: createProductsService({ auth, identity, ...hops }),
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),
