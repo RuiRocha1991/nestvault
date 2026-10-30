@@ -551,6 +551,24 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   movement, injection payloads, `expectIsolated`, RLS, composite keys), `tests/domain/works.test.ts`
   and the route isolation suite (eleven routes).
 
+- **Recurring property costs (NES-99).** `/api/v1/pools/:poolId/property-costs` (+ `upcoming`, `totals`
+  and the movement link of an occurrence) follows the real-estate guards: session, zod `.strict()` (the
+  property of a cost cannot be changed; `intervalMonths` only for a custom periodicity), membership
+  (404), `pool.read` or `realestate.write` (403), `assertFeature(ctx, 'real_estate')` (403
+  `plan_limit`, reads included), `withPool` (RLS), audit (`cost.*`, the cost id; never amounts or
+  names). `property_costs` and `property_cost_payments` carry `pool_id`, RLS and composite keys
+  (property, account, cost, movement), so a cost cannot point at another pool's rows; a property with
+  costs cannot be deleted (restrict, 409). Linking a movement checks that it is the pool's own debit and
+  not a transfer, is unique per occurrence and per movement (409), and never changes the movement. An
+  insurance already inside a loan installment of the same property and month is counted by the
+  installment only, never twice (derived in `packages/domain`, nothing stored). `name` is user content:
+  stored as typed, escaped on render, never logged. The `totals` period is capped at 60 months.
+- **Verified by:** `tests/services/property-costs.integration.test.ts` (roles, 401/404, validation,
+  other pool's ids and movements, link/unlink, no double counting with installment insurances,
+  `plan_limit`, restrict, audit without amounts), `tests/db/property-costs.repo.integration.test.ts`
+  (CRUD, checks, cascade on a deleted movement, injection payloads, `expectIsolated`, RLS, composite
+  keys), `tests/domain/property-costs.test.ts` and the route isolation suite (eight routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

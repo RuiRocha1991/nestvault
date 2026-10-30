@@ -46,6 +46,11 @@ import {
   UpcomingDto,
   WorkDto,
   WorkListDto,
+  CostDto,
+  CostListDto,
+  CostPaymentDto,
+  CostTotalsDto,
+  UpcomingCostsDto,
   LoanFieldDto,
   LoanListDto,
   PropertyListDto,
@@ -494,6 +499,35 @@ const foreignPhase = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.works.get(await s.as('outsider'), s.poolB, other.projectId);
       expect(seen.phases).toContainEqual(other);
+    },
+  };
+};
+
+/** A recurring property cost in pool A or pool B, made once per scenario. */
+const costIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`property-cost-${pool}`, async () =>
+    s.world.propertyCosts.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        propertyId: (await propertyIn(s, pool)).id,
+        kind: 'other',
+        name: pool === 'A' ? 'Jardim Alfa' : 'Jardim Beta Secreto',
+        amount: pool === 'A' ? '150' : '987654',
+        periodicity: 'annual',
+        startDate: '2026-03-15',
+      },
+    ),
+  );
+
+/** The cost of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignCost = async (s: Scenario): Promise<Foreign> => {
+  const other = await costIn(s, 'B');
+  return {
+    params: { id: other.id, dueDate: other.startDate },
+    unchanged: async () => {
+      const seen = await s.world.propertyCosts.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
     },
   };
 };
@@ -3051,6 +3085,177 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     },
     success: { status: 200, schema: PaymentDto },
     foreign: foreignPhase,
+  },
+
+  // ---------------------------------------------------------------- pool scope: property costs
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/property-costs`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/route')),
+    success: { status: 200, schema: CostListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s costs',
+    leaks: async (s) => {
+      await costIn(s, 'A');
+      const other = await costIn(s, 'B');
+      return [other.id, 'Jardim Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/property-costs`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/route')),
+    body: async (s) => ({
+      propertyId: (await propertyIn(s, 'A')).id,
+      kind: 'imi',
+      amount: '412.5',
+      periodicity: 'annual',
+      startDate: '2026-04-30',
+    }),
+    success: { status: 201, schema: CostDto },
+    noForeignBecause: 'creates a new row; a property of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a property that is not in this pool',
+        body: {
+          propertyId: '0192f2c8-7a1e-7000-8000-000000000001',
+          kind: 'imi',
+          amount: '1',
+          periodicity: 'annual',
+          startDate: '2026-04-30',
+        },
+        expect: 400,
+      },
+      {
+        name: 'a custom periodicity without its months',
+        body: {
+          propertyId: '0192f2c8-7a1e-7000-8000-000000000001',
+          kind: 'imi',
+          amount: '1',
+          periodicity: 'custom',
+          startDate: '2026-04-30',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/property-costs/upcoming`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/upcoming/route')),
+    success: { status: 200, schema: UpcomingCostsDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s costs',
+    leaks: async (s) => {
+      await costIn(s, 'A');
+      const other = await costIn(s, 'B');
+      return [other.id, 'Jardim Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/property-costs/totals`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/totals/route')),
+    success: { status: 200, schema: CostTotalsDto },
+    noForeignBecause: 'sums the URL’s own pool; the leak probe covers pool B’s costs',
+    leaks: async (s) => {
+      await costIn(s, 'A');
+      const other = await costIn(s, 'B');
+      return [other.id, 'Jardim Beta Secreto', '987654'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/property-costs/:id`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/[id]/route')),
+    params: async (s) => ({ id: (await costIn(s, 'A')).id }),
+    success: { status: 200, schema: CostDto },
+    foreign: foreignCost,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/property-costs/:id`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/[id]/route')),
+    params: async (s) => ({ id: (await costIn(s, 'A')).id }),
+    body: () => ({ amount: '160' }),
+    success: { status: 200, schema: CostDto },
+    foreign: foreignCost,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/property-costs/:id`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/[id]/route')),
+    params: async (s) => ({ id: (await costIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignCost,
+  },
+  {
+    scope: 'pool',
+    method: 'PUT',
+    path: `${POOL}/property-costs/:id/payments/:dueDate`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/[id]/payments/[dueDate]/route'),
+      ),
+    params: async (s) => {
+      const cost = await costIn(s, 'A');
+      return { id: cost.id, dueDate: cost.startDate };
+    },
+    body: async (s) => ({ transactionId: (await transactionIn(s, 'A')).id }),
+    success: { status: 200, schema: CostPaymentDto },
+    foreign: foreignCost,
+    negatives: [
+      {
+        name: 'a movement that is not in this pool',
+        body: { transactionId: '0192f2c8-7a1e-7000-8000-000000000001' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/property-costs/:id/payments/:dueDate`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/property-costs/[id]/payments/[dueDate]/route'),
+      ),
+    params: async (s) => {
+      // Linked once per scenario: the setup runs for every case of the route.
+      const cost = await s.memo('linked-property-cost-A', async () => {
+        const created = await costIn(s, 'A');
+        await s.world.propertyCosts.linkPayment(
+          await s.as('owner'),
+          s.poolA,
+          created.id,
+          created.startDate,
+          { transactionId: (await transactionIn(s, 'A')).id },
+        );
+        return created;
+      });
+      return { id: cost.id, dueDate: cost.startDate };
+    },
+    success: { status: 204 },
+    foreign: foreignCost,
   },
 
   // ---------------------------------------------------------------- pool scope: savings

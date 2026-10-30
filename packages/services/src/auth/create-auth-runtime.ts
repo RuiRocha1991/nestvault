@@ -36,6 +36,7 @@ import { createNotesService, type NotesService } from '../notes';
 import { createOverviewService, type OverviewService } from '../overview';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createPropertiesService, type PropertiesService } from '../properties';
+import { createPropertyCostsService, type PropertyCostsService } from '../property-costs';
 import { createPrototypeImportService, type PrototypeImportService } from '../prototype-import';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
 import { createRulesService, type RulesService } from '../rules';
@@ -107,6 +108,7 @@ export interface AuthRuntime {
   loans: LoansService;
   /** Works projects with their payment phases (Pro). */
   works: WorksService;
+  propertyCosts: PropertyCostsService;
   /** Savings products, term deposits and manual interest entries. */
   products: ProductsService;
   deposits: DepositsService;
@@ -188,6 +190,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     properties: createPropertiesService({ auth, identity, entitlements, ...hops }),
     loans: createLoansService({ auth, identity, entitlements, ...hops }),
     works: createWorksService({ auth, identity, entitlements, ...hops }),
+    propertyCosts: createPropertyCostsService({ auth, identity, entitlements, ...hops }),
     products: createProductsService({ auth, identity, ...hops }),
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),

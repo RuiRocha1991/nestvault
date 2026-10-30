@@ -190,3 +190,11 @@ export { sessionsRepo } from './identity/repositories/sessions.repo';
 export type { SessionRow } from './identity/repositories/sessions.repo';
 export { usersRepo } from './identity/repositories/users.repo';
 export type { NewCredentialUser } from './identity/repositories/users.repo';
+export { propertyCostsRepo } from './app/repositories/property-costs.repo';
+export type {
+  PropertyCostPaymentRow,
+  PropertyCostRow,
+  PropertyCostValues,
+} from './app/repositories/property-costs.repo';
+export { COST_PERIODICITIES, PROPERTY_COST_KINDS } from './app/schema/property-costs';
+export type { CostPeriodicity, PropertyCostKind } from './app/schema/property-costs';
