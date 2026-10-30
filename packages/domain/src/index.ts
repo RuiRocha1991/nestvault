@@ -31,3 +31,4 @@ export * from './transfers';
 export * from './transaction-hash';
 export * from './property-costs';
 export * from './works';
+export * from './property-analysis';
