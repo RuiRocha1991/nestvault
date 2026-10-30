@@ -1215,6 +1215,7 @@
       "property": "Imóveis",
       "loan": "Empréstimos",
       "work": "Obras",
+      "cost": "Custos de imóveis",
       "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
@@ -1339,6 +1340,13 @@
         "paymentDeleted": "Fase de pagamento eliminada",
         "paymentLinked": "Fase de pagamento ligada a um movimento",
         "paymentUnlinked": "Ligação da fase a um movimento removida"
+      },
+      "cost": {
+        "created": "Custo de imóvel criado",
+        "updated": "Custo de imóvel alterado",
+        "deleted": "Custo de imóvel eliminado",
+        "paymentLinked": "Custo de imóvel ligado a um movimento",
+        "paymentUnlinked": "Ligação do custo a um movimento removida"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",

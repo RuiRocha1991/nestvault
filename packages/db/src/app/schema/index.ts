@@ -69,3 +69,4 @@ export type {
 export * from './loan-events';
 export * from './index-rates';
 export * from './works';
+export * from './property-costs';
