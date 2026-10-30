@@ -116,6 +116,14 @@
     {
       "key": "valuationId",
       "value": ""
+    },
+    {
+      "key": "loanId",
+      "value": ""
+    },
+    {
+      "key": "installmentId",
+      "value": ""
     }
   ],
   "item": [
@@ -4782,6 +4790,571 @@
               ]
             },
             "description": "Needs realestate.write. Its owners and valuations go with it."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        {
+          "name": "Create the reference mortgage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans"
+              ]
+            },
+            "description": "Needs realestate.write (owner, admin) and the Pro plan. 111 600 € over 480 months, fixed 1,5 %. Variable or mixed rates need rateIndex; mixed also needs fixedUntil.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cr\\u00e9dito habita\\u00e7\\u00e3o\",\n  \"kind\": \"mortgage\",\n  \"principal\": \"111600\",\n  \"startDate\": \"2020-09-01\",\n  \"firstDueDate\": \"2020-10-05\",\n  \"termMonths\": 480,\n  \"rateType\": \"fixed\",\n  \"annualRate\": \"1.5\",\n  \"paymentDay\": 5\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('loanId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Variable rate without an index (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans"
+              ]
+            },
+            "description": "A variable or mixed rate needs rateIndex.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mau\",\n  \"kind\": \"mortgage\",\n  \"principal\": \"1000\",\n  \"startDate\": \"2024-01-10\",\n  \"firstDueDate\": \"2024-02-10\",\n  \"termMonths\": 12,\n  \"rateType\": \"variable\",\n  \"annualRate\": \"3\",\n  \"paymentDay\": 10\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List loans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans"
+              ]
+            },
+            "description": "Each loan comes with its fields, what has been paid, the outstanding capital and the installments left."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a loan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Any member of a Pro pool may read."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a loan",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Fields left out stay.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cr\\u00e9dito casa\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Amortization schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "schedule"
+              ]
+            },
+            "description": "Actual installments, then the projection of the rest, with totals per contract year."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record an installment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments"
+              ]
+            },
+            "description": "One per number. Optional components default to 0; custom maps custom-field keys to amounts.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": 1,\n  \"dueDate\": \"2020-10-05\",\n  \"capital\": \"300.5\",\n  \"interest\": \"139.5\",\n  \"lifeInsurance\": \"12.34\",\n  \"homeInsurance\": \"8.9\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('installmentId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeat the same installment (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments"
+              ]
+            },
+            "description": "A loan has one installment per number.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": 1,\n  \"dueDate\": \"2020-10-05\",\n  \"capital\": \"300.5\",\n  \"interest\": \"139.5\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List installments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments"
+              ]
+            },
+            "description": "Oldest first; total counts only enabled fields."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Correct an installment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments/{{installmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments",
+                "{{installmentId}}"
+              ]
+            },
+            "description": "The number cannot change.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interest\": \"141\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a custom field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/fields",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "fields"
+              ]
+            },
+            "description": "Letters and digits, not a built-in key; a repeated key answers 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"condominium\",\n  \"label\": \"Condom\\u00ednio\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enable a built-in field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/fields/creditInsurance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "fields",
+                "creditInsurance"
+              ]
+            },
+            "description": "A disabled field keeps its values; it only stops counting.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete an installment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments/{{installmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments",
+                "{{installmentId}}"
+              ]
+            },
+            "description": "Needs realestate.write."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete a loan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}"
+              ]
+            },
+            "description": "Its fields and installments are deleted."
           },
           "response": [],
           "event": [

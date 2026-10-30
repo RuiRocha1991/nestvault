@@ -45,6 +45,7 @@ vi.mock('@webapp/server/auth', () => ({
   getPlansService: () => Promise.resolve(holder.world.plans),
   getEntitlementsService: () => Promise.resolve(holder.world.entitlements),
   getPropertiesService: () => Promise.resolve(holder.world.properties),
+  getLoansService: () => Promise.resolve(holder.world.loans),
   getGoalsService: () => Promise.resolve(holder.world.goals),
   getProductsService: () => Promise.resolve(holder.world.products),
   getDepositsService: () => Promise.resolve(holder.world.deposits),

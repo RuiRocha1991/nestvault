@@ -9602,6 +9602,3020 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/loans": {
+      "get": {
+        "operationId": "listLoans",
+        "summary": "Loans of the pool",
+        "description": "Any member of a Pro pool may list. Each loan comes with its fields, what has been paid so far (capital, interest and enabled fields), the outstanding capital and the installments left; all derived from the installments entered.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "loans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "mortgage",
+                              "car",
+                              "personal"
+                            ]
+                          },
+                          "propertyId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "principal": {
+                            "type": "string"
+                          },
+                          "startDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "firstDueDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "termMonths": {
+                            "type": "integer"
+                          },
+                          "rateType": {
+                            "type": "string",
+                            "enum": [
+                              "fixed",
+                              "variable",
+                              "mixed"
+                            ]
+                          },
+                          "rateIndex": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "euribor_3m",
+                              "euribor_6m",
+                              "euribor_12m",
+                              null
+                            ]
+                          },
+                          "spread": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "annualRate": {
+                            "type": "string"
+                          },
+                          "fixedUntil": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "reviewMonths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "paymentDay": {
+                            "type": "integer"
+                          },
+                          "debitAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "taeg": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "tan": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "key": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "builtin",
+                                    "custom"
+                                  ]
+                                },
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "countsAsExpense": {
+                                  "type": "boolean"
+                                },
+                                "defaultAmount": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "appliesFrom": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "key",
+                                "label",
+                                "kind",
+                                "enabled",
+                                "countsAsExpense",
+                                "defaultAmount",
+                                "appliesFrom"
+                              ]
+                            }
+                          },
+                          "paid": {
+                            "type": "object",
+                            "properties": {
+                              "count": {
+                                "type": "integer"
+                              },
+                              "capital": {
+                                "type": "string"
+                              },
+                              "interest": {
+                                "type": "string"
+                              },
+                              "fields": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "total": {
+                                "type": "string"
+                              },
+                              "costOfCredit": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "count",
+                              "capital",
+                              "interest",
+                              "fields",
+                              "total",
+                              "costOfCredit"
+                            ]
+                          },
+                          "outstanding": {
+                            "type": "string"
+                          },
+                          "remainingInstallments": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "kind",
+                          "propertyId",
+                          "principal",
+                          "startDate",
+                          "firstDueDate",
+                          "termMonths",
+                          "rateType",
+                          "rateIndex",
+                          "spread",
+                          "annualRate",
+                          "fixedUntil",
+                          "reviewMonths",
+                          "paymentDay",
+                          "debitAccountId",
+                          "taeg",
+                          "tan",
+                          "fields",
+                          "paid",
+                          "outstanding",
+                          "remainingInstallments"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "loans"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createLoan",
+        "summary": "Create a loan",
+        "description": "Needs `realestate.write` (owner, admin) and the Pro plan. A variable or mixed rate needs `rateIndex`; a mixed one also needs `fixedUntil`. `propertyId` and `debitAccountId` must belong to the pool. The loan is created with the built-in fields (life and home insurance enabled). The body is strict: `poolId` or any other field answers 400.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "mortgage",
+                      "car",
+                      "personal"
+                    ]
+                  },
+                  "propertyId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "principal": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "firstDueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "termMonths": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 600
+                  },
+                  "rateType": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "variable",
+                      "mixed"
+                    ]
+                  },
+                  "rateIndex": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "euribor_3m",
+                      "euribor_6m",
+                      "euribor_12m",
+                      null
+                    ]
+                  },
+                  "spread": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "annualRate": {
+                    "type": "string"
+                  },
+                  "fixedUntil": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "reviewMonths": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 24
+                  },
+                  "paymentDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 28
+                  },
+                  "debitAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "taeg": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tan": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "kind",
+                  "principal",
+                  "startDate",
+                  "firstDueDate",
+                  "termMonths",
+                  "rateType",
+                  "annualRate",
+                  "paymentDay"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "mortgage",
+                        "car",
+                        "personal"
+                      ]
+                    },
+                    "propertyId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "principal": {
+                      "type": "string"
+                    },
+                    "startDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "firstDueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "termMonths": {
+                      "type": "integer"
+                    },
+                    "rateType": {
+                      "type": "string",
+                      "enum": [
+                        "fixed",
+                        "variable",
+                        "mixed"
+                      ]
+                    },
+                    "rateIndex": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "euribor_3m",
+                        "euribor_6m",
+                        "euribor_12m",
+                        null
+                      ]
+                    },
+                    "spread": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "annualRate": {
+                      "type": "string"
+                    },
+                    "fixedUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewMonths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "paymentDay": {
+                      "type": "integer"
+                    },
+                    "debitAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "taeg": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tan": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "builtin",
+                              "custom"
+                            ]
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "countsAsExpense": {
+                            "type": "boolean"
+                          },
+                          "defaultAmount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "appliesFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "key",
+                          "label",
+                          "kind",
+                          "enabled",
+                          "countsAsExpense",
+                          "defaultAmount",
+                          "appliesFrom"
+                        ]
+                      }
+                    },
+                    "paid": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "capital": {
+                          "type": "string"
+                        },
+                        "interest": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "total": {
+                          "type": "string"
+                        },
+                        "costOfCredit": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "capital",
+                        "interest",
+                        "fields",
+                        "total",
+                        "costOfCredit"
+                      ]
+                    },
+                    "outstanding": {
+                      "type": "string"
+                    },
+                    "remainingInstallments": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "propertyId",
+                    "principal",
+                    "startDate",
+                    "firstDueDate",
+                    "termMonths",
+                    "rateType",
+                    "rateIndex",
+                    "spread",
+                    "annualRate",
+                    "fixedUntil",
+                    "reviewMonths",
+                    "paymentDay",
+                    "debitAccountId",
+                    "taeg",
+                    "tan",
+                    "fields",
+                    "paid",
+                    "outstanding",
+                    "remainingInstallments"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}": {
+      "get": {
+        "operationId": "getLoan",
+        "summary": "One loan",
+        "description": "Any member of a Pro pool may read.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "mortgage",
+                        "car",
+                        "personal"
+                      ]
+                    },
+                    "propertyId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "principal": {
+                      "type": "string"
+                    },
+                    "startDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "firstDueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "termMonths": {
+                      "type": "integer"
+                    },
+                    "rateType": {
+                      "type": "string",
+                      "enum": [
+                        "fixed",
+                        "variable",
+                        "mixed"
+                      ]
+                    },
+                    "rateIndex": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "euribor_3m",
+                        "euribor_6m",
+                        "euribor_12m",
+                        null
+                      ]
+                    },
+                    "spread": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "annualRate": {
+                      "type": "string"
+                    },
+                    "fixedUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewMonths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "paymentDay": {
+                      "type": "integer"
+                    },
+                    "debitAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "taeg": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tan": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "builtin",
+                              "custom"
+                            ]
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "countsAsExpense": {
+                            "type": "boolean"
+                          },
+                          "defaultAmount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "appliesFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "key",
+                          "label",
+                          "kind",
+                          "enabled",
+                          "countsAsExpense",
+                          "defaultAmount",
+                          "appliesFrom"
+                        ]
+                      }
+                    },
+                    "paid": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "capital": {
+                          "type": "string"
+                        },
+                        "interest": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "total": {
+                          "type": "string"
+                        },
+                        "costOfCredit": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "capital",
+                        "interest",
+                        "fields",
+                        "total",
+                        "costOfCredit"
+                      ]
+                    },
+                    "outstanding": {
+                      "type": "string"
+                    },
+                    "remainingInstallments": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "propertyId",
+                    "principal",
+                    "startDate",
+                    "firstDueDate",
+                    "termMonths",
+                    "rateType",
+                    "rateIndex",
+                    "spread",
+                    "annualRate",
+                    "fixedUntil",
+                    "reviewMonths",
+                    "paymentDay",
+                    "debitAccountId",
+                    "taeg",
+                    "tan",
+                    "fields",
+                    "paid",
+                    "outstanding",
+                    "remainingInstallments"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateLoan",
+        "summary": "Change a loan",
+        "description": "Needs `realestate.write` and the Pro plan. Fields left out stay.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "mortgage",
+                      "car",
+                      "personal"
+                    ]
+                  },
+                  "propertyId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "principal": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "firstDueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "termMonths": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 600
+                  },
+                  "rateType": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "variable",
+                      "mixed"
+                    ]
+                  },
+                  "rateIndex": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "euribor_3m",
+                      "euribor_6m",
+                      "euribor_12m",
+                      null
+                    ]
+                  },
+                  "spread": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "annualRate": {
+                    "type": "string"
+                  },
+                  "fixedUntil": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "reviewMonths": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 24
+                  },
+                  "paymentDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 28
+                  },
+                  "debitAccountId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid"
+                  },
+                  "taeg": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tan": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "mortgage",
+                        "car",
+                        "personal"
+                      ]
+                    },
+                    "propertyId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "principal": {
+                      "type": "string"
+                    },
+                    "startDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "firstDueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "termMonths": {
+                      "type": "integer"
+                    },
+                    "rateType": {
+                      "type": "string",
+                      "enum": [
+                        "fixed",
+                        "variable",
+                        "mixed"
+                      ]
+                    },
+                    "rateIndex": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "euribor_3m",
+                        "euribor_6m",
+                        "euribor_12m",
+                        null
+                      ]
+                    },
+                    "spread": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "annualRate": {
+                      "type": "string"
+                    },
+                    "fixedUntil": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewMonths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "paymentDay": {
+                      "type": "integer"
+                    },
+                    "debitAccountId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "taeg": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tan": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "builtin",
+                              "custom"
+                            ]
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "countsAsExpense": {
+                            "type": "boolean"
+                          },
+                          "defaultAmount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "appliesFrom": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "key",
+                          "label",
+                          "kind",
+                          "enabled",
+                          "countsAsExpense",
+                          "defaultAmount",
+                          "appliesFrom"
+                        ]
+                      }
+                    },
+                    "paid": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "capital": {
+                          "type": "string"
+                        },
+                        "interest": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "total": {
+                          "type": "string"
+                        },
+                        "costOfCredit": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "count",
+                        "capital",
+                        "interest",
+                        "fields",
+                        "total",
+                        "costOfCredit"
+                      ]
+                    },
+                    "outstanding": {
+                      "type": "string"
+                    },
+                    "remainingInstallments": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "propertyId",
+                    "principal",
+                    "startDate",
+                    "firstDueDate",
+                    "termMonths",
+                    "rateType",
+                    "rateIndex",
+                    "spread",
+                    "annualRate",
+                    "fixedUntil",
+                    "reviewMonths",
+                    "paymentDay",
+                    "debitAccountId",
+                    "taeg",
+                    "tan",
+                    "fields",
+                    "paid",
+                    "outstanding",
+                    "remainingInstallments"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLoan",
+        "summary": "Delete a loan",
+        "description": "Needs `realestate.write` and the Pro plan. Its fields and installments are deleted.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/schedule": {
+      "get": {
+        "operationId": "getLoanSchedule",
+        "summary": "Amortization schedule",
+        "description": "The installments entered (`actual`) followed by the French-amortization projection of the rest (`projected`) from the outstanding capital and the loan rate, plus the totals per contract year (installments 1–12 are year 1).",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The schedule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "schedule": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "integer"
+                          },
+                          "dueDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "capital": {
+                            "type": "string"
+                          },
+                          "interest": {
+                            "type": "string"
+                          },
+                          "payment": {
+                            "type": "string"
+                          },
+                          "balanceAfter": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "actual",
+                              "projected"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "number",
+                          "dueDate",
+                          "capital",
+                          "interest",
+                          "payment",
+                          "balanceAfter",
+                          "source"
+                        ]
+                      }
+                    },
+                    "byYear": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "capital": {
+                            "type": "string"
+                          },
+                          "interest": {
+                            "type": "string"
+                          },
+                          "fields": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "total": {
+                            "type": "string"
+                          },
+                          "costOfCredit": {
+                            "type": "string"
+                          },
+                          "year": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "capital",
+                          "interest",
+                          "fields",
+                          "total",
+                          "costOfCredit",
+                          "year"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "schedule",
+                    "byYear"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/installments": {
+      "get": {
+        "operationId": "listLoanInstallments",
+        "summary": "Installments of a loan",
+        "description": "Any member of a Pro pool may read. Oldest first; `total` counts only enabled fields.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The installments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "installments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "loanId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "number": {
+                            "type": "integer"
+                          },
+                          "dueDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "capital": {
+                            "type": "string"
+                          },
+                          "interest": {
+                            "type": "string"
+                          },
+                          "fees": {
+                            "type": "string"
+                          },
+                          "stampTax": {
+                            "type": "string"
+                          },
+                          "lifeInsurance": {
+                            "type": "string"
+                          },
+                          "homeInsurance": {
+                            "type": "string"
+                          },
+                          "creditInsurance": {
+                            "type": "string"
+                          },
+                          "custom": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "total": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "scheduled",
+                              "paid"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "import"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "loanId",
+                          "number",
+                          "dueDate",
+                          "capital",
+                          "interest",
+                          "fees",
+                          "stampTax",
+                          "lifeInsurance",
+                          "homeInsurance",
+                          "creditInsurance",
+                          "custom",
+                          "total",
+                          "status",
+                          "source"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "installments"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addLoanInstallment",
+        "summary": "Record an installment",
+        "description": "Needs `realestate.write` and the Pro plan. `number` is 1 to the loan term and unique per loan (409 otherwise). Optional components default to 0; `custom` maps the keys of custom fields to amounts.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "number": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 600
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "capital": {
+                    "type": "string"
+                  },
+                  "interest": {
+                    "type": "string"
+                  },
+                  "fees": {
+                    "type": "string"
+                  },
+                  "stampTax": {
+                    "type": "string"
+                  },
+                  "lifeInsurance": {
+                    "type": "string"
+                  },
+                  "homeInsurance": {
+                    "type": "string"
+                  },
+                  "creditInsurance": {
+                    "type": "string"
+                  },
+                  "custom": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "scheduled",
+                      "paid"
+                    ]
+                  }
+                },
+                "required": [
+                  "number",
+                  "dueDate",
+                  "capital",
+                  "interest"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "loanId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "string"
+                    },
+                    "fees": {
+                      "type": "string"
+                    },
+                    "stampTax": {
+                      "type": "string"
+                    },
+                    "lifeInsurance": {
+                      "type": "string"
+                    },
+                    "homeInsurance": {
+                      "type": "string"
+                    },
+                    "creditInsurance": {
+                      "type": "string"
+                    },
+                    "custom": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "total": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "scheduled",
+                        "paid"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "manual",
+                        "import"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "loanId",
+                    "number",
+                    "dueDate",
+                    "capital",
+                    "interest",
+                    "fees",
+                    "stampTax",
+                    "lifeInsurance",
+                    "homeInsurance",
+                    "creditInsurance",
+                    "custom",
+                    "total",
+                    "status",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/installments/{installmentId}": {
+      "patch": {
+        "operationId": "updateLoanInstallment",
+        "summary": "Correct an installment",
+        "description": "Needs `realestate.write` and the Pro plan. The number cannot change.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installmentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "capital": {
+                    "type": "string"
+                  },
+                  "interest": {
+                    "type": "string"
+                  },
+                  "fees": {
+                    "type": "string"
+                  },
+                  "stampTax": {
+                    "type": "string"
+                  },
+                  "lifeInsurance": {
+                    "type": "string"
+                  },
+                  "homeInsurance": {
+                    "type": "string"
+                  },
+                  "creditInsurance": {
+                    "type": "string"
+                  },
+                  "custom": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "scheduled",
+                      "paid"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "loanId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "capital": {
+                      "type": "string"
+                    },
+                    "interest": {
+                      "type": "string"
+                    },
+                    "fees": {
+                      "type": "string"
+                    },
+                    "stampTax": {
+                      "type": "string"
+                    },
+                    "lifeInsurance": {
+                      "type": "string"
+                    },
+                    "homeInsurance": {
+                      "type": "string"
+                    },
+                    "creditInsurance": {
+                      "type": "string"
+                    },
+                    "custom": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "total": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "scheduled",
+                        "paid"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "manual",
+                        "import"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "loanId",
+                    "number",
+                    "dueDate",
+                    "capital",
+                    "interest",
+                    "fees",
+                    "stampTax",
+                    "lifeInsurance",
+                    "homeInsurance",
+                    "creditInsurance",
+                    "custom",
+                    "total",
+                    "status",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLoanInstallment",
+        "summary": "Delete an installment",
+        "description": "Needs `realestate.write` and the Pro plan.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installmentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/fields": {
+      "post": {
+        "operationId": "addLoanField",
+        "summary": "Add a custom installment field",
+        "description": "Needs `realestate.write` and the Pro plan. The key is letters and digits and cannot be a built-in one; a repeated key answers 409. The field starts enabled.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,39}$"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "countsAsExpense": {
+                    "type": "boolean"
+                  },
+                  "defaultAmount": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "builtin",
+                        "custom"
+                      ]
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "countsAsExpense": {
+                      "type": "boolean"
+                    },
+                    "defaultAmount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "appliesFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "label",
+                    "kind",
+                    "enabled",
+                    "countsAsExpense",
+                    "defaultAmount",
+                    "appliesFrom"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/fields/{key}": {
+      "patch": {
+        "operationId": "updateLoanField",
+        "summary": "Enable, disable or rename a field",
+        "description": "Needs `realestate.write` and the Pro plan. A disabled field keeps its values in every installment; it only stops counting in totals.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "countsAsExpense": {
+                    "type": "boolean"
+                  },
+                  "defaultAmount": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "appliesFrom": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "builtin",
+                        "custom"
+                      ]
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "countsAsExpense": {
+                      "type": "boolean"
+                    },
+                    "defaultAmount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "appliesFrom": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "label",
+                    "kind",
+                    "enabled",
+                    "countsAsExpense",
+                    "defaultAmount",
+                    "appliesFrom"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/properties": {
       "get": {
         "operationId": "listProperties",

@@ -1213,6 +1213,7 @@
       "plan": "Planos",
       "goal": "Objetivos",
       "property": "Imóveis",
+      "loan": "Empréstimos",
       "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
@@ -1315,6 +1316,16 @@
         "deleted": "Imóvel eliminado",
         "valuationAdded": "Avaliação de imóvel registada",
         "valuationDeleted": "Avaliação de imóvel eliminada"
+      },
+      "loan": {
+        "created": "Empréstimo criado",
+        "updated": "Empréstimo alterado",
+        "deleted": "Empréstimo eliminado",
+        "fieldCreated": "Campo de empréstimo criado",
+        "fieldUpdated": "Campo de empréstimo alterado",
+        "installmentAdded": "Prestação registada",
+        "installmentUpdated": "Prestação alterada",
+        "installmentDeleted": "Prestação eliminada"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",
