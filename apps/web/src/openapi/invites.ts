@@ -31,7 +31,7 @@ registry.registerPath({
   operationId: 'createPoolInvite',
   summary: 'Invite somebody to a pool by email',
   description:
-    'Sends a pt-PT email with a single-use link (`/convite/{token}`) valid for 7 days. The role cannot be above the inviter’s own (an admin cannot invite an owner: 403). Inviting an address that already has a pending invite replaces it (the old link stops working); an address that is already a member answers 409. 20 invites a day per pool (429). Unknown fields (`poolId`, `id`, `invitedBy`…) answer 400.',
+    'Sends a pt-PT email with a single-use link (`/convite/{token}`) valid for 7 days. The role cannot be above the inviter’s own (an admin cannot invite an owner: 403). Inviting an address that already has a pending invite replaces it (the old link stops working); an address that is already a member answers 409. 20 invites a day per pool (429). A Free pool (with `BILLING_ENABLED=true`) has room only for its owner: any invite answers 403 `plan_limit`. Unknown fields (`poolId`, `id`, `invitedBy`…) answer 400.',
   tags: ['Invites'],
   request: {
     params: z.object({ poolId: PoolId }),
@@ -79,7 +79,7 @@ registry.registerPath({
   operationId: 'acceptInvite',
   summary: 'Accept an invite',
   description:
-    'The signed-in user joins the pool with the invited role. The session’s email must be verified and equal the invite’s address. An unknown, expired or used token, another account’s invite and an unverified address all answer the same 404, so nothing is confirmed about a token. Single use: the membership and `accepted_at` are written in one transaction. No body.',
+    'The signed-in user joins the pool with the invited role. The session’s email must be verified and equal the invite’s address. An unknown, expired or used token, another account’s invite and an unverified address all answer the same 404, so nothing is confirmed about a token. Single use: the membership and `accepted_at` are written in one transaction. A pool on the Free plan has no free seat: 403 `plan_limit`. No body.',
   tags: ['Invites'],
   request: { params: z.object({ token: z.string().length(43) }) },
   responses: {

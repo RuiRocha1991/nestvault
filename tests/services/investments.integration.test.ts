@@ -14,6 +14,7 @@ import {
   createPortfoliosService,
   UnauthorizedError,
   ValidationError,
+  createEntitlements,
 } from '@nestvault/services';
 
 import { createApiWorld, type ApiWorld, type Persona, type Scenario } from '../support/api-world';
@@ -202,6 +203,7 @@ describe('portfolios service', () => {
     const racing = createPortfoliosService({
       auth: world.auth,
       identity: world.identity,
+      entitlements: createEntitlements({ identity: world.identity, billingEnabled: false }),
       trustedProxyHops: 1,
       // The restrict foreign key is what Postgres raises when the operation wins the race.
       run: () => Promise.reject(new Error('delete failed', { cause: { code: '23503' } })),

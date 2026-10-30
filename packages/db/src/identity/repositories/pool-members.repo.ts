@@ -72,6 +72,15 @@ export const poolMembersRepo = {
     return inserted.length > 0;
   },
 
+  /** How many people with a login belong to the pool (plan limits; holders without login are not members). */
+  async count(db: IdentityExecutor, poolId: string): Promise<number> {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(poolMembers)
+      .where(eq(poolMembers.poolId, poolId));
+    return row?.n ?? 0;
+  },
+
   /** True when an account with this address (case-insensitive) is a member of the pool. */
   async existsByEmail(db: IdentityExecutor, poolId: string, email: string): Promise<boolean> {
     const [row] = await db

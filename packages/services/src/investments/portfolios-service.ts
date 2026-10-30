@@ -34,6 +34,7 @@ import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
+import type { Entitlements } from '../entitlements';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { clientIpResolver } from '../rate-limit/client-ip';
@@ -86,6 +87,8 @@ export interface PortfoliosService {
 export interface PortfoliosServiceDeps {
   auth: Auth;
   identity: IdentityDatabase;
+  /** Plan limits, checked in the transaction that inserts (ADR 0003). */
+  entitlements: Entitlements;
   /** Runs work inside `withPool`; tests pass their own database. */
   run?: PoolRunner;
   trustedProxyHops?: number;
@@ -107,7 +110,7 @@ function previousPriceOf(
 }
 
 export function createPortfoliosService(deps: PortfoliosServiceDeps): PortfoliosService {
-  const { auth, identity } = deps;
+  const { auth, identity, entitlements } = deps;
   const run = deps.run ?? withPool;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
   const now = deps.now ?? (() => new Date());
@@ -233,15 +236,16 @@ export function createPortfoliosService(deps: PortfoliosServiceDeps): Portfolios
       can(ctx, 'portfolios.write');
       const data = parsed.data;
       const id = newId();
-      const row = await run(ctx, (tx) =>
-        portfoliosRepo.insert(tx, ctx, id, {
+      const row = await run(ctx, async (tx) => {
+        await entitlements.assertWithinLimit(ctx, 'portfolios', tx);
+        return portfoliosRepo.insert(tx, ctx, id, {
           name: data.name,
           color: data.color,
           currency: data.currency,
           note: data.note ?? null,
           targets: data.targets ?? {},
-        }),
-      ).catch(uniqueName);
+        });
+      }).catch(uniqueName);
       await recordAudit(identity, ctx, 'portfolio.created', { target: id, ip: ipOf(headers) });
       // A new portfolio has no operations.
       return PortfolioDto.parse(toPortfolioDto(row, { opsCount: 0, plansCount: 0 }));

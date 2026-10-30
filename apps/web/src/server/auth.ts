@@ -10,6 +10,7 @@ import {
   type AccountsService,
   type CashMovesService,
   type OpsService,
+  type EntitlementsService,
   type GoalsService,
   type PlansService,
   type ProductsService,
@@ -69,6 +70,7 @@ function getRuntime(): Promise<AuthRuntime> {
       appUrl: env.APP_URL,
       secret: env.BETTER_AUTH_SECRET,
       allowSignup: env.ALLOW_SIGNUP,
+      billingEnabled: env.BILLING_ENABLED,
       trustedProxyHops: env.TRUSTED_PROXY_HOPS,
       email: createSmtpSender({
         host: env.SMTP_HOST,
@@ -159,6 +161,10 @@ export async function getPortfoliosService(): Promise<PortfoliosService> {
 
 export async function getOpsService(): Promise<OpsService> {
   return (await getRuntime()).ops;
+}
+
+export async function getEntitlementsService(): Promise<EntitlementsService> {
+  return (await getRuntime()).entitlements;
 }
 
 export async function getGoalsService(): Promise<GoalsService> {

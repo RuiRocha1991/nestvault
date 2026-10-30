@@ -122,6 +122,23 @@ describe('loadEnv', () => {
     });
   });
 
+  describe('BILLING_ENABLED', () => {
+    it('defaults to false (every pool is Pro)', () => {
+      expect(loadEnv(VALID_ENV).BILLING_ENABLED).toBe(false);
+    });
+
+    it.each([
+      ['true', true],
+      ['false', false],
+    ])('parses %s', (raw, expected) => {
+      expect(loadEnv({ ...VALID_ENV, BILLING_ENABLED: raw }).BILLING_ENABLED).toBe(expected);
+    });
+
+    it.each(['TRUE', '1', 'yes'])('rejects the ambiguous value %j', (raw) => {
+      expect(() => loadEnv({ ...VALID_ENV, BILLING_ENABLED: raw })).toThrow(EnvValidationError);
+    });
+  });
+
   describe('ALLOW_SIGNUP', () => {
     it.each([
       ['true', true],

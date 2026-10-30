@@ -27,6 +27,7 @@ import {
   type InvitesService,
   type MembersService,
   type PoolsService,
+  createEntitlements,
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
@@ -75,6 +76,7 @@ function build() {
   invites = createInvitesService({
     auth,
     identity,
+    entitlements: createEntitlements({ identity, billingEnabled: false }),
     limiter,
     email: mail,
     appUrl: APP_URL,

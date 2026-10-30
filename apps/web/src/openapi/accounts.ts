@@ -42,7 +42,7 @@ registry.registerPath({
   operationId: 'createAccount',
   summary: 'Create an account',
   description:
-    'Needs `accounts.write`. `holderIds` (at least one) must be people of this pool. The IBAN is normalized (no spaces, upper case), checked with mod-97 and unique inside the pool (409); the same IBAN in another pool is fine. A term deposit is in EUR. `subAccounts` is only for a brokerage account and each holder must own the account. The body is strict: `poolId`, `id` or any other field answers 400.',
+    'Needs `accounts.write`. `holderIds` (at least one) must be people of this pool. The IBAN is normalized (no spaces, upper case), checked with mod-97 and unique inside the pool (409); the same IBAN in another pool is fine. A term deposit is in EUR. `subAccounts` is only for a brokerage account and each holder must own the account. A Free pool (with `BILLING_ENABLED=true`) is limited to 3 accounts: the next one answers 403 `plan_limit`. The body is strict: `poolId`, `id` or any other field answers 400.',
   tags: ['Accounts'],
   request: {
     params: z.object({ poolId: PoolId }),

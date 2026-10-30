@@ -121,3 +121,21 @@ export class RateLimitError extends HttpError {
     super(message);
   }
 }
+
+/**
+ * The pool's plan does not allow this (a numeric limit reached, or a Pro feature on Free). Sent as
+ * 403 `plan_limit` with the `resource` (or feature) and the `limit` (null for a feature) so the UI
+ * can show the upgrade prompt. Distinct from `forbidden`, which is about the caller's role.
+ */
+export class PlanLimitError extends HttpError {
+  readonly status = 403;
+  readonly code = 'plan_limit';
+
+  constructor(
+    readonly resource: string,
+    readonly limit: number | null,
+    message = 'Your plan does not allow this.',
+  ) {
+    super(message);
+  }
+}

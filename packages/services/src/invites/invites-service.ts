@@ -8,6 +8,7 @@ import { getEmailStatus } from '../auth/email-tokens';
 import { requireSession } from '../auth/require-session';
 import type { InviteVerifier } from '../auth/signup-policy';
 import { inviteTemplate, type EmailSender } from '../email';
+import type { Entitlements } from '../entitlements';
 import {
   ConflictError,
   ForbiddenError,
@@ -59,6 +60,8 @@ export interface InvitesService {
 }
 
 export interface InvitesServiceDeps {
+  /** Plan limits: a Free pool has room only for its owner (ADR 0003). */
+  entitlements: Entitlements;
   auth: Auth;
   identity: IdentityDatabase;
   limiter: RateLimiter;
@@ -92,7 +95,7 @@ export function createInviteVerifier(
 }
 
 export function createInvitesService(deps: InvitesServiceDeps): InvitesService {
-  const { auth, identity, limiter, email, appUrl } = deps;
+  const { auth, identity, limiter, email, appUrl, entitlements } = deps;
   const now = deps.now ?? (() => new Date());
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
 
@@ -153,6 +156,7 @@ export function createInvitesService(deps: InvitesServiceDeps): InvitesService {
         invitedBy: session.userId,
       };
       await identity.db.transaction(async (tx) => {
+        await entitlements.assertWithinLimit(ctx, 'members', tx);
         if (await poolMembersRepo.existsByEmail(tx, ctx.poolId, invite.email)) {
           throw new ConflictError('This person is already a member of the pool.');
         }
@@ -246,16 +250,20 @@ export function createInvitesService(deps: InvitesServiceDeps): InvitesService {
       await identity.db.transaction(async (tx) => {
         // Single use: only one of two parallel accepts updates the row; the other gets a 404.
         if (!(await invitesRepo.markAccepted(tx, found.id, at))) throw new NotFoundError();
-        await poolMembersRepo.insertIfAbsent(tx, {
-          poolId: found.poolId,
-          userId: session.userId,
-          role: found.role,
-        });
         const ctx = createPoolContext({
           poolId: found.poolId,
           actor: { kind: 'user', userId: session.userId },
           role: found.role,
           permissions: permissionsOfRole(found.role),
+        });
+        // Someone who already belongs keeps their seat; a new member needs a free one.
+        if (!(await poolMembersRepo.findRole(tx, found.poolId, session.userId))) {
+          await entitlements.assertWithinLimit(ctx, 'members', tx);
+        }
+        await poolMembersRepo.insertIfAbsent(tx, {
+          poolId: found.poolId,
+          userId: session.userId,
+          role: found.role,
         });
         await recordAudit(tx, ctx, 'invite.accepted', {
           target: found.id,

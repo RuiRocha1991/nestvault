@@ -27,6 +27,7 @@ import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
+import type { Entitlements } from '../entitlements';
 import { ConflictError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { CASH_ACCOUNT_TYPES } from '../investments/checks';
@@ -83,6 +84,8 @@ export interface AccountsService {
 export interface AccountsServiceDeps {
   auth: Auth;
   identity: IdentityDatabase;
+  /** Plan limits, checked in the transaction that inserts (ADR 0003). */
+  entitlements: Entitlements;
   /** Runs work inside `withPool`; tests pass their own database. */
   run?: PoolRunner;
   trustedProxyHops?: number;
@@ -93,7 +96,7 @@ const invalid = (path: string, message: string) =>
   new ValidationError('The request is not valid.', [{ path, message }]);
 
 export function createAccountsService(deps: AccountsServiceDeps): AccountsService {
-  const { auth, identity } = deps;
+  const { auth, identity, entitlements } = deps;
   const run = deps.run ?? withPool;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
   const now = deps.now ?? (() => new Date());
@@ -250,6 +253,7 @@ export function createAccountsService(deps: AccountsServiceDeps): AccountsServic
       }
       try {
         await run(ctx, async (tx) => {
+          await entitlements.assertWithinLimit(ctx, 'accounts', tx);
           await assertHolders(tx, ctx, holderIds);
           await assertPortfolio(tx, ctx, values.portfolioId);
           await accountsRepo.insert(tx, ctx, id, values);
