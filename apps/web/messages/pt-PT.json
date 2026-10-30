@@ -2635,7 +2635,8 @@
           "error": "Não foi possível guardar o campo."
         },
         "amountPlaceholder": "0,00"
-      }
+      },
+      "noValue": "—"
     },
     "events": {
       "kinds": {

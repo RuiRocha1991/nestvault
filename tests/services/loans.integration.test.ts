@@ -368,7 +368,27 @@ describe('installments', () => {
       await expect(
         world.loans.updateField(await s.as(as), s.poolA, created.id, 'fees', { enabled: true }),
       ).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(
+        world.loans.addField(await s.as(as), s.poolA, created.id, { key: 'extra', label: 'Extra' }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
     }
+  });
+
+  it('refuses a custom field key that is a property of the installment', async () => {
+    const created = await create();
+    const owner = await s.as('owner');
+    for (const key of ['total', 'capital', 'status', 'source', 'custom', 'dueDate', 'loanId']) {
+      await expect(
+        world.loans.addField(owner, s.poolA, created.id, { key, label: 'x' }),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+  });
+
+  it('does not let another pool add a field to this loan', async () => {
+    const created = await create();
+    await expect(
+      world.loans.addField(await s.as('outsider'), s.poolA, created.id, { key: 'x', label: 'x' }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 

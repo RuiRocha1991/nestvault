@@ -17,6 +17,22 @@ export const BUILTIN_LOAN_FIELDS = [
 ] as const;
 export type BuiltinLoanField = (typeof BUILTIN_LOAN_FIELDS)[number];
 
+/** Names of the installment's own properties: a custom field cannot take them as its key. */
+export const RESERVED_LOAN_FIELD_KEYS: readonly string[] = [
+  'id',
+  'number',
+  'dueDate',
+  'capital',
+  'interest',
+  'total',
+  'status',
+  'source',
+  'custom',
+  'loanId',
+  'amounts',
+  'extras',
+];
+
 /** On when a loan is created; the others are enabled by hand or by an import that has values. */
 export const DEFAULT_ENABLED_LOAN_FIELDS: readonly BuiltinLoanField[] = [
   'lifeInsurance',

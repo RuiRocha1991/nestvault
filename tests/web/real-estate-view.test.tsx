@@ -339,6 +339,48 @@ describe('real estate view', () => {
     ]);
   });
 
+  it('does not let a custom field read the installment’s own properties', () => {
+    const clash = {
+      ...bundle,
+      loan: {
+        ...bundle.loan,
+        fields: [
+          ...bundle.loan.fields,
+          ...['total', 'status'].map((key) => ({
+            id: ID,
+            key,
+            label: key,
+            kind: 'custom',
+            enabled: true,
+            countsAsExpense: true,
+            defaultAmount: null,
+            appliesFrom: null,
+          })),
+        ],
+      },
+    } as unknown as LoanBundle;
+    const [first] = installmentRows(clash);
+    expect(first?.amounts.total).toBe('0');
+    expect(first?.amounts.status).toBe('0');
+    expect(first?.total).toBe('81');
+    expect(fieldKeyFor('Total', [])).toBe('total2');
+    expect(fieldKeyFor('Status', [])).toBe('status2');
+  });
+
+  it('guards CSV cells that a spreadsheet would run as a formula', () => {
+    const fields = installmentFields(bundle).map((f) =>
+      f.key === 'protection' ? { ...f, label: '=HYPERLINK("x")' } : f,
+    );
+    const csv = installmentsCsv(installmentRows(bundle), fields, {
+      number: 'Nº',
+      date: 'Data',
+      capital: 'Cap',
+      interest: 'Juros',
+      total: 'Total',
+    });
+    expect(csv.split('\n')[0]).toContain('"\'=HYPERLINK(""x"")"');
+  });
+
   it('builds a unique field key from a name and exports enabled fields to CSV', () => {
     expect(fieldKeyFor('Seguro de proteção', [])).toBe('seguroDeProtecao');
     expect(fieldKeyFor('Seguro de proteção', ['seguroDeProtecao'])).toBe('seguroDeProtecao2');

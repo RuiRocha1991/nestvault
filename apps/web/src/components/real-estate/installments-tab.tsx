@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_ENABLED_LOAN_FIELDS } from '@nestvault/domain/browser';
+import { DEFAULT_ENABLED_LOAN_FIELDS, dec } from '@nestvault/domain/browser';
 import {
   Button,
   Card,
@@ -44,6 +44,7 @@ interface ColumnPrefs {
   hideEmpty: boolean;
 }
 const DEFAULT_PREFS: ColumnPrefs = { remaining: true, state: true, hideEmpty: true };
+const DEFAULT_KEYS: readonly string[] = DEFAULT_ENABLED_LOAN_FIELDS;
 const PREFS_KEY = 'nv-installment-columns';
 
 function readPrefs(): ColumnPrefs {
@@ -215,7 +216,7 @@ export function InstallmentsTab({
     setPrefs(DEFAULT_PREFS);
     writePrefs(DEFAULT_PREFS);
     setFailed(false);
-    const defaults: readonly string[] = DEFAULT_ENABLED_LOAN_FIELDS;
+    const defaults = DEFAULT_KEYS;
     const changes = fields.filter(
       (field) => field.kind === 'builtin' && field.enabled !== defaults.includes(field.key),
     );
@@ -241,13 +242,13 @@ export function InstallmentsTab({
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${t('csvName')}-${loan.name}.csv`;
+    link.download = `${t('csvName')}-${loan.name.replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
 
   const basics = ['number', 'capital', 'interest', 'total'] as const;
-  const tableMoney = (value: string) => (Number(value) === 0 ? '—' : formatMoney(value));
+  const tableMoney = (value: string) => (dec(value).isZero() ? t('noValue') : formatMoney(value));
 
   return (
     <div className="flex flex-col gap-4">
@@ -367,8 +368,7 @@ export function InstallmentsTab({
                       key={field.key}
                       label={labelOf(field)}
                       hint={
-                        field.kind === 'builtin' &&
-                        DEFAULT_ENABLED_LOAN_FIELDS.includes(field.key as never)
+                        field.kind === 'builtin' && DEFAULT_KEYS.includes(field.key)
                           ? t('columns.default')
                           : undefined
                       }

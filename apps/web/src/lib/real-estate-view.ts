@@ -1,4 +1,6 @@
 import {
+  BUILTIN_LOAN_FIELDS,
+  RESERVED_LOAN_FIELD_KEYS,
   addMonths,
   contractYear,
   dec,
@@ -228,10 +230,13 @@ export interface InstallmentRow {
 
 type EnteredInstallment = LoanBundle['installments'][number];
 
-const amountIn = (item: EnteredInstallment, key: string): string =>
-  key in item.custom
-    ? (item.custom[key] ?? '0')
-    : ((item as Record<string, unknown>)[key] as string);
+const BUILTIN_KEYS: readonly string[] = BUILTIN_LOAN_FIELDS;
+
+/** A builtin field is a column of the installment; a custom one is only read from `custom`. */
+const amountIn = (item: EnteredInstallment, field: { key: string; kind: string }): string =>
+  field.kind === 'custom' || !BUILTIN_KEYS.includes(field.key)
+    ? (item.custom[field.key] ?? '0')
+    : ((item as unknown as Record<string, string>)[field.key] ?? '0');
 
 const hasAmount = (value: string | undefined): boolean =>
   value !== undefined && !dec(value).isZero();
@@ -242,7 +247,7 @@ export function installmentFields(bundle: LoanBundle): InstallmentField[] {
     .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'builtin' ? -1 : 1))
     .map((field) => ({
       ...field,
-      hasValues: bundle.installments.some((item) => hasAmount(amountIn(item, field.key))),
+      hasValues: bundle.installments.some((item) => hasAmount(amountIn(item, field))),
     }));
 }
 
@@ -266,10 +271,10 @@ export function installmentRows(bundle: LoanBundle): InstallmentRow[] {
     const actual = entered.get(row.number);
     const amounts = Object.fromEntries(
       fields.map((field) => {
-        if (actual) return [field.key, amountIn(actual, field.key)];
+        if (actual) return [field.key, amountIn(actual, field)];
         if (row.source === 'actual') return [field.key, '0'];
         if (defaultApplies(field, row.dueDate)) return [field.key, field.defaultAmount ?? '0'];
-        return [field.key, last ? amountIn(last, field.key) : '0'];
+        return [field.key, last ? amountIn(last, field) : '0'];
       }),
     );
     const extras = sum(enabled.map((field) => amounts[field.key] ?? '0'));
@@ -343,12 +348,16 @@ export function fieldKeyFor(name: string, taken: readonly string[]): string {
     .join('');
   const base = (/^[a-zA-Z]/.test(camel) ? camel : `f${camel}`).slice(0, 36) || 'field';
   let key = base;
-  for (let n = 2; taken.includes(key); n += 1) key = `${base}${n}`;
+  for (let n = 2; taken.includes(key) || RESERVED_LOAN_FIELD_KEYS.includes(key); n += 1)
+    key = `${base}${n}`;
   return key;
 }
 
+/** Text a spreadsheet would run as a formula gets a leading quote (user labels go in the header). */
+const csvText = (value: string): string => (/^[=+\-@\t\r]/.test(value) ? `'${value}` : value);
+
 const csvCell = (value: string): string =>
-  /[";\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  /[";\n\r]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 
 /** The table as CSV (semicolons, decimal point): the fixed columns plus every enabled field. */
 export function installmentsCsv(
@@ -365,7 +374,7 @@ export function installmentsCsv(
       head.interest,
       ...enabled.map((f) => f.label),
       head.total,
-    ],
+    ].map(csvText),
     ...rows.map((row) => [
       String(row.number),
       row.dueDate,
