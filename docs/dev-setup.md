@@ -52,6 +52,7 @@ variable is added, renamed or removed):
 | 4       | NES-56 | `PARSER_URL`, `PARSER_SECRET` (internal statement parser service)    |
 | 5       | NES-57 | `IMPORT_STORAGE_DIR` (encrypted uploads); `APP_ENCRYPTION_KEY` may be a list `new:<key>,old:<key>` to rotate |
 | 6       | NES-65 | `WORKER_RW_PASSWORD`, `DATABASE_URL_WORKER`, `TEST_DATABASE_URL_WORKER` (worker role). On an existing volume run `pnpm db:worker-role` |
+| 7       | NES-88 | `BILLING_ENABLED` (plans and limits; `false` = every pool is Pro, the default) |
 
 ## 3. What runs
 

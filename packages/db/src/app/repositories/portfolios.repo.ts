@@ -26,6 +26,15 @@ export interface PortfolioValues {
  * a row never comes from the caller's data.
  */
 export const portfoliosRepo = {
+  /** How many portfolios the pool has (plan limits). */
+  async count(tx: PoolTx, ctx: PoolContext): Promise<number> {
+    const [row] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(portfolios)
+      .where(eq(portfolios.poolId, ctx.poolId));
+    return row?.n ?? 0;
+  },
+
   async list(tx: PoolTx, ctx: PoolContext): Promise<PortfolioRow[]> {
     return tx
       .select()

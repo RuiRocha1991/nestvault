@@ -39,6 +39,15 @@ export interface AccountHolderLink {
  * the pool of a row never comes from the caller's data.
  */
 export const accountsRepo = {
+  /** How many accounts the pool has (plan limits). */
+  async count(tx: PoolTx, ctx: PoolContext): Promise<number> {
+    const [row] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(accounts)
+      .where(eq(accounts.poolId, ctx.poolId));
+    return row?.n ?? 0;
+  },
+
   async list(tx: PoolTx, ctx: PoolContext): Promise<AccountRow[]> {
     return tx
       .select()

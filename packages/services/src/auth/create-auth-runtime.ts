@@ -7,6 +7,7 @@ import { createAssetsService, type AssetsService } from '../assets';
 import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
+import { createEntitlementsService, type EntitlementsService } from '../entitlements';
 import { createExpensesService, type ExpensesService } from '../expenses';
 import { createGoalsService, type GoalsService } from '../goals';
 import { createHoldersService, type HoldersService } from '../holders';
@@ -54,6 +55,8 @@ export interface AuthRuntimeConfig {
   appUrl: string;
   secret: string;
   allowSignup: boolean;
+  /** `BILLING_ENABLED`: false (default) treats every pool as Pro. */
+  billingEnabled?: boolean;
   trustedProxyHops?: number;
   email: EmailSender;
   log?: Logger;
@@ -82,6 +85,8 @@ export interface AuthRuntime {
   members: MembersService;
   /** The pool's audit log for its owner. */
   audit: AuditService;
+  /** Plan, limits and usage of a pool; also the checks the services call before inserting. */
+  entitlements: EntitlementsService;
   /** Bank, savings, deposit and brokerage accounts with their holders and sub-accounts. */
   accounts: AccountsService;
   /** Bank movements: manual entry, categories by hand and transfers. */
@@ -141,14 +146,21 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     ...(config.log ? { log: config.log } : {}),
   });
   const pools = createPoolsService({ auth, identity, ...hops });
+  const entitlements = createEntitlementsService({
+    auth,
+    identity,
+    billingEnabled: config.billingEnabled ?? false,
+  });
   return {
     auth,
     limiter,
     account: createAccountService({ auth, identity, pools, ...hops }),
     pools,
+    entitlements,
     invites: createInvitesService({
       auth,
       identity,
+      entitlements,
       limiter,
       email: config.email,
       appUrl: config.appUrl,
@@ -156,10 +168,10 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     }),
     members: createMembersService({ auth, identity, limiter, ...hops }),
     audit: createAuditService({ auth, identity }),
-    accounts: createAccountsService({ auth, identity, ...hops }),
+    accounts: createAccountsService({ auth, identity, entitlements, ...hops }),
     transactions: createTransactionsService({ auth, identity, ...hops }),
     expenses: createExpensesService({ auth, identity, ...hops }),
-    portfolios: createPortfoliosService({ auth, identity, ...hops }),
+    portfolios: createPortfoliosService({ auth, identity, entitlements, ...hops }),
     ops: createOpsService({ auth, identity, ...hops }),
     cashMoves: createCashMovesService({ auth, identity, ...hops }),
     plans: createPlansService({ auth, identity, ...hops }),

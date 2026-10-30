@@ -4439,6 +4439,48 @@
       ]
     },
     {
+      "name": "Plan",
+      "item": [
+        {
+          "name": "Plan, limits and usage of the pool",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/plan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "plan"
+              ]
+            },
+            "description": "Any member. limits has null for unlimited. With BILLING_ENABLED=false every pool is pro; a create refused by the plan answers 403 with error.code plan_limit."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('has plan, limits and usage', () => {",
+                  "  pm.expect(d).to.have.keys('plan', 'billingEnabled', 'limits', 'usage', 'features');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Products",
       "item": [
         {

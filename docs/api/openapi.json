@@ -3350,7 +3350,7 @@
       "post": {
         "operationId": "createAccount",
         "summary": "Create an account",
-        "description": "Needs `accounts.write`. `holderIds` (at least one) must be people of this pool. The IBAN is normalized (no spaces, upper case), checked with mod-97 and unique inside the pool (409); the same IBAN in another pool is fine. A term deposit is in EUR. `subAccounts` is only for a brokerage account and each holder must own the account. The body is strict: `poolId`, `id` or any other field answers 400.",
+        "description": "Needs `accounts.write`. `holderIds` (at least one) must be people of this pool. The IBAN is normalized (no spaces, upper case), checked with mod-97 and unique inside the pool (409); the same IBAN in another pool is fine. A term deposit is in EUR. `subAccounts` is only for a brokerage account and each holder must own the account. A Free pool (with `BILLING_ENABLED=true`) is limited to 3 accounts: the next one answers 403 `plan_limit`. The body is strict: `poolId`, `id` or any other field answers 400.",
         "tags": [
           "Accounts"
         ],
@@ -9442,6 +9442,166 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/plan": {
+      "get": {
+        "operationId": "getPoolPlan",
+        "summary": "Plan, limits and usage of the pool",
+        "description": "Any member may read. `limits` has `null` for unlimited. When a create is refused by the plan, that endpoint answers 403 with `error.code` `plan_limit` plus `error.resource` and `error.limit` (`null` for a Pro feature); the UI shows the upgrade prompt.",
+        "tags": [
+          "Plan"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plan": {
+                      "type": "string",
+                      "enum": [
+                        "free",
+                        "pro"
+                      ]
+                    },
+                    "billingEnabled": {
+                      "type": "boolean"
+                    },
+                    "limits": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "portfolios": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "members": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "accounts",
+                        "portfolios",
+                        "members"
+                      ]
+                    },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "portfolios": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "members": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "accounts",
+                        "portfolios",
+                        "members"
+                      ]
+                    },
+                    "features": {
+                      "type": "object",
+                      "properties": {
+                        "real_estate": {
+                          "type": "boolean"
+                        },
+                        "ai_import": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "real_estate",
+                        "ai_import"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "plan",
+                    "billingEnabled",
+                    "limits",
+                    "usage",
+                    "features"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/portfolios": {
       "get": {
         "operationId": "listPortfolios",
@@ -9581,7 +9741,7 @@
       "post": {
         "operationId": "createPortfolio",
         "summary": "Create",
-        "description": "Needs `portfolios.write` (owner, admin). The name is unique inside the pool (409). `targets` maps a label to a percentage (0-100). The body is strict: `poolId` or any other field answers 400.",
+        "description": "Needs `portfolios.write` (owner, admin). The name is unique inside the pool (409). `targets` maps a label to a percentage (0-100). A Free pool (with `BILLING_ENABLED=true`) is limited to 2 portfolios: the next one answers 403 `plan_limit`. The body is strict: `poolId` or any other field answers 400.",
         "tags": [
           "Portfolios"
         ],
@@ -21565,7 +21725,7 @@
       "post": {
         "operationId": "createPoolInvite",
         "summary": "Invite somebody to a pool by email",
-        "description": "Sends a pt-PT email with a single-use link (`/convite/{token}`) valid for 7 days. The role cannot be above the inviter’s own (an admin cannot invite an owner: 403). Inviting an address that already has a pending invite replaces it (the old link stops working); an address that is already a member answers 409. 20 invites a day per pool (429). Unknown fields (`poolId`, `id`, `invitedBy`…) answer 400.",
+        "description": "Sends a pt-PT email with a single-use link (`/convite/{token}`) valid for 7 days. The role cannot be above the inviter’s own (an admin cannot invite an owner: 403). Inviting an address that already has a pending invite replaces it (the old link stops working); an address that is already a member answers 409. 20 invites a day per pool (429). A Free pool (with `BILLING_ENABLED=true`) has room only for its owner: any invite answers 403 `plan_limit`. Unknown fields (`poolId`, `id`, `invitedBy`…) answer 400.",
         "tags": [
           "Invites"
         ],
@@ -21950,7 +22110,7 @@
       "post": {
         "operationId": "acceptInvite",
         "summary": "Accept an invite",
-        "description": "The signed-in user joins the pool with the invited role. The session’s email must be verified and equal the invite’s address. An unknown, expired or used token, another account’s invite and an unverified address all answer the same 404, so nothing is confirmed about a token. Single use: the membership and `accepted_at` are written in one transaction. No body.",
+        "description": "The signed-in user joins the pool with the invited role. The session’s email must be verified and equal the invite’s address. An unknown, expired or used token, another account’s invite and an unverified address all answer the same 404, so nothing is confirmed about a token. Single use: the membership and `accepted_at` are written in one transaction. A pool on the Free plan has no free seat: 403 `plan_limit`. No body.",
         "tags": [
           "Invites"
         ],

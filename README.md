@@ -158,6 +158,10 @@ request id (`x-request-id`), same-`Origin` check on writes, typed errors mapped 
 - `GET http://localhost:4000/api/v1/health` answers `{"status":"ok"}` (no sign-in).
 - **Swagger UI:** http://localhost:4000/api/docs. Served only when `ENABLE_API_DOCS=true` (set in
   `.env.local` by `pnpm env:init`) **and** the app is not in production mode; otherwise a 404.
+- **Plans:** `BILLING_ENABLED=false` (the default) treats every pool as Pro, so nothing is limited.
+  With `true`, a pool without an active subscription is Free: 3 accounts, 2 portfolios and no
+  invites (ADR 0003); a refused create answers 403 `plan_limit`. `GET /api/v1/pools/:poolId/plan`
+  shows the plan, limits and usage.
 - **OpenAPI document:** `docs/api/openapi.json`, generated from the zod schemas. Run `pnpm openapi`
   after adding or changing an endpoint; `pnpm openapi --check` (CI) fails when it is stale.
 - **Postman / Insomnia:** `tests/api/` (collection, environment and how to sign in with the cookie jar).

@@ -26,6 +26,7 @@ import {
   type InvitesService,
   type MemoryEmailSender,
   type PoolsService,
+  createEntitlements,
 } from '@nestvault/services';
 
 import { openTestDatabase } from '../db/harness';
@@ -74,6 +75,7 @@ function build() {
   invites = createInvitesService({
     auth,
     identity,
+    entitlements: createEntitlements({ identity, billingEnabled: false }),
     limiter,
     email: mail,
     appUrl: APP_URL,
@@ -267,6 +269,7 @@ describe('create', () => {
     const failing = createInvitesService({
       auth,
       identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
       limiter: createRateLimiter({ identity, secret: SECRET, now: clock.now }),
       email: { send: () => Promise.reject(new Error('smtp down')) },
       appUrl: APP_URL,

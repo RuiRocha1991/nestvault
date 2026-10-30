@@ -467,6 +467,25 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   strictly below admin) is a product decision that has not been taken; until it is, this is the
   documented behaviour, not an accident.
 
+- **Plan limits (NES-88, ADR 0003).** What a pool may have depends on its plan, enforced in the
+  services and never in feature code or the UI: `assertWithinLimit` (accounts, portfolios, members)
+  and `assertFeature` (real estate, AI import) in `packages/services/src/entitlements`, with every
+  number in one map (`plans.ts`). A refusal is a typed `PlanLimitError`, **403 `plan_limit`** with the
+  `resource` and `limit`, different from the role's 403 `forbidden`. The plan comes from the pool's
+  row in `pool_subscriptions` (identity database; no row or a canceled one = Free); with
+  `BILLING_ENABLED=false`, the default, every pool is Pro. The check runs inside the transaction
+  that inserts, after a `pg_advisory_xact_lock` on `(pool, resource)` taken from bound parameters,
+  so parallel creates cannot go over the limit. Inviting and accepting an invite both check the
+  members limit, so a Free pool never gets a second login. The client never sends a plan: nothing in
+  a body or header changes it, and `GET …/plan` only reads (any member).
+- **Verified by:** `tests/services/entitlements.integration.test.ts` (4th account, 3rd portfolio and
+  any invite refused with `plan_limit`, accept refused and rolled back, Pro and canceled
+  subscriptions, billing off, 10 parallel creates give exactly 1 success, holders not counted,
+  `GET plan` 401/404), `tests/services/plan-limits-single-source.test.ts` (no limit outside
+  `plans.ts`), `tests/db/entitlements.repo.integration.test.ts` (counts per pool, lock and
+  subscription lookups with injection payloads, check constraints, cascade) and the route
+  isolation suite (`GET /plan`).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

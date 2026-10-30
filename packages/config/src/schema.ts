@@ -104,6 +104,9 @@ const runtimeShape = {
   TRUSTED_PROXY_HOPS: proxyHops,
   // Swagger UI and the OpenAPI document at /api/docs; never served when NODE_ENV is production.
   ENABLE_API_DOCS: strictBoolean,
+  // Plans (ADR 0003). false (default) = every pool is treated as Pro, nothing is limited; true = Free
+  // limits apply to pools without a subscription.
+  BILLING_ENABLED: strictBoolean,
   DATABASE_URL_IDENTITY: postgresUrl,
   DATABASE_URL_APP: postgresUrl,
   BETTER_AUTH_SECRET: secret(32),

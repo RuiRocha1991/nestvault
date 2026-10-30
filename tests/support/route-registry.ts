@@ -35,6 +35,7 @@ import {
   TransactionPageDto,
   CategoryDto,
   GoalDto,
+  PoolPlanDto,
   GoalListDto,
   CategoryListDto,
   ExpensesSummaryDto,
@@ -2118,6 +2119,21 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     foreign: foreignPlan,
   },
 
+  // ---------------------------------------------------------------- pool scope: plan
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/plan`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/plan/route')),
+    success: { status: 200, schema: PoolPlanDto },
+    noForeignBecause: 'reports the URL’s own pool; the leak probe covers pool B’s accounts',
+    leaks: async (s) => {
+      await accountIn(s, 'A');
+      const other = await accountIn(s, 'B');
+      return [other.id, other.name];
+    },
+  },
   // ---------------------------------------------------------------- pool scope: goals
   {
     scope: 'pool',

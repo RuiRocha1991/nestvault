@@ -130,6 +130,11 @@ export type {
 export { invitesRepo } from './identity/repositories/invites.repo';
 export type { InvitePreviewRow, InviteRow, NewInvite } from './identity/repositories/invites.repo';
 export { poolMembersRepo } from './identity/repositories/pool-members.repo';
+export { poolSubscriptionsRepo } from './identity/repositories/pool-subscriptions.repo';
+export type { PoolSubscriptionRow } from './identity/repositories/pool-subscriptions.repo';
+export { lockPoolResource } from './advisory-lock';
+export { PLANS, SUBSCRIPTION_STATUSES } from './identity/schema/pool-subscriptions';
+export type { Plan, SubscriptionStatus } from './identity/schema/pool-subscriptions';
 export type { MemberRow } from './identity/repositories/pool-members.repo';
 export { poolsRepo } from './identity/repositories/pools.repo';
 export type { PoolSummaryRow } from './identity/repositories/pools.repo';

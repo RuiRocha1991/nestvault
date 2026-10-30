@@ -66,6 +66,7 @@ import {
   type RateLimiter,
   type OpsService,
   type CashMovesService,
+  type EntitlementsService,
   type GoalsService,
   type PlansService,
   type ProductsService,
@@ -78,6 +79,8 @@ import {
   type RulesService,
   type TransactionsService,
   type SettingsService,
+  createEntitlements,
+  createEntitlementsService,
 } from '@nestvault/services';
 
 import { allCategories, openTestDatabase, type TestDatabase } from '../db/harness';
@@ -138,6 +141,10 @@ export interface ApiWorld {
   cashMoves: CashMovesService;
   plans: PlansService;
   goals: GoalsService;
+  /** The world's test clock: services built outside the world must use it to agree on expiry. */
+  now: () => Date;
+  /** Plan and limits, with billing off (every pool is Pro). */
+  entitlements: EntitlementsService;
   products: ProductsService;
   deposits: DepositsService;
   interest: InterestService;
@@ -218,6 +225,7 @@ export async function createApiWorld(): Promise<ApiWorld> {
     invites: createInvitesService({
       auth,
       identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
       limiter,
       email: mail,
       appUrl: APP_URL,
@@ -229,6 +237,7 @@ export async function createApiWorld(): Promise<ApiWorld> {
     accounts: createAccountsService({
       auth,
       identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
       run: database.withPool,
       trustedProxyHops: 1,
     }),
@@ -266,6 +275,7 @@ export async function createApiWorld(): Promise<ApiWorld> {
     portfolios: createPortfoliosService({
       auth,
       identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
       run: database.withPool,
       trustedProxyHops: 1,
     }),
@@ -280,6 +290,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
       identity,
       run: database.withPool,
       trustedProxyHops: 1,
+    }),
+    now: clock.now,
+    entitlements: createEntitlementsService({
+      auth,
+      identity,
+      billingEnabled: false,
+      run: database.withPool,
     }),
     goals: createGoalsService({
       auth,

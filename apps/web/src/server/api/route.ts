@@ -1,6 +1,7 @@
 import {
   ConflictError,
   HttpError,
+  PlanLimitError,
   logger,
   RateLimitError,
   ValidationError,
@@ -74,7 +75,9 @@ function toErrorResponse(error: unknown, requestId: string): NextResponse {
         ? { issues: error.issues }
         : error instanceof ConflictError && error.current !== undefined
           ? { current: error.current }
-          : {};
+          : error instanceof PlanLimitError
+            ? { resource: error.resource, limit: error.limit }
+            : {};
     return NextResponse.json(errorBody(error.code, error.message, requestId, extra), {
       status: error.status,
       headers,

@@ -54,7 +54,7 @@ registry.registerPath({
   operationId: 'createPortfolio',
   summary: 'Create',
   description:
-    'Needs `portfolios.write` (owner, admin). The name is unique inside the pool (409). `targets` maps a label to a percentage (0-100). The body is strict: `poolId` or any other field answers 400.',
+    'Needs `portfolios.write` (owner, admin). The name is unique inside the pool (409). `targets` maps a label to a percentage (0-100). A Free pool (with `BILLING_ENABLED=true`) is limited to 2 portfolios: the next one answers 403 `plan_limit`. The body is strict: `poolId` or any other field answers 400.',
   tags: ['Portfolios'],
   request: {
     params: z.object({ poolId: PoolId }),
