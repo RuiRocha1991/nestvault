@@ -18,6 +18,7 @@ import { money, poolId } from '../../columns';
 
 import { accounts } from './accounts';
 import { categories } from './categories';
+import { loanInstallments } from './loans';
 
 // Bank movements (PRD 04). `amount` is in the account's currency and negative leaves the account.
 // `hash` identifies a movement inside its account so an import never duplicates it. `category_id`
@@ -44,6 +45,11 @@ export const transactions = pgTable(
     depositInterest: boolean('dep_link').notNull().default(false),
     hash: text('hash').notNull(),
     importBatchId: uuid('import_batch_id'),
+    /**
+     * The loan installment this debit paid (NES-100): only its interest, fees, taxes and insurances
+     * count as an expense, the capital is savings. At most one debit per installment.
+     */
+    loanInstallmentId: uuid('loan_installment_id'),
     /** Free text about the movement; user content, written through NES-45's endpoint. */
     note: text('note'),
     /** Who last wrote the note and when. */
@@ -60,6 +66,9 @@ export const transactions = pgTable(
       table.accountId,
       table.date.desc(),
     ),
+    uniqueIndex('transactions_loan_installment_uniq')
+      .on(table.poolId, table.loanInstallmentId)
+      .where(sql`${table.loanInstallmentId} is not null`),
     index('transactions_category_idx').on(table.poolId, table.categoryId),
     check('transactions_description_len', sql`char_length(${table.description}) between 1 and 500`),
     check(
@@ -81,6 +90,12 @@ export const transactions = pgTable(
       columns: [table.categoryId],
       foreignColumns: [categories.id],
     }).onDelete('restrict'),
+    // The installment may be deleted: the debit then stays, unlinked, and counts as a plain expense.
+    foreignKey({
+      name: 'transactions_loan_installment_fk',
+      columns: [table.poolId, table.loanInstallmentId],
+      foreignColumns: [loanInstallments.poolId, loanInstallments.id],
+    }).onDelete('set null'),
     foreignKey({
       name: 'transactions_pair_fk',
       columns: [table.poolId, table.pairId],

@@ -34,6 +34,7 @@ import { requireSession } from '../auth/require-session';
 import { ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { toInvestmentOp } from '../investments/domain';
+import { installmentOf, loadRealEstateLedger } from '../real-estate';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 import { loadEngineContext, toEngineTransaction } from '../transactions/engine';
@@ -94,6 +95,7 @@ export function createExpensesService(deps: ExpensesServiceDeps): ExpensesServic
       opRows,
       assetRows,
       pool,
+      realEstate,
     ] = await Promise.all([
       accountsRepo.list(tx, ctx),
       transactionsRepo.listForEngine(tx, ctx),
@@ -104,6 +106,7 @@ export function createExpensesService(deps: ExpensesServiceDeps): ExpensesServic
       investmentOpsRepo.list(tx, ctx),
       assetsRepo.list(tx, ctx),
       poolSettingsRepo.find(tx, ctx),
+      loadRealEstateLedger(tx, ctx),
     ]);
     const categories = categoryRows.map((row): Category => ({
       id: row.id,
@@ -124,7 +127,10 @@ export function createExpensesService(deps: ExpensesServiceDeps): ExpensesServic
     }));
     return {
       accounts: accountRows.map((row) => toLedgerAccount(row, savings.deposits.get(row.id))),
-      transactions: txRows.map(toEngineTransaction),
+      transactions: txRows.map((row) => ({
+        ...toEngineTransaction(row),
+        ...installmentOf(realEstate.splits, row.loanInstallmentId),
+      })),
       interestEntries: savings.interestEntries,
       ops: opRows.map(toInvestmentOp),
       assets,

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, ilike, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
@@ -140,6 +140,8 @@ export interface EngineTransaction {
   transferLocked: boolean;
   /** Already counted as the interest of a deposit. */
   depositInterest: boolean;
+  /** The loan installment this debit paid, if linked (NES-100). */
+  loanInstallmentId: string | null;
 }
 
 /** What the overview's figures read from a movement: the narrowest set of columns. */
@@ -150,6 +152,8 @@ export interface OverviewTransaction {
   categoryId: string | null;
   transfer: boolean;
   depositInterest: boolean;
+  /** The loan installment this debit paid, if linked (NES-100). */
+  loanInstallmentId: string | null;
   /** Only filled for an uncategorized incoming movement (the interest check reads it); else ''. */
   description: string;
 }
@@ -166,6 +170,7 @@ const engineColumns = {
   pairId: transactions.pairId,
   transferLocked: transactions.transferLocked,
   depositInterest: transactions.depositInterest,
+  loanInstallmentId: transactions.loanInstallmentId,
 };
 
 export interface EngineChange {
@@ -463,10 +468,87 @@ export const transactionsRepo = {
         categoryId: transactions.categoryId,
         transfer: transactions.transfer,
         depositInterest: transactions.depositInterest,
+        loanInstallmentId: transactions.loanInstallmentId,
         description: sql<string>`case when ${transactions.categoryId} is null and ${transactions.amount} > 0 then ${transactions.description} else '' end`,
       })
       .from(transactions)
       .where(eq(transactions.poolId, ctx.poolId));
+  },
+
+  /**
+   * The debits of one account between two dates that are not transfers and pay no installment yet:
+   * the candidates to match an installment with (NES-100).
+   */
+  async listUnlinkedDebits(
+    tx: PoolTx,
+    ctx: PoolContext,
+    accountId: string,
+    from: string,
+    to: string,
+  ): Promise<{ id: string; date: string; amount: string }[]> {
+    return tx
+      .select({ id: transactions.id, date: transactions.date, amount: transactions.amount })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          eq(transactions.accountId, accountId),
+          eq(transactions.transfer, false),
+          isNull(transactions.loanInstallmentId),
+          lt(transactions.amount, '0'),
+          gte(transactions.date, from),
+          lte(transactions.date, to),
+        ),
+      );
+  },
+
+  /** Links a debit to the installment it paid, or takes the link away (`null`). */
+  async setLoanInstallment(
+    tx: PoolTx,
+    ctx: PoolContext,
+    id: string,
+    installmentId: string | null,
+  ): Promise<boolean> {
+    const rows = await tx
+      .update(transactions)
+      .set({ loanInstallmentId: installmentId })
+      .where(and(eq(transactions.poolId, ctx.poolId), eq(transactions.id, id)))
+      .returning({ id: transactions.id });
+    return rows.length > 0;
+  },
+
+  /** Which of the given installments already have a debit linked. */
+  async linkedInstallmentIds(
+    tx: PoolTx,
+    ctx: PoolContext,
+    installmentIds: readonly string[],
+  ): Promise<Set<string>> {
+    if (installmentIds.length === 0) return new Set();
+    const rows = await tx
+      .select({ id: transactions.loanInstallmentId })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          inArray(transactions.loanInstallmentId, [...installmentIds]),
+        ),
+      );
+    return new Set(rows.flatMap((row) => (row.id ? [row.id] : [])));
+  },
+
+  /** The debit that paid an installment, if any. */
+  async findByInstallment(
+    tx: PoolTx,
+    ctx: PoolContext,
+    installmentId: string,
+  ): Promise<{ id: string } | undefined> {
+    const [row] = await tx
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(eq(transactions.poolId, ctx.poolId), eq(transactions.loanInstallmentId, installmentId)),
+      );
+    return row;
   },
 
   /** Every movement of the pool as the engine needs it (rules applied to the existing ones). */

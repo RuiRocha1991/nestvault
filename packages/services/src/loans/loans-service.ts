@@ -5,6 +5,7 @@ import {
   loansRepo,
   newId,
   propertiesRepo,
+  transactionsRepo,
   withPool,
   type IdentityDatabase,
   type InstallmentValues,
@@ -20,7 +21,13 @@ import {
   type LoanEvent,
   BUILTIN_LOAN_FIELDS,
   DEFAULT_ENABLED_LOAN_FIELDS,
+  addDays,
   defaultEffectiveFrom,
+  dec,
+  installmentCostSplit,
+  installmentTotal,
+  MATCH_DAYS,
+  matchInstallments,
   nextReviewDate,
   projectLoan,
   reviewedRate,
@@ -50,10 +57,13 @@ import {
   EventListDto,
   fieldSettings,
   InstallmentDto,
+  InstallmentLinkDto,
   InstallmentListDto,
+  LinkInstallmentInput,
   LoanDto,
   LoanFieldDto,
   LoanListDto,
+  MatchResultDto,
   ReviewPreviewDto,
   ScheduleDto,
   toAmounts,
@@ -104,6 +114,29 @@ export interface LoansService {
     id: string,
     installmentId: string,
   ): Promise<void>;
+  /**
+   * Marks an installment paid by a bank debit: from then on only its interest, fees, taxes and
+   * insurances count as an expense, the capital as savings (`realestate.write`, Pro).
+   */
+  linkInstallment(
+    headers: Headers,
+    poolId: string,
+    id: string,
+    installmentId: string,
+    input: unknown,
+  ): Promise<InstallmentLinkDto>;
+  /** Takes the link away; the debit counts as a plain expense again (`realestate.write`, Pro). */
+  unlinkInstallment(
+    headers: Headers,
+    poolId: string,
+    id: string,
+    installmentId: string,
+  ): Promise<void>;
+  /**
+   * Links every unlinked installment to the debit of the loan's account that matches its total
+   * (± a few cents) within a few days (`realestate.write`, Pro).
+   */
+  matchInstallments(headers: Headers, poolId: string, id: string): Promise<MatchResultDto>;
   /** The events of a loan in the order they take effect, each with what it did (`pool.read`, Pro). */
   listEvents(headers: Headers, poolId: string, id: string): Promise<EventListDto>;
   /** Records a prepayment, a rate review or a renegotiation (`realestate.write`, Pro). */
@@ -521,6 +554,119 @@ export function createLoansService(deps: LoansServiceDeps): LoansService {
         target: loanId,
         ip: ipOf(headers),
       });
+    },
+
+    async linkInstallment(headers, poolId, id, installmentId, input) {
+      const session = await requireSession(auth, headers);
+      const parsed = LinkInstallmentInput.safeParse(input);
+      if (!parsed.success) throw zodProblem(parsed.error, input);
+      const ctx = await membership(session, poolId, 'realestate.write');
+      const loanId = parseId(id);
+      const rowId = parseId(installmentId);
+      const link = await run(ctx, async (tx) => {
+        const row = await loansRepo.findInstallment(tx, ctx, loanId, rowId);
+        if (!row) throw new NotFoundError();
+        if (await transactionsRepo.findByInstallment(tx, ctx, rowId)) {
+          throw new ConflictError('This installment is already linked to a movement.');
+        }
+        const movement = await transactionsRepo.find(tx, ctx, parsed.data.transactionId);
+        if (!movement) throw invalid('transactionId', 'not a movement of this pool');
+        if (!dec(movement.amount).isNegative() || movement.transfer) {
+          throw invalid('transactionId', 'must be a debit that is not a transfer');
+        }
+        if (movement.loanInstallmentId) {
+          throw new ConflictError('That movement already pays another installment.');
+        }
+        await transactionsRepo.setLoanInstallment(tx, ctx, movement.id, rowId);
+        const fields = await loansRepo.listFields(tx, ctx, [loanId]);
+        const custom = await loansRepo.listAmounts(tx, ctx, [rowId]);
+        return InstallmentLinkDto.parse({
+          installmentId: rowId,
+          transactionId: movement.id,
+          split: installmentCostSplit(toAmounts(row, custom, fields), fieldSettings(fields)),
+        });
+      }).catch((error: unknown) => {
+        if (isUniqueViolation(error)) {
+          throw new ConflictError('This installment is already linked to a movement.');
+        }
+        return refOrRethrow(error);
+      });
+      await recordAudit(identity, ctx, 'loan.installment_linked', {
+        target: loanId,
+        ip: ipOf(headers),
+      });
+      return link;
+    },
+
+    async unlinkInstallment(headers, poolId, id, installmentId) {
+      const ctx = await guard(headers, poolId, 'realestate.write');
+      const loanId = parseId(id);
+      const rowId = parseId(installmentId);
+      await run(ctx, async (tx) => {
+        if (!(await loansRepo.findInstallment(tx, ctx, loanId, rowId))) throw new NotFoundError();
+        const linked = await transactionsRepo.findByInstallment(tx, ctx, rowId);
+        if (!linked) throw invalid('installmentId', 'the installment has no link');
+        await transactionsRepo.setLoanInstallment(tx, ctx, linked.id, null);
+      });
+      await recordAudit(identity, ctx, 'loan.installment_unlinked', {
+        target: loanId,
+        ip: ipOf(headers),
+      });
+    },
+
+    async matchInstallments(headers, poolId, id) {
+      const ctx = await guard(headers, poolId, 'realestate.write');
+      const loanId = parseId(id);
+      const result = await run(ctx, async (tx) => {
+        const loan = await loansRepo.find(tx, ctx, loanId);
+        if (!loan) throw new NotFoundError();
+        if (!loan.debitAccountId) throw invalid('debitAccountId', 'set the debit account first');
+        const rows = await loansRepo.listInstallments(tx, ctx, loanId);
+        const linked = await transactionsRepo.linkedInstallmentIds(
+          tx,
+          ctx,
+          rows.map((row) => row.id),
+        );
+        const open = rows.filter((row) => !linked.has(row.id));
+        const first = open[0];
+        const last = open[open.length - 1];
+        if (!first || !last) return MatchResultDto.parse({ matched: [] });
+        const fields = await loansRepo.listFields(tx, ctx, [loanId]);
+        const custom = await loansRepo.listAmounts(
+          tx,
+          ctx,
+          open.map((row) => row.id),
+        );
+        const debits = await transactionsRepo.listUnlinkedDebits(
+          tx,
+          ctx,
+          loan.debitAccountId,
+          addDays(first.dueDate, -MATCH_DAYS),
+          addDays(last.dueDate, MATCH_DAYS),
+        );
+        const matched = matchInstallments(
+          open.map((row) => ({
+            id: row.id,
+            dueDate: row.dueDate,
+            total: installmentTotal(toAmounts(row, custom, fields), fieldSettings(fields)),
+          })),
+          debits,
+        );
+        for (const pair of matched) {
+          await transactionsRepo.setLoanInstallment(
+            tx,
+            ctx,
+            pair.transactionId,
+            pair.installmentId,
+          );
+        }
+        return MatchResultDto.parse({ matched });
+      });
+      await recordAudit(identity, ctx, 'loan.installments_matched', {
+        target: loanId,
+        ip: ipOf(headers),
+      });
+      return result;
     },
 
     async listEvents(headers, poolId, id) {

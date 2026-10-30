@@ -47,6 +47,8 @@ import {
   WorkDto,
   WorkListDto,
   CostDto,
+  InstallmentLinkDto,
+  MatchResultDto,
   CostListDto,
   CostPaymentDto,
   CostTotalsDto,
@@ -2795,6 +2797,87 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     },
     success: { status: 204 },
     foreign: foreignInstallment,
+  },
+  {
+    scope: 'pool',
+    method: 'PUT',
+    path: `${POOL}/loans/:id/installments/:installmentId/transaction`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/[installmentId]/transaction/route'),
+      ),
+    params: async (s) => {
+      const installment = await installmentIn(s, 'A');
+      return { id: installment.loanId, installmentId: installment.id };
+    },
+    body: async (s) => ({ transactionId: (await transactionIn(s, 'A')).id }),
+    success: { status: 200, schema: InstallmentLinkDto },
+    foreign: foreignInstallment,
+    negatives: [
+      {
+        name: 'a movement that is not in this pool',
+        body: { transactionId: '0192f2c8-7a1e-7000-8000-000000000001' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/loans/:id/installments/:installmentId/transaction`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/[installmentId]/transaction/route'),
+      ),
+    params: async (s) => {
+      // Linked once per scenario: the setup runs for every case of the route.
+      const installment = await s.memo('linked-installment-A', async () => {
+        const created = await installmentIn(s, 'A');
+        await s.world.loans.linkInstallment(
+          await s.as('owner'),
+          s.poolA,
+          created.loanId,
+          created.id,
+          { transactionId: (await transactionIn(s, 'A')).id },
+        );
+        return created;
+      });
+      return { id: installment.loanId, installmentId: installment.id };
+    },
+    success: { status: 204 },
+    foreign: foreignInstallment,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/loans/:id/installments/match`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/match/route'),
+      ),
+    params: async (s) => ({
+      id: (
+        await s.memo('matching-loan-A', async () =>
+          s.world.loans.create(await s.as('owner'), s.poolA, {
+            name: 'Crédito com conta',
+            kind: 'mortgage',
+            principal: '50000',
+            startDate: '2020-09-01',
+            firstDueDate: '2020-10-05',
+            termMonths: 240,
+            rateType: 'fixed',
+            annualRate: '1.5',
+            paymentDay: 5,
+            debitAccountId: (await txAccountIn(s, 'A')).id,
+          }),
+        )
+      ).id,
+    }),
+    success: { status: 200, schema: MatchResultDto },
+    foreign: foreignLoan,
   },
   {
     scope: 'pool',

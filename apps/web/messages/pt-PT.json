@@ -60,6 +60,10 @@
       "nov": "Nov",
       "dec": "Dez"
     },
+    "realEstate": {
+      "properties": "Imobiliário",
+      "liabilities": "Dívidas"
+    },
     "kpi": {
       "netWorth": "Património líquido",
       "investments": "Investimentos",
@@ -1328,6 +1332,9 @@
         "installmentAdded": "Prestação registada",
         "installmentUpdated": "Prestação alterada",
         "installmentDeleted": "Prestação eliminada",
+        "installmentLinked": "Prestação ligada a um movimento",
+        "installmentUnlinked": "Ligação da prestação a um movimento removida",
+        "installmentsMatched": "Prestações ligadas automaticamente aos movimentos",
         "eventAdded": "Evento de empréstimo registado",
         "eventDeleted": "Evento de empréstimo eliminado"
       },
@@ -2154,7 +2161,8 @@
     "refunds": "Reembolsos",
     "internalTransfer": "Transferência interna",
     "investment": "Investimento",
-    "works": "Obras"
+    "works": "Obras",
+    "mortgageInterest": "Crédito habitação — juros"
   },
   "months": {
     "title": "Revisão do mês",
@@ -2170,6 +2178,7 @@
       "noIncome": "Sem receitas",
       "netWorthChange": "Variação do património",
       "invested": "Investido",
+      "loanCapital": "Capital amortizado",
       "dividends": "Dividendos",
       "interest": "Juros"
     },

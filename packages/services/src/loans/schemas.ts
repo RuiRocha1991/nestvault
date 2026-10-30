@@ -479,3 +479,20 @@ export function toLoanDto(
     remainingInstallments: remainingInstallments(row.termMonths, installments.length),
   };
 }
+
+export const LinkInstallmentInput = z.object({ transactionId: z.uuid() }).strict();
+export type LinkInstallmentInput = z.infer<typeof LinkInstallmentInput>;
+
+/** An installment and the bank debit that paid it, with how the debit counts (NES-100). */
+export const InstallmentLinkDto = z.object({
+  installmentId: z.uuid(),
+  transactionId: z.uuid(),
+  /** What counts as an expense (interest, fees, taxes, insurances) and what is savings (capital). */
+  split: z.object({ interest: z.string(), insurance: z.string(), capital: z.string() }),
+});
+export type InstallmentLinkDto = z.infer<typeof InstallmentLinkDto>;
+
+export const MatchResultDto = z.object({
+  matched: z.array(z.object({ installmentId: z.uuid(), transactionId: z.uuid() })),
+});
+export type MatchResultDto = z.infer<typeof MatchResultDto>;

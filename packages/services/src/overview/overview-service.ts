@@ -52,6 +52,7 @@ import { ValidationError } from '../errors';
 import { toDomainGoal, toGoalData } from '../goals/goal-data';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { toCashMove, toInvestmentOp } from '../investments/domain';
+import { installmentOf, loadRealEstateLedger } from '../real-estate';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 
@@ -146,11 +147,16 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       plansRepo.list(tx, ctx),
       subAccountsRepo.list(tx, ctx),
     ]);
+    const realEstate = await loadRealEstateLedger(tx, ctx);
     const rates: FxRates = toFxRates(resolved);
     const ops = opRows.map(toInvestmentOp);
     const moves = moveRows.map(toCashMove);
     // The overview reads few columns and no ids; the rows are in no particular order.
-    const transactions: Transaction[] = txRows.map((row) => ({ id: '', ...row }));
+    const transactions: Transaction[] = txRows.map((row) => ({
+      id: '',
+      ...row,
+      ...installmentOf(realEstate.splits, row.loanInstallmentId),
+    }));
     let firstTransaction: string | null = null;
     for (const row of txRows)
       if (firstTransaction === null || row.date < firstTransaction) firstTransaction = row.date;
@@ -188,6 +194,7 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       budgets,
       rates,
       defaultTax,
+      ...(realEstate.realEstate && { realEstate: realEstate.realEstate }),
     };
 
     // Balances and interest of today feed the summaries; interest also gives the 12-month figure.
@@ -312,6 +319,12 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
           spark: plain(flows.map((f) => f.expenses)),
         },
       },
+      realEstate: realEstate.realEstate
+        ? {
+            value: toPlain(worth[worth.length - 1]?.realEstate ?? ZERO),
+            liabilities: toPlain(worth[worth.length - 1]?.liabilities ?? ZERO),
+          }
+        : null,
       evolution: { months, total: plain(totals), investments: plain(investments) },
       goals: goalViews,
       portfolios: portfolioRows.map((row) => {

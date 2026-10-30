@@ -12224,6 +12224,420 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/loans/{id}/installments/{installmentId}/transaction": {
+      "put": {
+        "operationId": "linkLoanInstallment",
+        "summary": "Pay an installment with a bank debit",
+        "description": "Needs `realestate.write` and the Pro plan. The movement must be a debit of the pool that is not a transfer; it pays at most one installment and an installment has at most one debit (409 otherwise). From then on only the interest, fees, taxes and insurances of the installment count as an expense; the capital is savings. The movement itself is never changed.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installmentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transactionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "transactionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The link and how the debit counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "installmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "transactionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "split": {
+                      "type": "object",
+                      "properties": {
+                        "interest": {
+                          "type": "string"
+                        },
+                        "insurance": {
+                          "type": "string"
+                        },
+                        "capital": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "interest",
+                        "insurance",
+                        "capital"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "installmentId",
+                    "transactionId",
+                    "split"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unlinkLoanInstallment",
+        "summary": "Take the link away",
+        "description": "Needs `realestate.write` and the Pro plan. The debit counts as a plain expense again.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "installmentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unlinked"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/loans/{id}/installments/match": {
+      "post": {
+        "operationId": "matchLoanInstallments",
+        "summary": "Link the installments to their bank debits",
+        "description": "Needs `realestate.write` and the Pro plan, and a debit account on the loan (400 otherwise). Every unlinked installment is linked to the debit of that account that is not a transfer, equals its total to within 5 cents and falls within 5 days of its due date (the closest date wins, a debit is used once). No body.",
+        "tags": [
+          "Loans"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What was linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matched": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "installmentId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "transactionId": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "installmentId",
+                          "transactionId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "matched"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/loans/{id}/fields": {
       "post": {
         "operationId": "addLoanField",
@@ -27186,6 +27600,9 @@
                     "invested": {
                       "type": "string"
                     },
+                    "loanCapital": {
+                      "type": "string"
+                    },
                     "dividendsReceived": {
                       "type": "string"
                     },
@@ -27516,6 +27933,7 @@
                     "netWorthPrevious",
                     "netWorthChange",
                     "invested",
+                    "loanCapital",
                     "dividendsReceived",
                     "interestReceived",
                     "categories",
@@ -27760,6 +28178,24 @@
                         "monthExpenses"
                       ]
                     },
+                    "realEstate": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        },
+                        "liabilities": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "liabilities"
+                      ]
+                    },
                     "evolution": {
                       "type": "object",
                       "properties": {
@@ -27960,6 +28396,7 @@
                     "range",
                     "empty",
                     "kpis",
+                    "realEstate",
                     "evolution",
                     "goals",
                     "portfolios",

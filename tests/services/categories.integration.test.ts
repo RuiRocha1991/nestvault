@@ -50,10 +50,10 @@ const globalOf = async (key: string) => {
 };
 
 describe('categories service: reading', () => {
-  it('gives every member the 26 global categories, with no name (i18n) and no copy in the table', async () => {
+  it('gives every member the 27 global categories, with no name (i18n) and no copy in the table', async () => {
     for (const persona of ['owner', 'admin', 'member', 'viewer'] as const) {
       const categories = await list(persona);
-      expect(categories).toHaveLength(26);
+      expect(categories).toHaveLength(27);
       for (const category of categories) {
         expect(CategoryDto.parse(category)).toEqual(category);
         expect(category).toMatchObject({
@@ -66,13 +66,13 @@ describe('categories service: reading', () => {
         expect(category.systemKey).toMatch(/^[a-z][a-z-]+$/);
       }
     }
-    // A pool with nobody inside it sees them too, and the table still holds 26 global rows.
-    expect(await list('outsider', s.poolB)).toHaveLength(26);
+    // A pool with nobody inside it sees them too, and the table still holds 27 global rows.
+    expect(await list('outsider', s.poolB)).toHaveLength(27);
     const count = await world.database.asMigrator(
       async (pool) =>
         (await pool.query<{ n: number }>('select count(*)::int as n from categories')).rows,
     );
-    expect(count).toEqual([{ n: 26 }]);
+    expect(count).toEqual([{ n: 27 }]);
   });
 
   it('refuses a request without a session and hides the pool from a non-member', async () => {
@@ -104,7 +104,7 @@ describe('categories service: a pool’s own categories', () => {
       NotFoundError,
     );
     const categories = await list('viewer');
-    expect(categories).toHaveLength(28);
+    expect(categories).toHaveLength(29);
     expect(categories.filter((category) => !category.global).map((c) => c.name)).toEqual([
       'Cantina',
       'Mesada',
@@ -120,8 +120,8 @@ describe('categories service: a pool’s own categories', () => {
     await expect(create('owner', { name: 'Cantina', kind: 'income' })).rejects.toBeInstanceOf(
       ConflictError,
     );
-    expect(await list('owner')).toHaveLength(27);
-    expect(await list('outsider', s.poolB)).toHaveLength(27);
+    expect(await list('owner')).toHaveLength(28);
+    expect(await list('outsider', s.poolB)).toHaveLength(28);
   });
 
   it('changes some fields and keeps the others', async () => {
@@ -146,14 +146,14 @@ describe('categories service: a pool’s own categories', () => {
     ['no kind', { name: 'X' }],
   ])('rejects %s with 400', async (_name, body) => {
     await expect(create('owner', body)).rejects.toBeInstanceOf(ValidationError);
-    expect(await list('owner')).toHaveLength(26);
+    expect(await list('owner')).toHaveLength(27);
   });
 
   it('stores injection payloads in the name literally', async () => {
     const payload = "'; DROP TABLE categories; --";
     const created = await create('owner', { name: payload, kind: 'expense' });
     expect(created.name).toBe(payload);
-    expect(await list('owner')).toHaveLength(27);
+    expect(await list('owner')).toHaveLength(28);
   });
 
   it('never changes or deletes another pool’s category', async () => {
@@ -189,7 +189,7 @@ describe('categories service: deleting', () => {
       await expect(remove(persona, created.id)).rejects.toBeInstanceOf(ForbiddenError);
     }
     await remove('admin', created.id);
-    expect(await list('owner')).toHaveLength(26);
+    expect(await list('owner')).toHaveLength(27);
     await expect(remove('owner', created.id)).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -211,10 +211,10 @@ describe('categories service: deleting', () => {
     await expect(remove('owner', created.id, { extra: '1' })).rejects.toBeInstanceOf(
       ValidationError,
     );
-    expect(await list('owner')).toHaveLength(27);
+    expect(await list('owner')).toHaveLength(28);
     const groceries = await globalOf('groceries');
     await remove('owner', created.id, { replacement: groceries.id });
-    expect(await list('owner')).toHaveLength(26);
+    expect(await list('owner')).toHaveLength(27);
   });
 
   it('takes the pool’s settings of the category along', async () => {

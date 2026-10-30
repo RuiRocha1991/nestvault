@@ -39,6 +39,7 @@ import { ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { toInvestmentOp, toCashMove } from '../investments/domain';
 import { MonthParam, emptyMonthNote, toMonthNoteDto } from '../notes/schemas';
+import { installmentOf, loadRealEstateLedger } from '../real-estate';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 import { toEngineTransaction } from '../transactions/engine';
@@ -100,6 +101,7 @@ export function createMonthsService(deps: MonthsServiceDeps): MonthsService {
           txNotes,
           note,
           timelineNotes,
+          realEstate,
         ] = await Promise.all([
           accountsRepo.list(tx, ctx),
           categoriesRepo.list(tx, ctx),
@@ -115,6 +117,7 @@ export function createMonthsService(deps: MonthsServiceDeps): MonthsService {
           notesRepo.listTransactionNotes(tx, ctx, first, end),
           monthNotesRepo.find(tx, ctx, first),
           monthNotesRepo.list(tx, ctx, timelineFrom, first),
+          loadRealEstateLedger(tx, ctx),
         ]);
         const prices = await assetPricesRepo.latestAsOf(tx, ctx, today);
         const latest = new Map(prices.map((price) => [price.assetId, price.price]));
@@ -136,6 +139,7 @@ export function createMonthsService(deps: MonthsServiceDeps): MonthsService {
           transactions: txRows.map((row) => ({
             ...toEngineTransaction(row),
             note: noteById.get(row.id)?.note ?? null,
+            ...installmentOf(realEstate.splits, row.loanInstallmentId),
           })),
           interestEntries: savings.interestEntries,
           ops: opRows.map((row) => ({ ...toInvestmentOp(row), note: row.note })),
@@ -151,6 +155,7 @@ export function createMonthsService(deps: MonthsServiceDeps): MonthsService {
           budgets,
           rates: toFxRates(resolved),
           defaultTax: settings?.depositTax ?? '28',
+          ...(realEstate.realEstate && { realEstate: realEstate.realEstate }),
         };
 
         const result = monthReview(data, month, today);
@@ -177,6 +182,7 @@ export function createMonthsService(deps: MonthsServiceDeps): MonthsService {
           netWorthPrevious: plain(result.netWorthPrevious),
           netWorthChange: plain(result.netWorthChange),
           invested: plain(result.invested),
+          loanCapital: plain(result.loanCapital),
           dividendsReceived: plain(result.dividendsReceived),
           interestReceived: plain(result.interestReceived),
           categories: result.categories.map((c) => ({

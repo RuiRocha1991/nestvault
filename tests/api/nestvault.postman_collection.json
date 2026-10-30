@@ -5640,6 +5640,125 @@
           ]
         },
         {
+          "name": "Pay an installment with a bank debit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments/{{installmentId}}/transaction",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments",
+                "{{installmentId}}",
+                "transaction"
+              ]
+            },
+            "description": "Needs realestate.write and the Pro plan. The movement must be a debit that is not a transfer. Only the interest, fees, taxes and insurances of the installment count as an expense from then on; the capital is savings.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionId\": \"{{transactionId}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Take the installment link away",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments/{{installmentId}}/transaction",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments",
+                "{{installmentId}}",
+                "transaction"
+              ]
+            },
+            "description": "The debit counts as a plain expense again."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Link the installments to their debits",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/installments/match",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "installments",
+                "match"
+              ]
+            },
+            "description": "Needs a debit account on the loan. Matches by amount (± 5 cents) and date (± 5 days)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Delete a loan",
           "request": {
             "method": "DELETE",
