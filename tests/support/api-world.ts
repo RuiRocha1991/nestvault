@@ -33,6 +33,7 @@ import {
   createRateLimiter,
   createOpsService,
   createCashMovesService,
+  createGoalsService,
   createPlansService,
   createProductsService,
   createDepositsService,
@@ -65,6 +66,7 @@ import {
   type RateLimiter,
   type OpsService,
   type CashMovesService,
+  type GoalsService,
   type PlansService,
   type ProductsService,
   type DepositsService,
@@ -135,6 +137,7 @@ export interface ApiWorld {
   ops: OpsService;
   cashMoves: CashMovesService;
   plans: PlansService;
+  goals: GoalsService;
   products: ProductsService;
   deposits: DepositsService;
   interest: InterestService;
@@ -273,6 +276,12 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     plans: createPlansService({
+      auth,
+      identity,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    goals: createGoalsService({
       auth,
       identity,
       run: database.withPool,
@@ -511,6 +520,8 @@ async function buildScenario(
               (await pool.query('select * from portfolios order by id')).rows,
               (await pool.query('select * from investment_ops order by id')).rows,
               (await pool.query('select * from plans order by id')).rows,
+              (await pool.query('select * from goals order by id')).rows,
+              (await pool.query('select * from goal_scopes order by id')).rows,
               (await pool.query('select * from portfolio_cash_moves order by id')).rows,
               (await pool.query('select * from savings_products order by id')).rows,
               (await pool.query('select * from deposits order by id')).rows,

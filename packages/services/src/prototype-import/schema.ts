@@ -171,8 +171,7 @@ const Interest = entity({
   note: Text,
 });
 
-// Goals are read (so a file that has them is accepted) but not imported: there is no goals table
-// yet. Their fields are listed only so that the strict check does not refuse the file.
+// Goals: `pfs` are portfolio ids and `accs` account ids (`accountId` or `accountId|subAccountId`).
 const Goal = entity({
   id: Id,
   name: Text,
@@ -271,7 +270,6 @@ export function jsonDepth(value: unknown): number {
 }
 
 export const WARNING_CODES = [
-  'goals_not_imported',
   'holder_matched',
   'transaction_notes_dropped',
   'transaction_skipped',
@@ -289,6 +287,8 @@ export const WARNING_CODES = [
   'op_skipped',
   'op_adjusted',
   'plan_skipped',
+  'goal_skipped',
+  'goal_scope_dropped',
   'cash_move_skipped',
   'duplicate_skipped',
   'fx_skipped',

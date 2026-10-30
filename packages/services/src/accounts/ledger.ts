@@ -1,14 +1,15 @@
 import type { AccountRow } from '@nestvault/db';
 import type { Deposit, LedgerAccount } from '@nestvault/domain';
 
-const kindOf = (type: string): LedgerAccount['kind'] =>
+/** Savings and term deposits are told apart from other accounts by the domain. */
+export const accountKindOf = (type: string): LedgerAccount['kind'] =>
   type === 'term_deposit' ? 'term' : type === 'savings' ? 'savings' : 'other';
 
 /** An account row as the domain's balance engine reads it (shared by accounts and portfolios). */
 export const toLedgerAccount = (row: AccountRow, deposit?: Deposit): LedgerAccount => ({
   id: row.id,
   currency: row.currency,
-  kind: kindOf(row.type),
+  kind: accountKindOf(row.type),
   isBrokerage: row.type === 'brokerage',
   trackCash: row.trackCash,
   opening: row.opening,

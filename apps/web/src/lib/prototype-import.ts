@@ -22,6 +22,7 @@ export const COUNT_KEYS = [
   'investmentOps',
   'cashMoves',
   'interestEntries',
+  'goals',
 ] as const;
 export type CountKey = (typeof COUNT_KEYS)[number];
 

@@ -26,3 +26,5 @@ export { portfolioCashMoves } from './portfolio-cash';
 export type { PortfolioCashMoveRow } from './portfolio-cash';
 export { importBatches } from './imports';
 export type { ImportBatchRow } from './imports';
+export { GOAL_MODES, GOAL_TYPES, goalScopes, goals } from './goals';
+export type { GoalMode, GoalRow, GoalScopeRow, GoalType } from './goals';

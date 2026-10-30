@@ -10,6 +10,7 @@ import {
   type AccountsService,
   type CashMovesService,
   type OpsService,
+  type GoalsService,
   type PlansService,
   type ProductsService,
   type DepositsService,
@@ -158,6 +159,10 @@ export async function getPortfoliosService(): Promise<PortfoliosService> {
 
 export async function getOpsService(): Promise<OpsService> {
   return (await getRuntime()).ops;
+}
+
+export async function getGoalsService(): Promise<GoalsService> {
+  return (await getRuntime()).goals;
 }
 
 export async function getPlansService(): Promise<PlansService> {

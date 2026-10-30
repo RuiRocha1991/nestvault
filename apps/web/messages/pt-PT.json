@@ -137,6 +137,101 @@
     "description": "Descrição",
     "amount": "Valor"
   },
+  "goals": {
+    "title": "Objetivos",
+    "intro": "Os objetivos usam o valor atual dos portfolios, a tua contribuição mensal e a rentabilidade anual que definires.",
+    "new": "Novo objetivo",
+    "empty": "Ainda não há objetivos.",
+    "emptyHint": "Cria o primeiro para acompanhar o teu progresso.",
+    "list": "Objetivos",
+    "type": {
+      "value": "Valor a atingir",
+      "invested": "Valor investido",
+      "income": "Rendimento passivo anual",
+      "contrib": "Investir no ano"
+    },
+    "subtitle": "{kind} · até {date}",
+    "subtitleOpen": "{kind} · sem data limite",
+    "row": {
+      "current": "Atual",
+      "target": "Objetivo",
+      "projected": "Projeção no prazo",
+      "monthly": "Contribuição mensal",
+      "required": "Necessário por mês",
+      "missing": "Falta",
+      "forecast": "Previsão",
+      "forecastValue": "{month} ({months, plural, one {# mês} other {# meses}})"
+    },
+    "perYear": "{value}/ano",
+    "perMonth": "{value}/mês",
+    "chart": {
+      "title": "Projeção · {name}",
+      "withMonthly": "Com {value}/mês",
+      "target": "Objetivo",
+      "label": "Projeção do valor do objetivo ao longo do tempo",
+      "periodHeader": "Mês",
+      "empty": "Este objetivo não tem projeção."
+    },
+    "note": {
+      "projected": "Ao ritmo atual ({monthly}/mês e {rate} ao ano) o valor projetado no prazo é {projected}.",
+      "eta": "Ao ritmo atual ({monthly}/mês e {rate} ao ano) atinges o objetivo em {month}.",
+      "noContribution": "Sem contribuição mensal o objetivo não é atingido.",
+      "scope": "Âmbito: {scope}.",
+      "allPortfolios": "todos os portfolios",
+      "withSavings": " e poupanças"
+    },
+    "edit": "Editar",
+    "delete": "Apagar",
+    "dialog": {
+      "newTitle": "Novo objetivo",
+      "editTitle": "Editar objetivo",
+      "name": "Nome",
+      "namePlaceholder": "Ex.: Independência financeira",
+      "type": "Tipo",
+      "typeOptions": {
+        "value": "Valor a atingir",
+        "invested": "Valor investido",
+        "income": "Rendimento passivo",
+        "contrib": "Investir no ano"
+      },
+      "target": "Objetivo (€)",
+      "targetHint": {
+        "value": "Valor que queres atingir.",
+        "invested": "Dinheiro teu aplicado (depósitos e compras, sem contar ganhos nem juros).",
+        "income": "Rendimento anual em dividendos (ex.: 1200 = 100 €/mês).",
+        "contrib": "Total a investir no ano da data limite."
+      },
+      "mode": "Prazo",
+      "modes": {
+        "date": "Até uma data limite",
+        "eta": "Sem data: calcular quando atinjo",
+        "none": "Sem data: só acompanhar"
+      },
+      "deadline": "Data limite",
+      "color": "Cor",
+      "monthly": "Contribuição mensal (€)",
+      "monthlyHint": "Por defeito, a soma dos planos regulares ativos.",
+      "rate": "Rentabilidade anual esperada (%)",
+      "rateHint": "Ex.: 5 a 7% para ações globais a longo prazo.",
+      "yield": "Yield de dividendos (%)",
+      "yieldPlaceholder": "Usa o yield atual",
+      "portfolios": "Portfolios incluídos",
+      "portfoliosHint": "Nenhum selecionado = todos os portfolios.",
+      "accounts": "…ou só estas contas / subcontas",
+      "accountsHint": "Se escolheres contas, o objetivo usa só essas (investimentos, saldo e depósitos) e ignora os portfolios. Ex.: só a subscrição PPR de um filho.",
+      "noAccounts": "Ainda não há contas.",
+      "includeSavings": "Incluir contas remuneradas e depósitos a prazo",
+      "create": "Criar",
+      "save": "Guardar",
+      "required": "Indica o nome e o valor do objetivo.",
+      "deadlineRequired": "Indica a data limite."
+    },
+    "confirmDelete": {
+      "title": "Apagar objetivo",
+      "text": "O objetivo {name} será apagado. Os teus dados financeiros não são afetados.",
+      "confirm": "Apagar"
+    }
+  },
   "portfolios": {
     "all": "Todos",
     "newPortfolio": "Portfolio",
@@ -1116,6 +1211,7 @@
       "portfolio": "Carteiras",
       "op": "Operações",
       "plan": "Planos",
+      "goal": "Objetivos",
       "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
@@ -1206,6 +1302,11 @@
         "updated": "Plano alterado",
         "deleted": "Plano eliminado",
         "run": "Plano executado"
+      },
+      "goal": {
+        "created": "Objetivo criado",
+        "updated": "Objetivo alterado",
+        "deleted": "Objetivo eliminado"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",
@@ -1368,10 +1469,12 @@
       "plans": "Planos regulares",
       "investmentOps": "Operações",
       "cashMoves": "Liquidez das carteiras",
-      "interestEntries": "Juros"
+      "interestEntries": "Juros",
+      "goals": "Objetivos"
     },
     "warnings": {
-      "goalsNotImported": "{count, plural, one {# objetivo não foi importado} other {# objetivos não foram importados}}: ainda não existem no novo sistema.",
+      "goalSkipped": "{count, plural, one {# objetivo sem tipo, nome, valor ou data válidos foi ignorado} other {# objetivos sem tipo, nome, valor ou data válidos foram ignorados}}.",
+      "goalScopeDropped": "{count, plural, one {# referência de um objetivo a um portfolio ou conta que não foi importado foi removida} other {# referências de objetivos a portfolios ou contas que não foram importados foram removidas}}.",
       "holderMatched": "{count, plural, one {# pessoa do ficheiro já existia no agregado e foi reutilizada} other {# pessoas do ficheiro já existiam no agregado e foram reutilizadas}}.",
       "transactionNotesDropped": "{count, plural, one {# comentário de corretora num movimento não foi importado} other {# comentários de corretora em movimentos não foram importados}}.",
       "transactionSkipped": "{count, plural, one {# movimento sem conta, data ou valor válidos foi ignorado} other {# movimentos sem conta, data ou valor válidos foram ignorados}}.",

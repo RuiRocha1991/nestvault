@@ -10,6 +10,7 @@ import {
   interestEntriesRepo,
   investmentOpsRepo,
   newId,
+  goalsRepo,
   plansRepo,
   poolDataRepo,
   poolSettingsRepo,
@@ -82,7 +83,8 @@ const rowsOf = (plan: ImportPlan): number =>
   plan.plans.length +
   plan.ops.length +
   plan.cashMoves.length +
-  plan.interest.length;
+  plan.interest.length +
+  plan.goals.length;
 
 /** A Postgres data or constraint error (class 22 or 23): the file holds something the schema refuses. */
 function isDataError(error: unknown): boolean {
@@ -154,6 +156,10 @@ export function createPrototypeImportService(
     }
     for (const entry of plan.interest) {
       await interestEntriesRepo.insert(tx, ctx, entry.id, entry.values);
+    }
+    for (const goal of plan.goals) {
+      await goalsRepo.insert(tx, ctx, goal.id, goal.values);
+      await goalsRepo.replaceScopes(tx, ctx, goal.id, goal.scopes);
     }
     if (plan.settings) {
       const current = await poolSettingsRepo.find(tx, ctx);

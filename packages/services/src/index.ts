@@ -23,6 +23,7 @@ export * from './investments';
 export * from './savings';
 export * from './notes';
 export * from './overview';
+export * from './goals';
 export * from './settings';
 export * from './prototype-import';
 export * from './months';
