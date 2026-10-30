@@ -100,6 +100,7 @@ export default defineConfig(
       '**/.next/**',
       '**/coverage/**',
       'docs/**',
+      'graphify-out/**',
       'design/**',
       'services/parser/**',
       'tests/lint/fixtures/**',

@@ -30,7 +30,9 @@ rework at the end.
    - For UI work: the matching screenshots in `design/mockups/escuro|claro/` and
      `design/DESIGN-SYSTEM.md`.
    - For domain work: the `nestvault-domain` skill.
-   - Existing code in the packages the task touches.
+   - Existing code in the packages the task touches: find it with the knowledge graph first
+     (`graphify query "<what the task changes>" --budget 1500`, `graphify explain "<symbol>"`;
+     see `CLAUDE.md` → "Knowledge graph"), then read only the files it points to.
 
 4. **Write the plan** in the chat (and keep it for the PR), with:
    - **Task checklist** — acceptance criteria as checkboxes, concrete and testable

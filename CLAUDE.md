@@ -183,6 +183,33 @@ dependencies. The essentials:
     (thresholds: domain 90%, services 80% lines), `pnpm test:e2e`
   - `pnpm format` / `pnpm format:check` — Prettier
   - `pnpm openapi` — regenerate `docs/api/openapi.json`
+  - `pnpm graph:update` — rebuild the code layer of the knowledge graph (no LLM, no tokens)
+
+## Knowledge graph (graphify)
+
+`graphify-out/graph.json` is a graph of the code (AST) plus the docs, ADRs, PRD and prototype.
+It tells you where things live and what a change touches, so you search less and read less.
+
+- **Before changing code**, ask the graph instead of exploring blindly:
+  - `graphify query "<question>" --budget 1500` — what touches X, where is Y computed;
+  - `graphify explain "<symbol>"` — one symbol and its closest neighbours;
+  - `graphify path "A" "B"` — the chain between two concepts (impact of a change).
+  Then `Read`/`Grep` only the files it points to (`source_location` is `path` + line). When you
+  already know the file, skip the graph and `Grep` directly.
+- Hubs (`requirePoolAccess`, `withPool`, `NotFoundError`, `dec`, `vitest`, `next`) touch hundreds
+  of nodes and truncate any budget: use `explain`, or a narrow query, not a broad one.
+- **Never read `graphify-out/graph.json` or `GRAPH_REPORT.md` whole** (9 MB / ~12k tokens). Community
+  names are re-generated on every rebuild and are not stable: do not rely on them.
+- The graph is a map, not a rule book: the architecture rules above and `docs/security.md` win.
+  `INFERRED` edges are guesses; confirm in the code before relying on them.
+- **Versioned:** only `graphify-out/GRAPH_REPORT.md`. `graph.json`, `graph.html`, the cache and the
+  manifest are git-ignored. If `graphify-out/graph.json` is missing (fresh clone, new worktree), run
+  `pnpm graph:update`.
+- **Keep it fresh:** after merging a task into `dev`, run `pnpm graph:update` and commit the report
+  only in a task that is about the graph. Never resolve a `GRAPH_REPORT.md` conflict by hand:
+  take either side and regenerate it. After changing docs/ADRs run `/graphify . --update` in
+  Claude Code (this one uses tokens).
+- Setup (graphify itself): README → "Knowledge graph".
 
 ## Git workflow
 

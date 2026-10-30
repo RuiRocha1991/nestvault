@@ -11,3 +11,4 @@ tests/api
 .github
 CLAUDE.md
 apps/web/next-env.d.ts
+graphify-out

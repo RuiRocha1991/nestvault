@@ -38,6 +38,7 @@
     "db:migrate": "pnpm --filter @nestvault/db db:migrate",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "openapi": "tsx scripts/openapi.ts",
+    "graph:update": "bash scripts/graph-update.sh",
     "gen:parser-schema": "tsx scripts/gen-parser-schema.ts",
     "parser:schema": "cd services/parser && uv run python scripts/export_schema.py",
     "test:parser": "cd services/parser && uv run pytest",
