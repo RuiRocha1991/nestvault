@@ -73,6 +73,8 @@ export const POOL_AUDIT_ACTIONS = [
   'loan.installment_added',
   'loan.installment_updated',
   'loan.installment_deleted',
+  'loan.event_added',
+  'loan.event_deleted',
   'cashmove.created',
   'cashmove.deleted',
   'product.created',

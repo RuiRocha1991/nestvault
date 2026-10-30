@@ -48,6 +48,6 @@ describe('sanitizeAuditMeta', () => {
   });
 
   it('lists the seventy-five actions (twelve of phase 1, then holders, settings, accounts, assets, categories, transactions, rules, portfolios, operations, plans, goals, properties, cash moves, products, deposits, interest, notes the prototype import and the statement import)', () => {
-    expect(AUDIT_ACTIONS).toHaveLength(83);
+    expect(AUDIT_ACTIONS).toHaveLength(85);
   });
 });

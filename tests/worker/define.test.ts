@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineJob, DEFAULT_RETRY } from '../../apps/worker/src/jobs/define';
-import { PRODUCTION_JOBS } from '../../apps/worker/src/jobs/registry';
+import { createProductionJobs } from '../../apps/worker/src/jobs/registry';
 import { samplePing } from '../../apps/worker/src/jobs/sample';
 
 const payload = z.object({ n: z.number().int() }).strict();
@@ -61,6 +61,9 @@ describe('defineJob', () => {
     expect(() => job.singletonOf({ n: 'x' })).toThrow();
   });
 });
+
+// The registry only needs the connection to build the jobs; nothing runs here.
+const PRODUCTION_JOBS = createProductionJobs({ db: {} as never });
 
 describe('registry', () => {
   it('keeps the sample job out of the production registry', () => {

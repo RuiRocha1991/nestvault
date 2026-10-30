@@ -66,3 +66,5 @@ export type {
   RateIndex,
   RateType,
 } from './loans';
+export * from './loan-events';
+export * from './index-rates';

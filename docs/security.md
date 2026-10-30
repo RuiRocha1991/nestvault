@@ -516,6 +516,24 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (CRUD, checks, cascade, injection payloads, `expectIsolated`, RLS, composite keys),
   `tests/domain/loans.test.ts` and the route isolation suite (twelve routes).
 
+- **Loan events and Euribor (NES-97).** `/loans/:id/events` and `/loans/:id/review-preview` follow the
+  loans guards (session, `.strict()` discriminated body, membership 404, `pool.read` or
+  `realestate.write` 403, Pro, `withPool`, audit `loan.event_*` without amounts). An event that makes
+  the loan impossible (an installment below the interest) is refused with 400 after a replay in the
+  same transaction. `loan_events` carries `pool_id`, RLS, a composite key to its loan and check
+  constraints per kind. `index_rates` is global reference data like `fx_rates`: no `pool_id`, listed in
+  `RLS_EXEMPT_TABLES`, `app_rw` has `SELECT` only and the worker's monthly job (`indexrates.refresh`)
+  is the only writer. The job reads one fixed host (the ECB Data Portal), builds the URL from an
+  allow-list of series and a `yyyy-mm` start month, validates the answer with zod (shape, month, range),
+  caps its size and time, never puts the response body or the error message in a log or an error, and
+  upserts per month, so a retry changes nothing.
+- **Verified by:** `tests/services/loans.integration.test.ts` (events, impact, guards, preview, audit),
+  `tests/db/loan-events.repo.integration.test.ts` (checks, cascade, injection payloads,
+  `expectIsolated`, RLS), `tests/db/index-rates.repo.integration.test.ts` (`app_rw` refused every
+  write, idempotent upsert), `tests/worker/index-rates.test.ts` (recorded ECB answers, refused shapes,
+  fixed URL, no body in errors), `tests/worker/index-rates-job.integration.test.ts` (backfill,
+  idempotence, partial failure, log without message) and the route isolation suite (four routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

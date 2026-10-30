@@ -124,6 +124,10 @@
     {
       "key": "installmentId",
       "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
     }
   ],
   "item": [
@@ -5294,6 +5298,290 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record the 15 000 € prepayment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events"
+              ]
+            },
+            "description": "Prepayment of 01/02/2023; effectiveFrom defaults to 01/03/2023, so the 03/2023 installment (number 30) is the first to feel it. effect: reduce_installment or reduce_term.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"prepayment\",\n  \"date\": \"2023-02-01\",\n  \"amount\": \"15000\",\n  \"fee\": \"0\",\n  \"effect\": \"reduce_installment\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('eventId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record a rate review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events"
+              ]
+            },
+            "description": "annualRate is the new nominal rate in percent; indexValue, spread and the announced newInstallment are optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"rate_review\",\n  \"date\": \"2023-03-05\",\n  \"indexValue\": \"3.512\",\n  \"spread\": \"1.2\",\n  \"annualRate\": \"4.712\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record a renegotiation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events"
+              ]
+            },
+            "description": "Needs annualRate and/or termMonths (installments left from the effective date).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"renegotiation\",\n  \"date\": \"2023-10-01\",\n  \"annualRate\": \"3.2\",\n  \"termMonths\": 300\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prepayment without an effect (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events"
+              ]
+            },
+            "description": "A prepayment must say whether it reduces the installment or the term.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"prepayment\",\n  \"date\": \"2023-02-01\",\n  \"amount\": \"1000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List events with their impact",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events"
+              ]
+            },
+            "description": "In the order they take effect; impact says what each did to the installment and the installments left."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Next review preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/review-preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "review-preview"
+              ]
+            },
+            "description": "Only for a variable or mixed rate (400 for a fixed one). newRate and newPayment are null until the monthly Euribor job has run."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete an event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/loans/{{loanId}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "loans",
+                "{{loanId}}",
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "description": "The schedule goes back to what it was without the event."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }

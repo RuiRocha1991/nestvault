@@ -7,7 +7,7 @@ import type { AppDb } from './client';
  * Adding one needs a reason in the PR (ADR 0003/0004, PRD 04). Drizzle's own bookkeeping lives in
  * the `drizzle` schema, outside `public`, and is not listed here.
  */
-export const RLS_EXEMPT_TABLES: readonly string[] = ['fx_rates', 'import_specs'];
+export const RLS_EXEMPT_TABLES: readonly string[] = ['fx_rates', 'import_specs', 'index_rates'];
 
 type Queryable = Pick<AppDb, 'execute'>;
 

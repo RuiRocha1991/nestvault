@@ -1325,7 +1325,9 @@
         "fieldUpdated": "Campo de empréstimo alterado",
         "installmentAdded": "Prestação registada",
         "installmentUpdated": "Prestação alterada",
-        "installmentDeleted": "Prestação eliminada"
+        "installmentDeleted": "Prestação eliminada",
+        "eventAdded": "Evento de empréstimo registado",
+        "eventDeleted": "Evento de empréstimo eliminado"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",

@@ -1,5 +1,7 @@
 import {
   accountsRepo,
+  indexRatesRepo,
+  loanEventsRepo,
   loansRepo,
   newId,
   propertiesRepo,
@@ -7,19 +9,24 @@ import {
   type IdentityDatabase,
   type InstallmentValues,
   type LoanFieldValues,
+  type LoanRow,
   type LoanValues,
   type PoolContext,
   type PoolRunner,
   type PoolTx,
 } from '@nestvault/db';
 import {
-  addMonths,
+  type InstallmentAmounts,
+  type LoanEvent,
   BUILTIN_LOAN_FIELDS,
-  buildSchedule,
   DEFAULT_ENABLED_LOAN_FIELDS,
-  dec,
-  mergeSchedule,
-  outstandingBalance,
+  defaultEffectiveFrom,
+  nextReviewDate,
+  projectLoan,
+  reviewedRate,
+  reviewPreview,
+  sum,
+  toPlain,
   totalsByContractYear,
 } from '@nestvault/domain';
 
@@ -35,17 +42,23 @@ import { clientIpResolver } from '../rate-limit/client-ip';
 import { zodProblem } from '../zod-problem';
 
 import {
+  CreateEventInput,
   CreateFieldInput,
   CreateInstallmentInput,
   CreateLoanInput,
+  EventDto,
+  EventListDto,
   fieldSettings,
   InstallmentDto,
   InstallmentListDto,
   LoanDto,
   LoanFieldDto,
   LoanListDto,
+  ReviewPreviewDto,
   ScheduleDto,
   toAmounts,
+  toDomainEvent,
+  toEventDto,
   toFieldDto,
   toInstallmentDto,
   toLoanDto,
@@ -91,6 +104,14 @@ export interface LoansService {
     id: string,
     installmentId: string,
   ): Promise<void>;
+  /** The events of a loan in the order they take effect, each with what it did (`pool.read`, Pro). */
+  listEvents(headers: Headers, poolId: string, id: string): Promise<EventListDto>;
+  /** Records a prepayment, a rate review or a renegotiation (`realestate.write`, Pro). */
+  addEvent(headers: Headers, poolId: string, id: string, input: unknown): Promise<EventDto>;
+  /** Deletes an event; the schedule goes back to what it was without it (`realestate.write`, Pro). */
+  removeEvent(headers: Headers, poolId: string, id: string, eventId: string): Promise<void>;
+  /** What the next review would do with the latest index value (`pool.read`, Pro). */
+  reviewPreview(headers: Headers, poolId: string, id: string): Promise<ReviewPreviewDto>;
   /** Adds a custom installment field (`realestate.write`, Pro). */
   addField(headers: Headers, poolId: string, id: string, input: unknown): Promise<LoanFieldDto>;
   /** Enables, disables or renames a field; its values are kept (`realestate.write`, Pro). */
@@ -111,6 +132,7 @@ export interface LoansServiceDeps {
   /** Runs work inside `withPool`; tests pass their own database. */
   run?: PoolRunner;
   trustedProxyHops?: number;
+  now?: () => Date;
 }
 
 const ZERO = '0';
@@ -160,10 +182,35 @@ const defaultFields = (): (LoanFieldValues & { id: string })[] =>
     appliesFrom: null,
   }));
 
+/** The plan of a loan; events that cannot work together (an installment below the interest) answer 400. */
+function projectOrRefuse(
+  loan: LoanRow,
+  events: readonly LoanEvent[],
+  actual: readonly InstallmentAmounts[],
+) {
+  try {
+    return projectLoan({
+      principal: loan.principal,
+      annualPct: loan.annualRate,
+      termMonths: loan.termMonths,
+      firstDueDate: loan.firstDueDate,
+      events,
+      actual,
+    });
+  } catch (error) {
+    if (error instanceof RangeError) {
+      throw invalid('events', 'the events cannot be applied to this loan');
+    }
+    throw error;
+  }
+}
+
 export function createLoansService(deps: LoansServiceDeps): LoansService {
   const { auth, identity, entitlements } = deps;
   const run = deps.run ?? withPool;
   const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
+  const now = deps.now ?? (() => new Date());
+  const today = () => now().toISOString().slice(0, 10);
 
   async function membership(
     session: Awaited<ReturnType<typeof requireSession>>,
@@ -194,11 +241,18 @@ export function createLoansService(deps: LoansServiceDeps): LoansService {
         ctx,
         installments.map((item) => item.id),
       );
+      const events = await loanEventsRepo.list(tx, ctx, row.id);
+      const prepaid = sum(
+        events
+          .filter((event) => event.kind === 'prepayment' && event.date <= today())
+          .map((event) => event.amount ?? 0),
+      );
       result.push(
         toLoanDto(
           row,
           own,
           installments.map((item) => toAmounts(item, amounts, own)),
+          toPlain(prepaid),
         ),
       );
     }
@@ -364,25 +418,10 @@ export function createLoansService(deps: LoansServiceDeps): LoansService {
           installments.map((item) => item.id),
         );
         const actual = installments.map((item) => toAmounts(item, amounts, fields));
-        let paidCapital = dec(0);
-        const withBalance = actual.map((row) => {
-          paidCapital = paidCapital.plus(row.capital);
-          return { ...row, balanceAfter: outstandingBalance(loan.principal, paidCapital) };
-        });
-        const last = actual.reduce((max, row) => Math.max(max, row.number), 0);
-        const left = loan.termMonths - last;
-        const projected =
-          left > 0
-            ? buildSchedule({
-                balance: outstandingBalance(loan.principal, paidCapital),
-                annualPct: loan.annualRate,
-                months: left,
-                firstDueDate: addMonths(loan.firstDueDate, last),
-                firstNumber: last + 1,
-              })
-            : [];
+        const events = (await loanEventsRepo.list(tx, ctx, loanId)).map(toDomainEvent);
+        const plan = projectOrRefuse(loan, events, actual);
         return ScheduleDto.parse({
-          schedule: mergeSchedule(withBalance, projected),
+          schedule: plan.rows.map(({ annualPct, ...row }) => ({ ...row, annualRate: annualPct })),
           byYear: totalsByContractYear(actual, fieldSettings(fields)),
         });
       });
@@ -481,6 +520,129 @@ export function createLoansService(deps: LoansServiceDeps): LoansService {
       await recordAudit(identity, ctx, 'loan.installment_deleted', {
         target: loanId,
         ip: ipOf(headers),
+      });
+    },
+
+    async listEvents(headers, poolId, id) {
+      const ctx = await guard(headers, poolId, 'pool.read');
+      const loanId = parseId(id);
+      return run(ctx, async (tx) => {
+        const loan = await loansRepo.find(tx, ctx, loanId);
+        if (!loan) throw new NotFoundError();
+        const rows = await loanEventsRepo.list(tx, ctx, loanId);
+        const events = rows.map(toDomainEvent);
+        const impacts = projectOrRefuse(loan, events, []).impacts;
+        return EventListDto.parse({
+          events: rows.map((row, index) =>
+            toEventDto(
+              row,
+              impacts.find((impact) => impact.event === index),
+            ),
+          ),
+        });
+      });
+    },
+
+    async addEvent(headers, poolId, id, input) {
+      const session = await requireSession(auth, headers);
+      const parsed = CreateEventInput.safeParse(input);
+      if (!parsed.success) throw zodProblem(parsed.error, input);
+      const ctx = await membership(session, poolId, 'realestate.write');
+      const loanId = parseId(id);
+      const data = parsed.data;
+      const effectiveFrom = data.effectiveFrom ?? defaultEffectiveFrom(data.kind, data.date);
+      if (effectiveFrom < data.date) {
+        throw invalid('effectiveFrom', 'cannot be before the date of the event');
+      }
+      const eventId = newId();
+      const dto = await run(ctx, async (tx) => {
+        const loan = await loansRepo.find(tx, ctx, loanId);
+        if (!loan) throw new NotFoundError();
+        const row = await loanEventsRepo.insert(tx, ctx, loanId, eventId, {
+          kind: data.kind,
+          date: data.date,
+          effectiveFrom,
+          amount: data.kind === 'prepayment' ? data.amount : null,
+          fee: data.kind === 'prepayment' ? (data.fee ?? ZERO) : null,
+          effect: data.kind === 'prepayment' ? data.effect : null,
+          indexValue: data.kind === 'rate_review' ? (data.indexValue ?? null) : null,
+          spread: data.kind === 'prepayment' ? null : (data.spread ?? null),
+          annualRate: data.kind === 'prepayment' ? null : (data.annualRate ?? null),
+          newInstallment: data.kind === 'prepayment' ? null : (data.newInstallment ?? null),
+          termMonths: data.kind === 'renegotiation' ? (data.termMonths ?? null) : null,
+        });
+        // The loan must still work with the new event in it (a replay refuses the impossible ones).
+        const rows = await loanEventsRepo.list(tx, ctx, loanId);
+        const plan = projectOrRefuse(loan, rows.map(toDomainEvent), []);
+        const at = rows.findIndex((candidate) => candidate.id === row.id);
+        return toEventDto(
+          row,
+          plan.impacts.find((impact) => impact.event === at),
+        );
+      }).catch(refOrRethrow);
+      await recordAudit(identity, ctx, 'loan.event_added', { target: loanId, ip: ipOf(headers) });
+      return EventDto.parse(dto);
+    },
+
+    async removeEvent(headers, poolId, id, eventId) {
+      const ctx = await guard(headers, poolId, 'realestate.write');
+      const loanId = parseId(id);
+      const rowId = parseId(eventId);
+      const removed = await run(ctx, (tx) => loanEventsRepo.remove(tx, ctx, loanId, rowId));
+      if (!removed) throw new NotFoundError();
+      await recordAudit(identity, ctx, 'loan.event_deleted', {
+        target: loanId,
+        ip: ipOf(headers),
+      });
+    },
+
+    async reviewPreview(headers, poolId, id) {
+      const ctx = await guard(headers, poolId, 'pool.read');
+      const loanId = parseId(id);
+      return run(ctx, async (tx) => {
+        const loan = await loansRepo.find(tx, ctx, loanId);
+        if (!loan) throw new NotFoundError();
+        if (loan.rateType === 'fixed' || !loan.rateIndex) {
+          throw invalid('rateType', 'only a variable or mixed rate has reviews');
+        }
+        const fields = await loansRepo.listFields(tx, ctx, [loanId]);
+        const installments = await loansRepo.listInstallments(tx, ctx, loanId);
+        const amounts = await loansRepo.listAmounts(
+          tx,
+          ctx,
+          installments.map((item) => item.id),
+        );
+        const eventRows = await loanEventsRepo.list(tx, ctx, loanId);
+        const events = eventRows.map(toDomainEvent);
+        const plan = projectOrRefuse(
+          loan,
+          events,
+          installments.map((item) => toAmounts(item, amounts, fields)),
+        );
+        const left = plan.rows.filter((row) => row.source === 'projected');
+        const next = left[0];
+        if (!next) throw new ConflictError('This loan has nothing left to pay.');
+        const latest = await indexRatesRepo.latest(tx, loan.rateIndex);
+        const spread = loan.spread ?? ZERO;
+        const newRate = latest ? reviewedRate(latest.rate, spread) : null;
+        const reviews = eventRows.filter((event) => event.kind !== 'prepayment');
+        const anchor =
+          reviews.at(-1)?.effectiveFrom ??
+          (loan.rateType === 'mixed' ? loan.fixedUntil : null) ??
+          loan.firstDueDate;
+        return ReviewPreviewDto.parse({
+          rateIndex: loan.rateIndex,
+          indexPeriod: latest?.period ?? null,
+          indexValue: latest?.rate ?? null,
+          spread,
+          currentRate: next.annualPct,
+          newRate,
+          outstanding: plan.outstanding,
+          remainingInstallments: left.length,
+          currentPayment: next.payment,
+          newPayment: newRate ? reviewPreview(plan.outstanding, newRate, left.length) : null,
+          nextReviewDate: nextReviewDate(anchor, loan.reviewMonths, today()),
+        });
       });
     },
 

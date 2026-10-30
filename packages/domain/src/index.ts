@@ -22,6 +22,7 @@ export * from './portfolio-summary';
 export * from './portfolio-analysis';
 export * from './text';
 export * from './goals';
+export * from './loan-events';
 export * from './loans';
 export * from './property';
 export * from './transactions';

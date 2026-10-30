@@ -89,6 +89,13 @@ export type {
 export { PERIOD_UNITS } from './app/schema/savings';
 export { GOAL_MODES, GOAL_TYPES } from './app/schema/goals';
 export type { GoalMode, GoalType } from './app/schema/goals';
+export { loanEventsRepo } from './app/repositories/loan-events.repo';
+export type { LoanEventRow, LoanEventValues } from './app/repositories/loan-events.repo';
+export { indexRatesRepo } from './app/repositories/index-rates.repo';
+export type { IndexRateRow, IndexRateValues } from './app/repositories/index-rates.repo';
+export { INDEX_RATE_SOURCES } from './app/schema/index-rates';
+export { LOAN_EVENT_KINDS, PREPAYMENT_EFFECT_KINDS } from './app/schema/loan-events';
+export type { LoanEventKind, PrepaymentEffectKind } from './app/schema/loan-events';
 export { loansRepo } from './app/repositories/loans.repo';
 export type {
   InstallmentValues,

@@ -37,12 +37,15 @@ import {
   GoalDto,
   PoolPlanDto,
   PropertyDto,
+  EventDto,
+  EventListDto,
   InstallmentDto,
   InstallmentListDto,
   LoanDto,
   LoanFieldDto,
   LoanListDto,
   PropertyListDto,
+  ReviewPreviewDto,
   ScheduleDto,
   ValuationDto,
   ValuationListDto,
@@ -344,6 +347,29 @@ const loanIn = (s: Scenario, pool: 'A' | 'B') =>
     ),
   );
 
+/** A variable-rate loan in pool A, for the review preview. */
+const variableLoanIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`variable-loan-${pool}`, async () =>
+    s.world.loans.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        name: 'Crédito variável',
+        kind: 'mortgage',
+        principal: '90000',
+        startDate: '2021-01-01',
+        firstDueDate: '2021-02-05',
+        termMonths: 360,
+        rateType: 'variable',
+        rateIndex: 'euribor_6m',
+        spread: '1.2',
+        annualRate: '1.2',
+        reviewMonths: 6,
+        paymentDay: 5,
+      },
+    ),
+  );
+
 /** The loan of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
 const foreignLoan = async (s: Scenario): Promise<Foreign> => {
   const other = await loanIn(s, 'B');
@@ -380,6 +406,35 @@ const foreignInstallment = async (s: Scenario): Promise<Foreign> => {
         other.loanId,
       );
       expect(seen.installments).toContainEqual(other);
+    },
+  };
+};
+
+/** An event of the loan in pool A or pool B, made once per scenario. */
+const eventIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`loan-event-${pool}`, async () => {
+    const loan = await loanIn(s, pool);
+    return s.world.loans.addEvent(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      loan.id,
+      {
+        kind: 'prepayment',
+        date: '2023-02-01',
+        amount: pool === 'A' ? '15000' : '654321',
+        effect: 'reduce_installment',
+      },
+    );
+  });
+
+/** The event of pool B's loan, addressed through pool A's URL. */
+const foreignEvent = async (s: Scenario): Promise<Foreign> => {
+  const other = await eventIn(s, 'B');
+  return {
+    params: { id: other.loanId, eventId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.loans.listEvents(await s.as('outsider'), s.poolB, other.loanId);
+      expect(seen.events.map((event) => event.id)).toContain(other.id);
     },
   };
 };
@@ -2678,6 +2733,71 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       params: { ...(await foreignLoan(s)).params, key: 'creditInsurance' },
       body: { enabled: true },
     }),
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans/:id/events`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/events/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    success: { status: 200, schema: EventListDto },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/loans/:id/events`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/events/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    body: () => ({ kind: 'rate_review', date: '2023-03-05', annualRate: '3.5' }),
+    success: { status: 201, schema: EventDto },
+    foreign: async (s) => ({
+      ...(await foreignLoan(s)),
+      body: { kind: 'rate_review', date: '2023-03-05', annualRate: '3.5' },
+    }),
+    negatives: [
+      {
+        name: 'a prepayment without an effect',
+        body: { kind: 'prepayment', date: '2023-02-01', amount: '1000' },
+        expect: 400,
+      },
+      {
+        name: 'an installment that does not cover the interest',
+        body: { kind: 'rate_review', date: '2023-03-05', annualRate: '3.5', newInstallment: '1' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/loans/:id/events/:eventId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/events/[eventId]/route'),
+      ),
+    params: async (s) => {
+      const event = await eventIn(s, 'A');
+      return { id: event.loanId, eventId: event.id };
+    },
+    success: { status: 204 },
+    foreign: foreignEvent,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans/:id/review-preview`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/review-preview/route')),
+    params: async (s) => ({ id: (await variableLoanIn(s, 'A')).id }),
+    success: { status: 200, schema: ReviewPreviewDto },
+    foreign: foreignLoan,
   },
 
   // ---------------------------------------------------------------- pool scope: savings
