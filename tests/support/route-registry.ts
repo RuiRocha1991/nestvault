@@ -42,6 +42,10 @@ import {
   InstallmentDto,
   InstallmentListDto,
   LoanDto,
+  PaymentDto,
+  UpcomingDto,
+  WorkDto,
+  WorkListDto,
   LoanFieldDto,
   LoanListDto,
   PropertyListDto,
@@ -435,6 +439,61 @@ const foreignEvent = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.loans.listEvents(await s.as('outsider'), s.poolB, other.loanId);
       expect(seen.events.map((event) => event.id)).toContain(other.id);
+    },
+  };
+};
+
+/** A works project in pool A or pool B, made once per scenario. */
+const workIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`work-${pool}`, async () =>
+    s.world.works.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        propertyId: (await propertyIn(s, pool)).id,
+        name: pool === 'A' ? 'Cozinha Alfa' : 'Cozinha Beta Secreta',
+        supplier: pool === 'A' ? 'Fornecedor Alfa' : 'Fornecedor Beta Secreto',
+        budget: pool === 'A' ? '9166' : '876543',
+      },
+    ),
+  );
+
+/** The project of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignWork = async (s: Scenario): Promise<Foreign> => {
+  const other = await workIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.works.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A payment phase of the project in pool A or pool B, made once per scenario. */
+const phaseIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`work-phase-${pool}`, async () => {
+    const work = await workIn(s, pool);
+    return s.world.works.addPayment(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      work.id,
+      {
+        description: pool === 'A' ? 'Sinal' : 'Sinal Secreto',
+        amount: pool === 'A' ? '4900' : '654321',
+        plannedDate: '2026-11-15',
+      },
+    );
+  });
+
+/** The phase of pool B's project, addressed through pool A's URL. */
+const foreignPhase = async (s: Scenario): Promise<Foreign> => {
+  const other = await phaseIn(s, 'B');
+  return {
+    params: { id: other.projectId, paymentId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.works.get(await s.as('outsider'), s.poolB, other.projectId);
+      expect(seen.phases).toContainEqual(other);
     },
   };
 };
@@ -2798,6 +2857,200 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await variableLoanIn(s, 'A')).id }),
     success: { status: 200, schema: ReviewPreviewDto },
     foreign: foreignLoan,
+  },
+
+  // ---------------------------------------------------------------- pool scope: works
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/works`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/route')),
+    success: { status: 200, schema: WorkListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s works',
+    leaks: async (s) => {
+      await workIn(s, 'A');
+      const other = await workIn(s, 'B');
+      return [other.id, 'Cozinha Beta Secreta', 'Fornecedor Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/works`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/route')),
+    body: async (s) => ({
+      propertyId: (await propertyIn(s, 'A')).id,
+      name: 'Casa de banho',
+      budget: '3000',
+    }),
+    success: { status: 201, schema: WorkDto },
+    noForeignBecause: 'creates a new row; a property of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a property that is not in this pool',
+        body: {
+          propertyId: '0192f2c8-7a1e-7000-8000-000000000001',
+          name: 'Mau',
+          budget: '1000',
+        },
+        expect: 400,
+      },
+      {
+        name: 'an end before the start',
+        body: {
+          propertyId: '0192f2c8-7a1e-7000-8000-000000000001',
+          name: 'Mau',
+          budget: '1000',
+          startDate: '2026-05-01',
+          plannedEnd: '2026-04-01',
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/works/upcoming`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/upcoming/route')),
+    success: { status: 200, schema: UpcomingDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s phases',
+    leaks: async (s) => {
+      await phaseIn(s, 'A');
+      const other = await phaseIn(s, 'B');
+      return [other.id, 'Sinal Secreto', 'Cozinha Beta Secreta'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/works/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/route')),
+    params: async (s) => ({ id: (await workIn(s, 'A')).id }),
+    success: { status: 200, schema: WorkDto },
+    foreign: foreignWork,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/works/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/route')),
+    params: async (s) => ({ id: (await workIn(s, 'A')).id }),
+    body: () => ({ name: 'Renomeada' }),
+    success: { status: 200, schema: WorkDto },
+    foreign: foreignWork,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/works/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/route')),
+    params: async (s) => ({ id: (await workIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignWork,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/works/:id/payments`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/payments/route')),
+    params: async (s) => ({ id: (await workIn(s, 'A')).id }),
+    body: () => ({ description: 'Segunda fase', amount: '2460', plannedDate: '2027-01-10' }),
+    success: { status: 201, schema: PaymentDto },
+    foreign: foreignWork,
+    negatives: [{ name: 'a zero amount', body: { description: 'Mau', amount: '0' }, expect: 400 }],
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/works/:id/payments/:paymentId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/payments/[paymentId]/route'),
+      ),
+    params: async (s) => {
+      const phase = await phaseIn(s, 'A');
+      return { id: phase.projectId, paymentId: phase.id };
+    },
+    body: () => ({ description: 'Sinal pago', paidDate: '2026-11-20' }),
+    success: { status: 200, schema: PaymentDto },
+    foreign: foreignPhase,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/works/:id/payments/:paymentId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/payments/[paymentId]/route'),
+      ),
+    params: async (s) => {
+      const phase = await phaseIn(s, 'A');
+      return { id: phase.projectId, paymentId: phase.id };
+    },
+    success: { status: 204 },
+    foreign: foreignPhase,
+  },
+  {
+    scope: 'pool',
+    method: 'PUT',
+    path: `${POOL}/works/:id/payments/:paymentId/transaction`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/payments/[paymentId]/transaction/route'),
+      ),
+    params: async (s) => {
+      const phase = await phaseIn(s, 'A');
+      return { id: phase.projectId, paymentId: phase.id };
+    },
+    body: async (s) => ({ transactionId: (await transactionIn(s, 'A')).id }),
+    success: { status: 200, schema: PaymentDto },
+    foreign: foreignPhase,
+    negatives: [
+      {
+        name: 'a movement that is not in this pool',
+        body: { transactionId: '0192f2c8-7a1e-7000-8000-000000000001' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/works/:id/payments/:paymentId/transaction`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/works/[id]/payments/[paymentId]/transaction/route'),
+      ),
+    params: async (s) => {
+      // Linked once per scenario: the setup runs for every case of the route.
+      const phase = await s.memo('linked-work-phase-A', async () => {
+        const created = await phaseIn(s, 'A');
+        await s.world.works.linkTransaction(
+          await s.as('owner'),
+          s.poolA,
+          created.projectId,
+          created.id,
+          { transactionId: (await transactionIn(s, 'A')).id },
+        );
+        return created;
+      });
+      return { id: phase.projectId, paymentId: phase.id };
+    },
+    success: { status: 200, schema: PaymentDto },
+    foreign: foreignPhase,
   },
 
   // ---------------------------------------------------------------- pool scope: savings

@@ -1214,6 +1214,7 @@
       "goal": "Objetivos",
       "property": "Imóveis",
       "loan": "Empréstimos",
+      "work": "Obras",
       "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
@@ -1328,6 +1329,16 @@
         "installmentDeleted": "Prestação eliminada",
         "eventAdded": "Evento de empréstimo registado",
         "eventDeleted": "Evento de empréstimo eliminado"
+      },
+      "work": {
+        "created": "Obra criada",
+        "updated": "Obra alterada",
+        "deleted": "Obra eliminada",
+        "paymentAdded": "Fase de pagamento adicionada",
+        "paymentUpdated": "Fase de pagamento alterada",
+        "paymentDeleted": "Fase de pagamento eliminada",
+        "paymentLinked": "Fase de pagamento ligada a um movimento",
+        "paymentUnlinked": "Ligação da fase a um movimento removida"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",
@@ -2134,7 +2145,8 @@
     "externalTransfers": "Envios para contas próprias fora da app",
     "refunds": "Reembolsos",
     "internalTransfer": "Transferência interna",
-    "investment": "Investimento"
+    "investment": "Investimento",
+    "works": "Obras"
   },
   "months": {
     "title": "Revisão do mês",

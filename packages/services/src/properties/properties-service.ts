@@ -248,7 +248,7 @@ export function createPropertiesService(deps: PropertiesServiceDeps): Properties
         (error: unknown) => {
           // A loan still points at the property (restrict): delete or move the loan first.
           if (isForeignKeyViolation(error)) {
-            throw new ConflictError('This property still has loans. Delete or move them first.');
+            throw new ConflictError('This property still has loans or works. Delete or move them first.');
           }
           throw error;
         },

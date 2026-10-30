@@ -35,6 +35,7 @@ import {
   createCashMovesService,
   createGoalsService,
   createLoansService,
+  createWorksService,
   createPropertiesService,
   createPlansService,
   createProductsService,
@@ -71,6 +72,7 @@ import {
   type EntitlementsService,
   type GoalsService,
   type LoansService,
+  type WorksService,
   type PropertiesService,
   type PlansService,
   type ProductsService,
@@ -148,6 +150,7 @@ export interface ApiWorld {
   /** Real estate, with billing off (every pool is Pro). */
   properties: PropertiesService;
   loans: LoansService;
+  works: WorksService;
   /** The world's test clock: services built outside the world must use it to agree on expiry. */
   now: () => Date;
   /** Plan and limits, with billing off (every pool is Pro). */
@@ -319,6 +322,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
       run: database.withPool,
       trustedProxyHops: 1,
       now: clock.now,
+    }),
+    works: createWorksService({
+      auth,
+      identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
+      run: database.withPool,
+      trustedProxyHops: 1,
     }),
     goals: createGoalsService({
       auth,

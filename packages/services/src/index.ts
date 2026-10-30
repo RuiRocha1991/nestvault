@@ -26,6 +26,7 @@ export * from './overview';
 export * from './entitlements';
 export * from './goals';
 export * from './loans';
+export * from './works';
 export * from './properties';
 export * from './settings';
 export * from './prototype-import';

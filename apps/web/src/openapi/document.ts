@@ -9,6 +9,7 @@ import './expenses';
 import './goals';
 import './plan';
 import './loans';
+import './works';
 import './properties';
 import './investments';
 import './savings';
