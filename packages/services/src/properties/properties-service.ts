@@ -16,7 +16,7 @@ import { dec, sharesAddUpTo100, toPlain } from '@nestvault/domain';
 import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
-import { isUniqueViolation } from '../db-errors';
+import { isForeignKeyViolation, isUniqueViolation } from '../db-errors';
 import type { Entitlements } from '../entitlements';
 import { ConflictError, NotFoundError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
@@ -244,7 +244,15 @@ export function createPropertiesService(deps: PropertiesServiceDeps): Properties
     async remove(headers, poolId, id) {
       const { ctx } = await guard(headers, poolId, 'realestate.write');
       const propertyId = parseId(id);
-      const removed = await run(ctx, (tx) => propertiesRepo.remove(tx, ctx, propertyId));
+      const removed = await run(ctx, (tx) => propertiesRepo.remove(tx, ctx, propertyId)).catch(
+        (error: unknown) => {
+          // A loan still points at the property (restrict): delete or move the loan first.
+          if (isForeignKeyViolation(error)) {
+            throw new ConflictError('This property still has loans. Delete or move them first.');
+          }
+          throw error;
+        },
+      );
       if (!removed) throw new NotFoundError();
       await recordAudit(identity, ctx, 'property.deleted', {
         target: propertyId,

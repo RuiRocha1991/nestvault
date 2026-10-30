@@ -89,6 +89,25 @@ export type {
 export { PERIOD_UNITS } from './app/schema/savings';
 export { GOAL_MODES, GOAL_TYPES } from './app/schema/goals';
 export type { GoalMode, GoalType } from './app/schema/goals';
+export { loansRepo } from './app/repositories/loans.repo';
+export type {
+  InstallmentValues,
+  LoanFieldRow,
+  LoanFieldValues,
+  LoanInstallmentAmountRow,
+  LoanInstallmentRow,
+  LoanRow,
+  LoanValues,
+} from './app/repositories/loans.repo';
+export {
+  FIELD_KINDS,
+  INSTALLMENT_SOURCES,
+  INSTALLMENT_STATUSES,
+  LOAN_KINDS,
+  RATE_INDEXES,
+  RATE_TYPES,
+} from './app/schema/loans';
+export type { InstallmentStatus, LoanKind, RateIndex, RateType } from './app/schema/loans';
 export { propertiesRepo } from './app/repositories/properties.repo';
 export type {
   PropertyHolderRow,

@@ -42,3 +42,27 @@ export type {
   PropertyValuationRow,
   ValuationSource,
 } from './properties';
+export {
+  FIELD_KINDS,
+  INSTALLMENT_SOURCES,
+  INSTALLMENT_STATUSES,
+  LOAN_KINDS,
+  loanFields,
+  loanInstallmentAmounts,
+  loanInstallments,
+  loans,
+  RATE_INDEXES,
+  RATE_TYPES,
+} from './loans';
+export type {
+  FieldKind,
+  InstallmentSource,
+  InstallmentStatus,
+  LoanFieldRow,
+  LoanInstallmentAmountRow,
+  LoanInstallmentRow,
+  LoanKind,
+  LoanRow,
+  RateIndex,
+  RateType,
+} from './loans';

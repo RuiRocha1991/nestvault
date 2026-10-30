@@ -8,6 +8,7 @@ import { transactions } from '../schema/transactions';
 import { depositsRepo } from './deposits.repo';
 import { interestEntriesRepo } from './interest-entries.repo';
 import { investmentOpsRepo } from './investment-ops.repo';
+import { loansRepo } from './loans.repo';
 import { plansRepo } from './plans.repo';
 import { portfolioCashMovesRepo } from './portfolio-cash-moves.repo';
 import { savingsProductsRepo } from './savings-products.repo';
@@ -143,6 +144,7 @@ export const accountsRepo = {
       savingsProductsRepo.countByAccount(tx, ctx, id),
       depositsRepo.countByFundingAccount(tx, ctx, id),
       portfolioCashMovesRepo.countByAccount(tx, ctx, id),
+      loansRepo.countForAccount(tx, ctx, id),
     ]);
     return counts.reduce((total, n) => total + n, movements?.n ?? 0);
   },

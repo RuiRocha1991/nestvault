@@ -503,6 +503,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   (new tables have RLS), `tests/db/holders-merge.repo.integration.test.ts` (the foreign-key list) and
   the route isolation suite (seven routes).
 
+- **Loans (NES-96).** `/api/v1/pools/:poolId/loans` (+ installments, schedule, fields) is Pro and
+  guarded like real estate: session, zod `.strict()`, membership (404), `pool.read` or
+  `realestate.write` (403), `assertFeature(ctx, 'real_estate')` (403 `plan_limit`, reads included),
+  `withPool` (RLS), audit (`loan.*`, the loan id; never amounts). The property and the debit account
+  must be the pool's own (service check plus composite foreign keys). Four new tables (`loans`,
+  `loan_fields`, `loan_installments`, `loan_installment_amounts`) carry `pool_id`, RLS and composite
+  keys; a property or account with loans cannot be deleted (restrict, 409). Totals, outstanding
+  capital and the projection are derived in `packages/domain`, never stored.
+- **Verified by:** `tests/services/loans.integration.test.ts` (roles, 401/404, validation, other
+  pool's ids, `plan_limit`, restrict, audit without amounts), `tests/db/loans.repo.integration.test.ts`
+  (CRUD, checks, cascade, injection payloads, `expectIsolated`, RLS, composite keys),
+  `tests/domain/loans.test.ts` and the route isolation suite (twelve routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

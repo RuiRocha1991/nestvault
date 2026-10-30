@@ -28,6 +28,7 @@ import {
   type PortfoliosService,
 } from '../investments';
 import { createInvitesService, createInviteVerifier, type InvitesService } from '../invites';
+import { createLoansService, type LoansService } from '../loans';
 import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createMonthsService, type MonthsService } from '../months';
@@ -101,6 +102,8 @@ export interface AuthRuntime {
   goals: GoalsService;
   /** Real estate (Pro): properties, their owners and valuations. */
   properties: PropertiesService;
+  /** Loans and their installments (Pro). */
+  loans: LoansService;
   /** Savings products, term deposits and manual interest entries. */
   products: ProductsService;
   deposits: DepositsService;
@@ -180,6 +183,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     plans: createPlansService({ auth, identity, ...hops }),
     goals: createGoalsService({ auth, identity, ...hops }),
     properties: createPropertiesService({ auth, identity, entitlements, ...hops }),
+    loans: createLoansService({ auth, identity, entitlements, ...hops }),
     products: createProductsService({ auth, identity, ...hops }),
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),

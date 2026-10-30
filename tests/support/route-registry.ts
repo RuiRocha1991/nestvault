@@ -37,7 +37,13 @@ import {
   GoalDto,
   PoolPlanDto,
   PropertyDto,
+  InstallmentDto,
+  InstallmentListDto,
+  LoanDto,
+  LoanFieldDto,
+  LoanListDto,
   PropertyListDto,
+  ScheduleDto,
   ValuationDto,
   ValuationListDto,
   GoalListDto,
@@ -314,6 +320,66 @@ const foreignValuation = async (s: Scenario): Promise<Foreign> => {
         other.propertyId,
       );
       expect(seen.valuations).toContainEqual(other);
+    },
+  };
+};
+
+/** A loan in pool A or pool B, made once per scenario. */
+const loanIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`loan-${pool}`, async () =>
+    s.world.loans.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        name: pool === 'A' ? 'Crédito Alfa' : 'Crédito Beta Secreto',
+        kind: 'mortgage',
+        principal: pool === 'A' ? '111600' : '876543',
+        startDate: '2020-09-01',
+        firstDueDate: '2020-10-05',
+        termMonths: 480,
+        rateType: 'fixed',
+        annualRate: '1.5',
+        paymentDay: 5,
+      },
+    ),
+  );
+
+/** The loan of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignLoan = async (s: Scenario): Promise<Foreign> => {
+  const other = await loanIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.loans.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** An installment of the loan in pool A or pool B, made once per scenario. */
+const installmentIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`installment-${pool}`, async () => {
+    const loan = await loanIn(s, pool);
+    return s.world.loans.addInstallment(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      loan.id,
+      { number: 1, dueDate: '2020-10-05', capital: '300', interest: pool === 'A' ? '140' : '999' },
+    );
+  });
+
+/** The installment of pool B's loan, addressed through pool A's URL. */
+const foreignInstallment = async (s: Scenario): Promise<Foreign> => {
+  const other = await installmentIn(s, 'B');
+  return {
+    params: { id: other.loanId, installmentId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.loans.listInstallments(
+        await s.as('outsider'),
+        s.poolB,
+        other.loanId,
+      );
+      expect(seen.installments).toContainEqual(other);
     },
   };
 };
@@ -2411,6 +2477,207 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     },
     success: { status: 204 },
     foreign: foreignValuation,
+  },
+
+  // ---------------------------------------------------------------- pool scope: loans
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/route')),
+    success: { status: 200, schema: LoanListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s loans',
+    leaks: async (s) => {
+      await loanIn(s, 'A');
+      const other = await loanIn(s, 'B');
+      return [other.id, 'Crédito Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/loans`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/route')),
+    body: () => ({
+      name: 'Carro',
+      kind: 'car',
+      principal: '15000',
+      startDate: '2024-01-10',
+      firstDueDate: '2024-02-10',
+      termMonths: 60,
+      rateType: 'fixed',
+      annualRate: '5.9',
+      paymentDay: 10,
+    }),
+    success: { status: 201, schema: LoanDto },
+    noForeignBecause: 'creates a new row; a property or account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a variable rate without an index',
+        body: {
+          name: 'Mau',
+          kind: 'mortgage',
+          principal: '1000',
+          startDate: '2024-01-10',
+          firstDueDate: '2024-02-10',
+          termMonths: 12,
+          rateType: 'variable',
+          annualRate: '3',
+          paymentDay: 10,
+        },
+        expect: 400,
+      },
+      {
+        name: 'a property that is not in this pool',
+        body: {
+          name: 'Mau',
+          kind: 'mortgage',
+          propertyId: '0192f2c8-7a1e-7000-8000-000000000001',
+          principal: '1000',
+          startDate: '2024-01-10',
+          firstDueDate: '2024-02-10',
+          termMonths: 12,
+          rateType: 'fixed',
+          annualRate: '3',
+          paymentDay: 10,
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    success: { status: 200, schema: LoanDto },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/loans/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    body: () => ({ name: 'Renomeado' }),
+    success: { status: 200, schema: LoanDto },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/loans/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans/:id/schedule`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/schedule/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    success: { status: 200, schema: ScheduleDto },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/loans/:id/installments`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    success: { status: 200, schema: InstallmentListDto },
+    foreign: foreignLoan,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/loans/:id/installments`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    body: () => ({ number: 1, dueDate: '2020-10-05', capital: '300', interest: '140' }),
+    success: { status: 201, schema: InstallmentDto },
+    foreign: async (s) => ({
+      ...(await foreignLoan(s)),
+      body: { number: 1, dueDate: '2020-10-05', capital: '300', interest: '140' },
+    }),
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/loans/:id/installments/:installmentId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/[installmentId]/route'),
+      ),
+    params: async (s) => {
+      const installment = await installmentIn(s, 'A');
+      return { id: installment.loanId, installmentId: installment.id };
+    },
+    body: () => ({ interest: '141' }),
+    success: { status: 200, schema: InstallmentDto },
+    foreign: foreignInstallment,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/loans/:id/installments/:installmentId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/installments/[installmentId]/route'),
+      ),
+    params: async (s) => {
+      const installment = await installmentIn(s, 'A');
+      return { id: installment.loanId, installmentId: installment.id };
+    },
+    success: { status: 204 },
+    foreign: foreignInstallment,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/loans/:id/fields`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/fields/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id }),
+    body: () => ({ key: 'condominium', label: 'Condomínio' }),
+    success: { status: 201, schema: LoanFieldDto },
+    foreign: async (s) => ({
+      ...(await foreignLoan(s)),
+      body: { key: 'condominium', label: 'Condomínio' },
+    }),
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/loans/:id/fields/:key`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/loans/[id]/fields/[key]/route')),
+    params: async (s) => ({ id: (await loanIn(s, 'A')).id, key: 'creditInsurance' }),
+    body: () => ({ enabled: true }),
+    success: { status: 200, schema: LoanFieldDto },
+    foreign: async (s) => ({
+      ...(await foreignLoan(s)),
+      params: { ...(await foreignLoan(s)).params, key: 'creditInsurance' },
+      body: { enabled: true },
+    }),
   },
 
   // ---------------------------------------------------------------- pool scope: savings
