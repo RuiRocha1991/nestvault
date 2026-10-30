@@ -28,6 +28,8 @@ export interface LineChartProps {
   /** 1–3 series; each has one value per label. */
   series: readonly LineSeries[];
   currency?: string;
+  /** Formats a value in the tooltip and the data table; defaults to money in `currency`. */
+  formatValue?: (value: number) => string;
   /** Accessible name of the chart. */
   label: string;
   /** Shown instead of the chart when there is nothing to plot. */
@@ -59,6 +61,7 @@ export function LineChart({
   labels,
   series,
   currency = 'EUR',
+  formatValue,
   label,
   empty,
   periodHeader,
@@ -237,7 +240,9 @@ export function LineChart({
                     style={{ background: s.color ?? seriesColor(i) }}
                   />
                   <span className="mr-auto">{s.name}</span>
-                  <b className="text-fg">{formatMoney(value, currency)}</b>
+                  <b className="text-fg">
+                    {formatValue ? formatValue(value) : formatMoney(value, currency)}
+                  </b>
                 </div>
               );
             })}
@@ -265,7 +270,9 @@ export function LineChart({
                 return (
                   <td key={s.name}>
                     {value !== undefined && Number.isFinite(value)
-                      ? formatMoney(value, currency)
+                      ? formatValue
+                        ? formatValue(value)
+                        : formatMoney(value, currency)
                       : ''}
                   </td>
                 );

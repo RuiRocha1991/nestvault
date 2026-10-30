@@ -22,6 +22,8 @@ export { BarChart } from './charts/bar-chart';
 export type { BarChartProps } from './charts/bar-chart';
 export { ChartLegend, Donut } from './charts/donut';
 export type { ChartLegendProps, DonutProps, DonutSegment } from './charts/donut';
+export { StackedBarChart } from './charts/stacked-bar-chart';
+export type { StackedBarChartProps, StackedSeries } from './charts/stacked-bar-chart';
 export { compactNumber, linearPath, niceTicks, smoothPath } from './charts/geometry';
 export type { Point } from './charts/geometry';
 export { LineChart } from './charts/line-chart';

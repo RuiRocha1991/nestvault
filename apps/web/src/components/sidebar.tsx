@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@nestvault/ui';
+import { Chip, cn } from '@nestvault/ui';
 import { CircleUser } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,11 +23,20 @@ export interface SidebarPortfolio {
   color: string;
 }
 
+export interface SidebarProperty {
+  id: string;
+  name: string;
+}
+
 export interface SidebarProps {
   pool: PoolSummary;
   /** Every pool of the user; the switcher shows when there is more than one. */
   pools: readonly PoolSummary[];
   portfolios: readonly SidebarPortfolio[];
+  /** The pool's properties, shown under "Imobiliário". */
+  properties?: readonly SidebarProperty[];
+  /** Real estate is a Pro feature: the entry carries the PRO tag on a Free pool. */
+  realEstateLocked?: boolean;
   theme: Theme;
   /** Display name of the signed-in user. */
   userName: string;
@@ -38,7 +47,15 @@ const linkStyles =
   'hover:bg-panel-2 hover:text-fg aria-[current=page]:bg-accent aria-[current=page]:text-on-accent ' +
   'aria-[current=page]:shadow-[0_6px_18px_-6px_var(--accent)]';
 
-export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarProps) {
+export function Sidebar({
+  pool,
+  pools,
+  portfolios,
+  properties = [],
+  realEstateLocked = false,
+  theme,
+  userName,
+}: SidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const { drawerOpen } = useShell();
@@ -49,7 +66,7 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
     // The overview answers at the pool root and at `/visao-geral`.
     if (item.path === '') return pathname === href || pathname === `${href}/visao-geral`;
     // "Portfolios" is "Todos": a portfolio of its own highlights its child item instead.
-    if (item.key === 'portfolios') return pathname === href;
+    if (item.key === 'portfolios' || item.key === 'realEstate') return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -87,7 +104,28 @@ export function Sidebar({ pool, pools, portfolios, theme, userName }: SidebarPro
                 >
                   <item.icon aria-hidden className="size-[18px] shrink-0" />
                   {t(`nav.items.${item.key}`)}
+                  {item.key === 'realEstate' && realEstateLocked && (
+                    <Chip tone="accent" className="ml-auto h-[18px] px-1.5 text-[10px]">
+                      {t('nav.proTag')}
+                    </Chip>
+                  )}
                 </Link>
+                {item.key === 'realEstate' &&
+                  properties.map((property) => {
+                    const href = `${base}/imobiliario/${property.id}`;
+                    const here = pathname.toLowerCase() === href.toLowerCase();
+                    return (
+                      <Link
+                        key={property.id}
+                        href={href}
+                        aria-current={here ? 'page' : undefined}
+                        className={cn(linkStyles, 'py-1.5 pl-[42px] text-sm')}
+                      >
+                        <i aria-hidden className="-ml-5 size-2 shrink-0 rounded-full bg-accent-2" />
+                        {property.name}
+                      </Link>
+                    );
+                  })}
                 {item.key === 'portfolios' &&
                   portfolios.map((portfolio) => {
                     const href = `${base}/portfolios/${portfolio.id}`;

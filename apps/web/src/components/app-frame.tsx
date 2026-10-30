@@ -11,6 +11,7 @@ import { parseTheme, THEME_COOKIE } from '@webapp/lib/theme';
 import { getHolders } from '@webapp/server/holders';
 import { getMyPools, getPoolPermissions } from '@webapp/server/pool';
 import { getPortfolios } from '@webapp/server/portfolios';
+import { getSidebarProperties } from '@webapp/server/real-estate';
 import { getCurrentSession } from '@webapp/server/session';
 
 /** The sidebar and the content column shared by the pool pages and the account page. */
@@ -31,10 +32,11 @@ export async function AppFrame({
   const pools = poolsProp ?? (await getMyPools()).pools;
   // Read on every render of the layout, so `router.refresh()` after a portfolio is created,
   // renamed, recoloured or deleted updates the sidebar without a reload.
-  const [{ portfolios }, { holders }, permissions] = await Promise.all([
+  const [{ portfolios }, { holders }, permissions, realEstate] = await Promise.all([
     getPortfolios(pool.id),
     getHolders(pool.id),
     getPoolPermissions(pool.id),
+    getSidebarProperties(pool.id),
   ]);
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
@@ -50,6 +52,8 @@ export async function AppFrame({
           pool={pool}
           pools={pools}
           portfolios={portfolios.map(({ id, name, color }) => ({ id, name, color }))}
+          properties={realEstate.properties}
+          realEstateLocked={realEstate.locked}
           theme={theme}
           userName={session.name}
         />

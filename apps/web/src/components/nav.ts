@@ -1,4 +1,5 @@
 import {
+  Building2,
   CalendarDays,
   ChartPie,
   House,
@@ -10,7 +11,14 @@ import {
 } from 'lucide-react';
 
 export type NavItemKey =
-  'overview' | 'portfolios' | 'goals' | 'expenses' | 'months' | 'accounts' | 'settings';
+  | 'overview'
+  | 'portfolios'
+  | 'goals'
+  | 'realEstate'
+  | 'expenses'
+  | 'months'
+  | 'accounts'
+  | 'settings';
 
 export interface NavItem {
   key: NavItemKey;
@@ -20,7 +28,7 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-  key: 'general' | 'investments' | 'daily' | 'app';
+  key: 'general' | 'investments' | 'wealth' | 'daily' | 'app';
   items: readonly NavItem[];
 }
 
@@ -33,6 +41,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'goals', path: '/objetivos', icon: Target },
     ],
   },
+  { key: 'wealth', items: [{ key: 'realEstate', path: '/imobiliario', icon: Building2 }] },
   {
     key: 'daily',
     items: [
@@ -51,6 +60,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 export const SECTION_PAGES: Readonly<Record<string, NavItemKey>> = {
   portfolios: 'portfolios',
   objetivos: 'goals',
+  imobiliario: 'realEstate',
   despesas: 'expenses',
   meses: 'months',
   contas: 'accounts',
