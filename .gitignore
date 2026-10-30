@@ -28,3 +28,8 @@ tests/e2e/.auth/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# Knowledge graph (graphify): only the report is versioned; graph.json, the cache and the rest
+# are rebuilt on each machine with `pnpm graph:update`.
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md

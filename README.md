@@ -80,6 +80,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm db:seed`                          | Create the first owner (`SEED_OWNER_EMAIL`/`_PASSWORD`, else prompted); idempotent                       |
 | `pnpm test:e2e`                         | Playwright (Chromium): sign-in, smoke + CSP checks on the production build (needs `pnpm db:up`)          |
 | `pnpm openapi`                          | Regenerate `docs/api/openapi.json`; `--check` fails if stale (CI)                                        |
+| `pnpm graph:update`                     | Rebuild the code layer of the knowledge graph (`graphify-out/graph.json`); no LLM, no tokens             |
 
 Browser checks (`tests/e2e/`) need Chromium once: `pnpm exec playwright install chromium`
 (on a fresh Ubuntu add `--with-deps`). `pnpm test:e2e` builds the web app and serves it on port 4010,
@@ -223,6 +224,26 @@ file, the format is detected, choose the account, check the preview and confirm.
 `imports.run` permission (owner, admin and member; not viewer). The Playwright import specs
 (`tests/e2e/import.spec.ts`) also need the parser container; their generated statements are in
 `tests/e2e/fixtures/imports` (regenerate with `cd services/parser && uv run python scripts/export_e2e_fixtures.py`).
+
+## Knowledge graph
+
+[graphify](https://github.com/safishamsi/graphify) turns the repository (code, docs, ADRs, PRD,
+prototype) into a graph that Claude queries before changing code, so it searches and reads less.
+It is a developer tool: the app does not depend on it.
+
+```bash
+uv tool install graphifyy      # once per machine; gives the `graphify` command
+graphify install               # once per machine; adds the /graphify skill to Claude Code
+pnpm graph:update              # build or refresh graphify-out/graph.json (code, no tokens)
+graphify query "what touches loan installments?" --budget 1500
+graphify explain "requirePoolAccess()"
+```
+
+- Only `graphify-out/GRAPH_REPORT.md` is versioned. Everything else in `graphify-out/` is
+  git-ignored and rebuilt by `pnpm graph:update` (also needed in every new worktree).
+- `pnpm graph:update` covers the code. The docs layer (ADRs, PRD, prototype) is refreshed from
+  Claude Code with `/graphify . --update`; it uses tokens, so run it only after changing docs.
+- How Claude is told to use it: [`CLAUDE.md`](CLAUDE.md) → "Knowledge graph".
 
 ## Repository layout
 
