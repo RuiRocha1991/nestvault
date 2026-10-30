@@ -25,6 +25,7 @@ export * from './notes';
 export * from './overview';
 export * from './entitlements';
 export * from './goals';
+export * from './properties';
 export * from './settings';
 export * from './prototype-import';
 export * from './months';

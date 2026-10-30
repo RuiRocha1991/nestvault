@@ -18,6 +18,7 @@ export const PERMISSIONS = [
   'portfolios.write',
   'categories.write',
   'goals.write',
+  'realestate.write',
   'transactions.write',
   'ops.write',
   'prices.write',
@@ -44,6 +45,7 @@ const ADMIN: readonly Permission[] = [
   'portfolios.write',
   'categories.write',
   'goals.write',
+  'realestate.write',
   'members.invite',
   'members.manage', // admins cannot touch owners: enforced by the members service (NES-28)
   'settings.write',

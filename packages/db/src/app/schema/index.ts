@@ -28,3 +28,17 @@ export { importBatches } from './imports';
 export type { ImportBatchRow } from './imports';
 export { GOAL_MODES, GOAL_TYPES, goalScopes, goals } from './goals';
 export type { GoalMode, GoalRow, GoalScopeRow, GoalType } from './goals';
+export {
+  PROPERTY_TYPES,
+  properties,
+  propertyHolders,
+  propertyValuations,
+  VALUATION_SOURCES,
+} from './properties';
+export type {
+  PropertyHolderRow,
+  PropertyRow,
+  PropertyType,
+  PropertyValuationRow,
+  ValuationSource,
+} from './properties';

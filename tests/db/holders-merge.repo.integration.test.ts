@@ -34,7 +34,11 @@ describe('holders repository: merge', () => {
           order by 1`,
       ),
     );
-    expect(references.rows.map((row) => row.table)).toEqual(['account_holders', 'sub_accounts']);
+    expect(references.rows.map((row) => row.table)).toEqual([
+      'account_holders',
+      'property_holders',
+      'sub_accounts',
+    ]);
   });
 
   it('moves the aliases to the target and deletes the source', async () => {

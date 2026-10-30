@@ -89,6 +89,17 @@ export type {
 export { PERIOD_UNITS } from './app/schema/savings';
 export { GOAL_MODES, GOAL_TYPES } from './app/schema/goals';
 export type { GoalMode, GoalType } from './app/schema/goals';
+export { propertiesRepo } from './app/repositories/properties.repo';
+export type {
+  PropertyHolderRow,
+  PropertyRow,
+  PropertyShare,
+  PropertyValues,
+  PropertyValuationRow,
+  ValuationValues,
+} from './app/repositories/properties.repo';
+export { PROPERTY_TYPES, VALUATION_SOURCES } from './app/schema/properties';
+export type { PropertyType, ValuationSource } from './app/schema/properties';
 export { goalsRepo } from './app/repositories/goals.repo';
 export type {
   GoalRow,

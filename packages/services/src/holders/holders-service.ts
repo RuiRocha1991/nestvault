@@ -216,7 +216,7 @@ export function createHoldersService(deps: HoldersServiceDeps): HoldersService {
           throw new ConflictError('This person is a member of the pool. Remove the member first.');
         }
         if ((await holdersRepo.countReferences(tx, ctx, holderId)) > 0) {
-          throw new ConflictError('This person still has accounts. Move or remove them first.');
+          throw new ConflictError('This person still owns accounts or properties. Move or remove them first.');
         }
         await holdersRepo.remove(tx, ctx, holderId);
       });
