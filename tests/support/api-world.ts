@@ -34,6 +34,7 @@ import {
   createOpsService,
   createCashMovesService,
   createGoalsService,
+  createPropertiesService,
   createPlansService,
   createProductsService,
   createDepositsService,
@@ -68,6 +69,7 @@ import {
   type CashMovesService,
   type EntitlementsService,
   type GoalsService,
+  type PropertiesService,
   type PlansService,
   type ProductsService,
   type DepositsService,
@@ -141,6 +143,8 @@ export interface ApiWorld {
   cashMoves: CashMovesService;
   plans: PlansService;
   goals: GoalsService;
+  /** Real estate, with billing off (every pool is Pro). */
+  properties: PropertiesService;
   /** The world's test clock: services built outside the world must use it to agree on expiry. */
   now: () => Date;
   /** Plan and limits, with billing off (every pool is Pro). */
@@ -297,6 +301,13 @@ export async function createApiWorld(): Promise<ApiWorld> {
       identity,
       billingEnabled: false,
       run: database.withPool,
+    }),
+    properties: createPropertiesService({
+      auth,
+      identity,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
+      run: database.withPool,
+      trustedProxyHops: 1,
     }),
     goals: createGoalsService({
       auth,
@@ -539,6 +550,10 @@ async function buildScenario(
               (await pool.query('select * from plans order by id')).rows,
               (await pool.query('select * from goals order by id')).rows,
               (await pool.query('select * from goal_scopes order by id')).rows,
+              (await pool.query('select * from properties order by id')).rows,
+              (await pool.query('select * from property_holders order by property_id, holder_id'))
+                .rows,
+              (await pool.query('select * from property_valuations order by id')).rows,
               (await pool.query('select * from portfolio_cash_moves order by id')).rows,
               (await pool.query('select * from savings_products order by id')).rows,
               (await pool.query('select * from deposits order by id')).rows,

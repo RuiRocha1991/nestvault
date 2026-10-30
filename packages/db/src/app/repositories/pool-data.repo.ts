@@ -17,6 +17,7 @@ export interface PoolDataCounts {
   cashMoves: number;
   interestEntries: number;
   goals: number;
+  properties: number;
 }
 
 /**
@@ -39,7 +40,8 @@ export const poolDataRepo = {
         (select count(*)::int from plans where pool_id = ${ctx.poolId}) as "plans",
         (select count(*)::int from portfolio_cash_moves where pool_id = ${ctx.poolId}) as "cashMoves",
         (select count(*)::int from interest_entries where pool_id = ${ctx.poolId}) as "interestEntries",
-        (select count(*)::int from goals where pool_id = ${ctx.poolId}) as "goals"
+        (select count(*)::int from goals where pool_id = ${ctx.poolId}) as "goals",
+        (select count(*)::int from properties where pool_id = ${ctx.poolId}) as "properties"
     `);
     const row = result.rows[0];
     if (!row) throw new Error('count returned no row');

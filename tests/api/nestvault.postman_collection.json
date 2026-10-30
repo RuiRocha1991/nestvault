@@ -108,6 +108,14 @@
     {
       "key": "goalId",
       "value": ""
+    },
+    {
+      "key": "propertyId",
+      "value": ""
+    },
+    {
+      "key": "valuationId",
+      "value": ""
     }
   ],
   "item": [
@@ -4422,6 +4430,358 @@
               ]
             },
             "description": "Needs goals.write. Its scopes go with it."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Real estate",
+      "item": [
+        {
+          "name": "Register a property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties"
+              ]
+            },
+            "description": "Needs realestate.write (owner, admin) and the Pro plan. holders = people of the pool, shares add up to 100. costs itemizes the acquisition costs (reference: 915 + 631.86 + 992 + 20.85 = 2559.71).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apartamento\",\n  \"type\": \"primary_home\",\n  \"address\": \"Rua das Flores 1\",\n  \"purchaseDate\": \"2020-09-01\",\n  \"purchasePrice\": \"124000\",\n  \"downPayment\": \"12400\",\n  \"costs\": { \"deed\": \"915\", \"imt\": \"631.86\", \"stampDuty\": \"992\", \"bankFees\": \"20.85\" },\n  \"sellingCostPct\": \"5\",\n  \"holders\": [{ \"holderId\": \"{{holderId}}\", \"sharePct\": \"100\" }]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('propertyId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register with shares that do not add up (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties"
+              ]
+            },
+            "description": "Shares must add up to 100.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mau\",\n  \"type\": \"land\",\n  \"purchaseDate\": \"2021-05-10\",\n  \"purchasePrice\": \"15000\",\n  \"holders\": [{ \"holderId\": \"{{holderId}}\", \"sharePct\": \"60\" }]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties"
+              ]
+            },
+            "description": "Any member of a Pro pool. A Free pool (BILLING_ENABLED=true) answers 403 plan_limit."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}"
+              ]
+            },
+            "description": "Any member of a Pro pool. Comes with costs.total, loanAmount, holders and latestValuation."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change a property",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}"
+              ]
+            },
+            "description": "Needs realestate.write. Fields left out stay; costs changes only the items given; holders replaces the owners.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Casa\",\n  \"costs\": { \"registration\": \"100\" }\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a valuation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}/valuations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}",
+                "valuations"
+              ]
+            },
+            "description": "Needs realestate.write. One per day (409 otherwise). source: manual, bank_appraisal or estimate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2025-06-30\",\n  \"value\": \"150000\",\n  \"source\": \"bank_appraisal\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.collectionVariables.set('valuationId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List valuations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}/valuations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}",
+                "valuations"
+              ]
+            },
+            "description": "Newest first; the newest is the one net worth uses."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete a valuation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}/valuations/{{valuationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}",
+                "valuations",
+                "{{valuationId}}"
+              ]
+            },
+            "description": "Needs realestate.write."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete a property",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/properties/{{propertyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "properties",
+                "{{propertyId}}"
+              ]
+            },
+            "description": "Needs realestate.write. Its owners and valuations go with it."
           },
           "response": [],
           "event": [

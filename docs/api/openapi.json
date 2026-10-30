@@ -9602,6 +9602,1736 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/properties": {
+      "get": {
+        "operationId": "listProperties",
+        "summary": "Properties of the pool",
+        "description": "Any member of a Pro pool may list. Each property comes with the itemized acquisition costs and their total, the loan amount (price minus down payment), its owners and the latest valuation.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "primary_home",
+                              "secondary",
+                              "rental",
+                              "land",
+                              "garage"
+                            ]
+                          },
+                          "address": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "purchaseDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "purchasePrice": {
+                            "type": "string"
+                          },
+                          "downPayment": {
+                            "type": "string"
+                          },
+                          "costs": {
+                            "type": "object",
+                            "properties": {
+                              "deed": {
+                                "type": "string"
+                              },
+                              "imt": {
+                                "type": "string"
+                              },
+                              "stampDuty": {
+                                "type": "string"
+                              },
+                              "registration": {
+                                "type": "string"
+                              },
+                              "bankFees": {
+                                "type": "string"
+                              },
+                              "total": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "deed",
+                              "imt",
+                              "stampDuty",
+                              "registration",
+                              "bankFees",
+                              "total"
+                            ]
+                          },
+                          "loanAmount": {
+                            "type": "string"
+                          },
+                          "sellingCostPct": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "includeInNetWorth": {
+                            "type": "boolean"
+                          },
+                          "holders": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "holderId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "sharePct": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "holderId",
+                                "sharePct"
+                              ]
+                            }
+                          },
+                          "latestValuation": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "propertyId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "date": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string",
+                                "enum": [
+                                  "manual",
+                                  "bank_appraisal",
+                                  "estimate"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "propertyId",
+                              "date",
+                              "value",
+                              "source"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "type",
+                          "address",
+                          "purchaseDate",
+                          "purchasePrice",
+                          "downPayment",
+                          "costs",
+                          "loanAmount",
+                          "sellingCostPct",
+                          "includeInNetWorth",
+                          "holders",
+                          "latestValuation"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "properties"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProperty",
+        "summary": "Register a property",
+        "description": "Needs `realestate.write` (owner, admin) and the Pro plan. `holders` (at least one) are people of this pool with their ownership share in percent; the shares must add up to 100 and each person appears once. The down payment cannot be more than the price. `costs` itemizes the acquisition costs (deed, imt, stampDuty, registration, bankFees); what is left out is 0. The body is strict: `poolId` or any other field answers 400.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "primary_home",
+                      "secondary",
+                      "rental",
+                      "land",
+                      "garage"
+                    ]
+                  },
+                  "address": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "purchaseDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "purchasePrice": {
+                    "type": "string"
+                  },
+                  "downPayment": {
+                    "type": "string"
+                  },
+                  "costs": {
+                    "type": "object",
+                    "properties": {
+                      "deed": {
+                        "type": "string"
+                      },
+                      "imt": {
+                        "type": "string"
+                      },
+                      "stampDuty": {
+                        "type": "string"
+                      },
+                      "registration": {
+                        "type": "string"
+                      },
+                      "bankFees": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "sellingCostPct": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "includeInNetWorth": {
+                    "type": "boolean"
+                  },
+                  "holders": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "holderId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sharePct": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "holderId",
+                        "sharePct"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "name",
+                  "type",
+                  "purchaseDate",
+                  "purchasePrice",
+                  "holders"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "primary_home",
+                        "secondary",
+                        "rental",
+                        "land",
+                        "garage"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "purchaseDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "purchasePrice": {
+                      "type": "string"
+                    },
+                    "downPayment": {
+                      "type": "string"
+                    },
+                    "costs": {
+                      "type": "object",
+                      "properties": {
+                        "deed": {
+                          "type": "string"
+                        },
+                        "imt": {
+                          "type": "string"
+                        },
+                        "stampDuty": {
+                          "type": "string"
+                        },
+                        "registration": {
+                          "type": "string"
+                        },
+                        "bankFees": {
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deed",
+                        "imt",
+                        "stampDuty",
+                        "registration",
+                        "bankFees",
+                        "total"
+                      ]
+                    },
+                    "loanAmount": {
+                      "type": "string"
+                    },
+                    "sellingCostPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeInNetWorth": {
+                      "type": "boolean"
+                    },
+                    "holders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "holderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sharePct": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "holderId",
+                          "sharePct"
+                        ]
+                      }
+                    },
+                    "latestValuation": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "propertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "manual",
+                            "bank_appraisal",
+                            "estimate"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "propertyId",
+                        "date",
+                        "value",
+                        "source"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "address",
+                    "purchaseDate",
+                    "purchasePrice",
+                    "downPayment",
+                    "costs",
+                    "loanAmount",
+                    "sellingCostPct",
+                    "includeInNetWorth",
+                    "holders",
+                    "latestValuation"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/properties/{id}": {
+      "get": {
+        "operationId": "getProperty",
+        "summary": "One property",
+        "description": "Any member of a Pro pool may read.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "primary_home",
+                        "secondary",
+                        "rental",
+                        "land",
+                        "garage"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "purchaseDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "purchasePrice": {
+                      "type": "string"
+                    },
+                    "downPayment": {
+                      "type": "string"
+                    },
+                    "costs": {
+                      "type": "object",
+                      "properties": {
+                        "deed": {
+                          "type": "string"
+                        },
+                        "imt": {
+                          "type": "string"
+                        },
+                        "stampDuty": {
+                          "type": "string"
+                        },
+                        "registration": {
+                          "type": "string"
+                        },
+                        "bankFees": {
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deed",
+                        "imt",
+                        "stampDuty",
+                        "registration",
+                        "bankFees",
+                        "total"
+                      ]
+                    },
+                    "loanAmount": {
+                      "type": "string"
+                    },
+                    "sellingCostPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeInNetWorth": {
+                      "type": "boolean"
+                    },
+                    "holders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "holderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sharePct": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "holderId",
+                          "sharePct"
+                        ]
+                      }
+                    },
+                    "latestValuation": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "propertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "manual",
+                            "bank_appraisal",
+                            "estimate"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "propertyId",
+                        "date",
+                        "value",
+                        "source"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "address",
+                    "purchaseDate",
+                    "purchasePrice",
+                    "downPayment",
+                    "costs",
+                    "loanAmount",
+                    "sellingCostPct",
+                    "includeInNetWorth",
+                    "holders",
+                    "latestValuation"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProperty",
+        "summary": "Change a property",
+        "description": "Needs `realestate.write` and the Pro plan. Fields left out stay; `costs` changes only the items given; `holders` replaces the owners (shares add up to 100).",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "primary_home",
+                      "secondary",
+                      "rental",
+                      "land",
+                      "garage"
+                    ]
+                  },
+                  "address": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "purchaseDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "purchasePrice": {
+                    "type": "string"
+                  },
+                  "downPayment": {
+                    "type": "string"
+                  },
+                  "costs": {
+                    "type": "object",
+                    "properties": {
+                      "deed": {
+                        "type": "string"
+                      },
+                      "imt": {
+                        "type": "string"
+                      },
+                      "stampDuty": {
+                        "type": "string"
+                      },
+                      "registration": {
+                        "type": "string"
+                      },
+                      "bankFees": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "sellingCostPct": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "includeInNetWorth": {
+                    "type": "boolean"
+                  },
+                  "holders": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "holderId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sharePct": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "holderId",
+                        "sharePct"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "primary_home",
+                        "secondary",
+                        "rental",
+                        "land",
+                        "garage"
+                      ]
+                    },
+                    "address": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "purchaseDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "purchasePrice": {
+                      "type": "string"
+                    },
+                    "downPayment": {
+                      "type": "string"
+                    },
+                    "costs": {
+                      "type": "object",
+                      "properties": {
+                        "deed": {
+                          "type": "string"
+                        },
+                        "imt": {
+                          "type": "string"
+                        },
+                        "stampDuty": {
+                          "type": "string"
+                        },
+                        "registration": {
+                          "type": "string"
+                        },
+                        "bankFees": {
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deed",
+                        "imt",
+                        "stampDuty",
+                        "registration",
+                        "bankFees",
+                        "total"
+                      ]
+                    },
+                    "loanAmount": {
+                      "type": "string"
+                    },
+                    "sellingCostPct": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeInNetWorth": {
+                      "type": "boolean"
+                    },
+                    "holders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "holderId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sharePct": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "holderId",
+                          "sharePct"
+                        ]
+                      }
+                    },
+                    "latestValuation": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "propertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "manual",
+                            "bank_appraisal",
+                            "estimate"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "propertyId",
+                        "date",
+                        "value",
+                        "source"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "address",
+                    "purchaseDate",
+                    "purchasePrice",
+                    "downPayment",
+                    "costs",
+                    "loanAmount",
+                    "sellingCostPct",
+                    "includeInNetWorth",
+                    "holders",
+                    "latestValuation"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProperty",
+        "summary": "Delete a property",
+        "description": "Needs `realestate.write` and the Pro plan. Its owners and valuations are deleted.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/properties/{id}/valuations": {
+      "get": {
+        "operationId": "listPropertyValuations",
+        "summary": "Valuations of a property",
+        "description": "Any member of a Pro pool may read. Newest first; the newest is the one net worth uses.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The valuations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valuations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "propertyId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "bank_appraisal",
+                              "estimate"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "propertyId",
+                          "date",
+                          "value",
+                          "source"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "valuations"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addPropertyValuation",
+        "summary": "Add a valuation",
+        "description": "Needs `realestate.write` and the Pro plan. `source` is manual (default), bank_appraisal or estimate. One valuation per property and day: a second one for the same day answers 409.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "bank_appraisal",
+                      "estimate"
+                    ]
+                  }
+                },
+                "required": [
+                  "date",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "propertyId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "manual",
+                        "bank_appraisal",
+                        "estimate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "propertyId",
+                    "date",
+                    "value",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/properties/{id}/valuations/{valuationId}": {
+      "delete": {
+        "operationId": "deletePropertyValuation",
+        "summary": "Delete a valuation",
+        "description": "Needs `realestate.write` and the Pro plan.",
+        "tags": [
+          "Real estate"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "valuationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/portfolios": {
       "get": {
         "operationId": "listPortfolios",

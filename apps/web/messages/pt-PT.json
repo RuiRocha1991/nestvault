@@ -1212,6 +1212,7 @@
       "op": "Operações",
       "plan": "Planos",
       "goal": "Objetivos",
+      "property": "Imóveis",
       "cashmove": "Liquidez das carteiras",
       "product": "Produtos de poupança",
       "deposit": "Depósitos",
@@ -1307,6 +1308,13 @@
         "created": "Objetivo criado",
         "updated": "Objetivo alterado",
         "deleted": "Objetivo eliminado"
+      },
+      "property": {
+        "created": "Imóvel criado",
+        "updated": "Imóvel alterado",
+        "deleted": "Imóvel eliminado",
+        "valuationAdded": "Avaliação de imóvel registada",
+        "valuationDeleted": "Avaliação de imóvel eliminada"
       },
       "cashmove": {
         "created": "Liquidez movida para uma conta",

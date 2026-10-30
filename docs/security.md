@@ -486,6 +486,23 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   subscription lookups with injection payloads, check constraints, cascade) and the route
   isolation suite (`GET /plan`).
 
+- **Real estate (NES-95).** `/api/v1/pools/:poolId/properties` (+ valuations) is Pro and guarded in
+  the service in this order: session, zod `.strict()` (no `poolId`, `id` or unknown field), pool
+  membership (404), permission (`pool.read` to read, `realestate.write` for owner and admin, 403),
+  then `assertFeature(ctx, 'real_estate')` (403 `plan_limit`, reads included), then `withPool` (RLS)
+  and an audit entry (`property.*`, the property id; never amounts or addresses). The owners must be
+  people of the same pool (service check plus composite foreign key), each appears once and their
+  shares add up to exactly 100 in the transaction that writes them. Three new tables
+  (`properties`, `property_holders`, `property_valuations`) carry `pool_id`, RLS and composite keys.
+  A person who owns part of a property cannot be removed (restrict) and a holder merge adds their
+  shares into one row, so ownership never drops below 100.
+- **Verified by:** `tests/services/properties.integration.test.ts` (roles, 401/404, shares,
+  mass assignment, other pool's ids, `plan_limit` on Free and Pro, downgrade keeps data, audit
+  without amounts), `tests/db/properties.repo.integration.test.ts` (CRUD, checks, cascade, restrict,
+  merge, injection payloads, `expectIsolated`, RLS, composite keys), `tests/db/rls-audit.integration.test.ts`
+  (new tables have RLS), `tests/db/holders-merge.repo.integration.test.ts` (the foreign-key list) and
+  the route isolation suite (seven routes).
+
 ## 8. Block mass assignment
 - **What:** input schemas are `z.object({...}).strict()` and list only client-editable fields.
   `pool_id`, `id`, `created_by`, `role`, timestamps are never taken from the body — they come from

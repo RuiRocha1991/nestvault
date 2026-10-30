@@ -28,6 +28,7 @@ const PRD_MATRIX: Record<Permission, readonly [boolean, boolean, boolean, boolea
   'portfolios.write': [true, true, false, false],
   'categories.write': [true, true, false, false],
   'goals.write': [true, true, false, false],
+  'realestate.write': [true, true, false, false],
   'members.invite': [true, true, false, false],
   'members.manage': [true, true, false, false], // admin: not owners (members service, NES-28)
   'pool.delete': [true, false, false, false],

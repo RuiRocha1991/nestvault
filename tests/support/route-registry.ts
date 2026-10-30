@@ -36,6 +36,10 @@ import {
   CategoryDto,
   GoalDto,
   PoolPlanDto,
+  PropertyDto,
+  PropertyListDto,
+  ValuationDto,
+  ValuationListDto,
   GoalListDto,
   CategoryListDto,
   ExpensesSummaryDto,
@@ -255,6 +259,61 @@ const foreignSubAccount = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.accounts.get(await s.as('outsider'), s.poolB, other.accountId);
       expect(seen.subAccounts).toContainEqual(other);
+    },
+  };
+};
+
+/** A property in pool A or pool B (owned 100% by the pool's first person), made once per scenario. */
+const propertyIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`property-${pool}`, async () => {
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const headers = await s.as(pool === 'A' ? 'owner' : 'outsider');
+    const [holder] = (await s.world.holders.list(headers, poolId)).holders;
+    return s.world.properties.create(headers, poolId, {
+      name: pool === 'A' ? 'Apartamento Alfa' : 'Apartamento Beta Secreto',
+      type: 'primary_home',
+      purchaseDate: '2020-09-01',
+      purchasePrice: pool === 'A' ? '124000' : '987654',
+      holders: [{ holderId: holder?.id ?? '', sharePct: '100' }],
+    });
+  });
+
+/** The property of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignProperty = async (s: Scenario): Promise<Foreign> => {
+  const other = await propertyIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.properties.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A valuation of the property in pool A or pool B, made once per scenario. */
+const valuationIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`valuation-${pool}`, async () => {
+    const property = await propertyIn(s, pool);
+    return s.world.properties.addValuation(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      property.id,
+      { date: '2025-01-01', value: pool === 'A' ? '150000' : '777777' },
+    );
+  });
+
+/** The valuation of pool B's property, addressed through pool A's URL. */
+const foreignValuation = async (s: Scenario): Promise<Foreign> => {
+  const other = await valuationIn(s, 'B');
+  return {
+    params: { id: other.propertyId, valuationId: other.id },
+    unchanged: async () => {
+      const seen = await s.world.properties.listValuations(
+        await s.as('outsider'),
+        s.poolB,
+        other.propertyId,
+      );
+      expect(seen.valuations).toContainEqual(other);
     },
   };
 };
@@ -2208,6 +2267,150 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     params: async (s) => ({ id: (await goalIn(s, 'A')).id }),
     success: { status: 204 },
     foreign: foreignGoal,
+  },
+
+  // ---------------------------------------------------------------- pool scope: real estate
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/properties`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/route')),
+    success: { status: 200, schema: PropertyListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s properties',
+    leaks: async (s) => {
+      await propertyIn(s, 'A');
+      const other = await propertyIn(s, 'B');
+      return [other.id, 'Apartamento Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/properties`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/route')),
+    body: async (s) => {
+      const [holder] = (await s.world.holders.list(await s.as('owner'), s.poolA)).holders;
+      return {
+        name: 'Garagem',
+        type: 'garage',
+        purchaseDate: '2021-05-10',
+        purchasePrice: '15000',
+        holders: [{ holderId: holder?.id ?? '', sharePct: '100' }],
+      };
+    },
+    success: { status: 201, schema: PropertyDto },
+    noForeignBecause: 'creates a new row; a person of another pool is a negative case',
+    negatives: [
+      {
+        name: 'shares that do not add up to 100',
+        body: {
+          name: 'Mau',
+          type: 'land',
+          purchaseDate: '2021-05-10',
+          purchasePrice: '15000',
+          holders: [{ holderId: '0192f2c8-7a1e-7000-8000-000000000001', sharePct: '60' }],
+        },
+        expect: 400,
+      },
+      {
+        name: 'a person that is not in this pool',
+        body: {
+          name: 'Mau',
+          type: 'land',
+          purchaseDate: '2021-05-10',
+          purchasePrice: '15000',
+          holders: [{ holderId: '0192f2c8-7a1e-7000-8000-000000000001', sharePct: '100' }],
+        },
+        expect: 400,
+      },
+      {
+        name: 'a down payment above the price',
+        body: {
+          name: 'Mau',
+          type: 'land',
+          purchaseDate: '2021-05-10',
+          purchasePrice: '1000',
+          downPayment: '2000',
+          holders: [{ holderId: '0192f2c8-7a1e-7000-8000-000000000001', sharePct: '100' }],
+        },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/properties/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/route')),
+    params: async (s) => ({ id: (await propertyIn(s, 'A')).id }),
+    success: { status: 200, schema: PropertyDto },
+    foreign: foreignProperty,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/properties/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/route')),
+    params: async (s) => ({ id: (await propertyIn(s, 'A')).id }),
+    body: () => ({ name: 'Renomeado' }),
+    success: { status: 200, schema: PropertyDto },
+    foreign: foreignProperty,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/properties/:id`,
+    permission: 'realestate.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/route')),
+    params: async (s) => ({ id: (await propertyIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignProperty,
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/properties/:id/valuations`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/valuations/route')),
+    params: async (s) => ({ id: (await propertyIn(s, 'A')).id }),
+    success: { status: 200, schema: ValuationListDto },
+    foreign: foreignProperty,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/properties/:id/valuations`,
+    permission: 'realestate.write',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/valuations/route')),
+    params: async (s) => ({ id: (await propertyIn(s, 'A')).id }),
+    body: () => ({ date: '2025-06-30', value: '155000', source: 'bank_appraisal' }),
+    success: { status: 201, schema: ValuationDto },
+    foreign: async (s) => ({
+      ...(await foreignProperty(s)),
+      body: { date: '2025-06-30', value: '155000' },
+    }),
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/properties/:id/valuations/:valuationId`,
+    permission: 'realestate.write',
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/properties/[id]/valuations/[valuationId]/route'),
+      ),
+    params: async (s) => {
+      const valuation = await valuationIn(s, 'A');
+      return { id: valuation.propertyId, valuationId: valuation.id };
+    },
+    success: { status: 204 },
+    foreign: foreignValuation,
   },
 
   // ---------------------------------------------------------------- pool scope: savings

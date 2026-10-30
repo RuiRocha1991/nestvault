@@ -92,6 +92,13 @@
       "when": 1793353857653,
       "tag": "0012_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793360863815,
+      "tag": "0013_properties",
+      "breakpoints": true
     }
   ]
 }

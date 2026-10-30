@@ -8,6 +8,7 @@ import './transactions';
 import './expenses';
 import './goals';
 import './plan';
+import './properties';
 import './investments';
 import './savings';
 import './notes';

@@ -1,9 +1,10 @@
-import { and, asc, count, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
 import { accountHolders, subAccounts } from '../schema/accounts';
 import { holders, type HolderRow } from '../schema/holders';
+import { propertyHolders } from '../schema/properties';
 
 export type { HolderRow };
 
@@ -105,9 +106,9 @@ export const holdersRepo = {
     return rows.length > 0;
   },
 
-  /** How many accounts own this holder plus how many sub-accounts name them. */
+  /** How many accounts own this holder plus how many sub-accounts name them and properties they share. */
   async countReferences(tx: PoolTx, ctx: PoolContext, id: string): Promise<number> {
-    const [owned, named] = await Promise.all([
+    const [owned, named, shared] = await Promise.all([
       tx
         .select({ n: count() })
         .from(accountHolders)
@@ -116,8 +117,12 @@ export const holdersRepo = {
         .select({ n: count() })
         .from(subAccounts)
         .where(and(eq(subAccounts.poolId, ctx.poolId), eq(subAccounts.holderId, id))),
+      tx
+        .select({ n: count() })
+        .from(propertyHolders)
+        .where(and(eq(propertyHolders.poolId, ctx.poolId), eq(propertyHolders.holderId, id))),
     ]);
-    return (owned[0]?.n ?? 0) + (named[0]?.n ?? 0);
+    return (owned[0]?.n ?? 0) + (named[0]?.n ?? 0) + (shared[0]?.n ?? 0);
   },
 
   /** Locks the row until the transaction ends, so two merges of the same person queue up. */
@@ -179,6 +184,30 @@ export const holdersRepo = {
       .update(accountHolders)
       .set({ holderId: intoId })
       .where(and(eq(accountHolders.poolId, ctx.poolId), eq(accountHolders.holderId, fromId)));
+    // A property both people share ends with one row for the target holding the two shares.
+    const [fromShares] = await tx
+      .select({ n: count() })
+      .from(propertyHolders)
+      .where(and(eq(propertyHolders.poolId, ctx.poolId), eq(propertyHolders.holderId, fromId)));
+    if ((fromShares?.n ?? 0) > 0) {
+      await tx.execute(sql`
+        update property_holders t
+           set share_pct = t.share_pct + f.share_pct
+          from property_holders f
+         where t.pool_id = ${ctx.poolId} and f.pool_id = ${ctx.poolId}
+           and t.holder_id = ${intoId} and f.holder_id = ${fromId}
+           and t.property_id = f.property_id`);
+      await tx.execute(sql`
+        delete from property_holders f
+         where f.pool_id = ${ctx.poolId} and f.holder_id = ${fromId}
+           and exists (select 1 from property_holders t
+                        where t.pool_id = ${ctx.poolId} and t.holder_id = ${intoId}
+                          and t.property_id = f.property_id)`);
+      await tx
+        .update(propertyHolders)
+        .set({ holderId: intoId })
+        .where(and(eq(propertyHolders.poolId, ctx.poolId), eq(propertyHolders.holderId, fromId)));
+    }
     await tx
       .update(subAccounts)
       .set({ holderId: intoId })
