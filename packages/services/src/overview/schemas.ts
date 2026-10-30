@@ -95,7 +95,7 @@ export const OverviewDto = z.object({
     total: z.array(Decimal),
     investments: z.array(Decimal),
   }),
-  /** Goals have no storage yet: empty until the goals module lands. */
+  /** Every goal of the pool, calculated at `asOf` (the goals screen shows the detail). */
   goals: z.array(OverviewGoalDto),
   portfolios: z.array(OverviewPortfolioDto),
   expenses: z.object({

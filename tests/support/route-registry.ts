@@ -34,6 +34,8 @@ import {
   TransactionDto,
   TransactionPageDto,
   CategoryDto,
+  GoalDto,
+  GoalListDto,
   CategoryListDto,
   ExpensesSummaryDto,
   ExpensesUsageDto,
@@ -522,6 +524,34 @@ const foreignPlan = async (s: Scenario): Promise<Foreign> => {
     params: { id: other.id },
     unchanged: async () => {
       const seen = await s.world.plans.get(await s.as('outsider'), s.poolB, other.id);
+      expect(seen).toEqual(other);
+    },
+  };
+};
+
+/** A goal in pool A or pool B, made once per scenario. */
+const goalIn = (s: Scenario, pool: 'A' | 'B') =>
+  s.memo(`goal-${pool}`, async () =>
+    s.world.goals.create(
+      await s.as(pool === 'A' ? 'owner' : 'outsider'),
+      pool === 'A' ? s.poolA : s.poolB,
+      {
+        name: pool === 'A' ? 'Objetivo Alfa' : 'Objetivo Beta Secreto',
+        color: '#9D6BFF',
+        type: 'value',
+        target: pool === 'A' ? '10000' : '25000',
+        deadline: '2060-01-01',
+      },
+    ),
+  );
+
+/** The goal of pool B, addressed through pool A's URL: must answer 404 and stay as it was. */
+const foreignGoal = async (s: Scenario): Promise<Foreign> => {
+  const other = await goalIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.goals.get(await s.as('outsider'), s.poolB, other.id);
       expect(seen).toEqual(other);
     },
   };
@@ -2086,6 +2116,82 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     },
     success: { status: 201, schema: PlanRunDto },
     foreign: foreignPlan,
+  },
+
+  // ---------------------------------------------------------------- pool scope: goals
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/goals`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/goals/route')),
+    success: { status: 200, schema: GoalListDto },
+    noForeignBecause: 'lists the URL’s own pool; the leak probe covers pool B’s goals',
+    leaks: async (s) => {
+      await goalIn(s, 'A');
+      const other = await goalIn(s, 'B');
+      return [other.id, 'Objetivo Beta Secreto'];
+    },
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/goals`,
+    permission: 'goals.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/goals/route')),
+    body: () => ({
+      name: 'Novo objetivo',
+      color: '#2BC6B4',
+      type: 'invested',
+      target: '30000',
+      mode: 'eta',
+    }),
+    success: { status: 201, schema: GoalDto },
+    noForeignBecause:
+      'creates a new row; a portfolio or account of another pool is a negative case',
+    negatives: [
+      {
+        name: 'a target of zero',
+        body: { name: 'Mau', color: '#2BC6B4', type: 'value', target: '0', deadline: '2060-01-01' },
+        expect: 400,
+      },
+      {
+        name: 'a date goal without a deadline',
+        body: { name: 'Mau', color: '#2BC6B4', type: 'value', target: '100' },
+        expect: 400,
+      },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/goals/:id`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/goals/[id]/route')),
+    params: async (s) => ({ id: (await goalIn(s, 'A')).id }),
+    success: { status: 200, schema: GoalDto },
+    foreign: foreignGoal,
+  },
+  {
+    scope: 'pool',
+    method: 'PATCH',
+    path: `${POOL}/goals/:id`,
+    permission: 'goals.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/goals/[id]/route')),
+    params: async (s) => ({ id: (await goalIn(s, 'A')).id }),
+    body: () => ({ name: 'Renomeado' }),
+    success: { status: 200, schema: GoalDto },
+    foreign: foreignGoal,
+  },
+  {
+    scope: 'pool',
+    method: 'DELETE',
+    path: `${POOL}/goals/:id`,
+    permission: 'goals.write',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/goals/[id]/route')),
+    params: async (s) => ({ id: (await goalIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignGoal,
   },
 
   // ---------------------------------------------------------------- pool scope: savings

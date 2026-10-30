@@ -24,7 +24,7 @@ export const ImportCountsDto = z.object({
   investmentOps: Count,
   cashMoves: Count,
   interestEntries: Count,
-  goalsSkipped: Count,
+  goals: Count,
 });
 export type ImportCountsDto = z.infer<typeof ImportCountsDto>;
 

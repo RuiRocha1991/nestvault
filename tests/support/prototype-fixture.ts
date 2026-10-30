@@ -49,12 +49,11 @@ export const FIXTURE_COUNTS = {
   investmentOps: 9,
   cashMoves: 2,
   interestEntries: 2,
-  goalsSkipped: 2,
+  goals: 2,
 } as const;
 
 /** The warnings of the fixture, by code (how many times each happened). */
 export const FIXTURE_WARNINGS: Record<string, number> = {
-  goals_not_imported: 2,
   transaction_notes_dropped: 1,
   transaction_skipped: 1,
   category_reference_dropped: 1,

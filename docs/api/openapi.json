@@ -7794,6 +7794,1654 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/goals": {
+      "get": {
+        "operationId": "listGoals",
+        "summary": "Goals of the pool",
+        "description": "Any member may list. Each goal comes with its calculation of today (`result`): current value, projection, required monthly contribution, status and the projection path.",
+        "tags": [
+          "Goals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string"
+                    },
+                    "goals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "value",
+                              "invested",
+                              "income",
+                              "contrib"
+                            ]
+                          },
+                          "target": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "date",
+                              "eta",
+                              "none"
+                            ]
+                          },
+                          "deadline": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "monthly": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "rate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "yield": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "includeSavings": {
+                            "type": "boolean"
+                          },
+                          "portfolioIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "accounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "accountId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "subAccountId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uuid"
+                                }
+                              },
+                              "required": [
+                                "accountId",
+                                "subAccountId"
+                              ]
+                            }
+                          },
+                          "result": {
+                            "type": "object",
+                            "properties": {
+                              "mode": {
+                                "type": "string",
+                                "enum": [
+                                  "date",
+                                  "eta",
+                                  "none"
+                                ]
+                              },
+                              "current": {
+                                "type": "string"
+                              },
+                              "target": {
+                                "type": "string"
+                              },
+                              "projected": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "required": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "reachIn": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "etaMonth": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "months": {
+                                "type": "integer"
+                              },
+                              "progress": {
+                                "type": "string"
+                              },
+                              "done": {
+                                "type": "boolean"
+                              },
+                              "onTrack": {
+                                "type": "boolean"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "reached",
+                                  "on_track",
+                                  "behind",
+                                  "eta",
+                                  "no_contribution",
+                                  "tracking"
+                                ]
+                              },
+                              "yieldPct": {
+                                "type": "string"
+                              },
+                              "monthly": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "month": {
+                                      "type": "integer"
+                                    },
+                                    "planned": {
+                                      "type": "string"
+                                    },
+                                    "required": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "month",
+                                    "planned",
+                                    "required"
+                                  ]
+                                }
+                              },
+                              "scopeNames": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "includesSavings": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "mode",
+                              "current",
+                              "target",
+                              "projected",
+                              "required",
+                              "reachIn",
+                              "etaMonth",
+                              "months",
+                              "progress",
+                              "done",
+                              "onTrack",
+                              "status",
+                              "yieldPct",
+                              "monthly",
+                              "path",
+                              "scopeNames",
+                              "includesSavings"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "color",
+                          "type",
+                          "target",
+                          "mode",
+                          "deadline",
+                          "monthly",
+                          "rate",
+                          "yield",
+                          "includeSavings",
+                          "portfolioIds",
+                          "accounts",
+                          "result",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "asOf",
+                    "goals"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGoal",
+        "summary": "Create",
+        "description": "Needs `goals.write` (owner, admin). `type` is value, invested, income or contrib; `mode` is date (needs `deadline`), eta or none (a `contrib` goal always uses a date). `portfolioIds` and `accounts` (an account, or one of its sub-accounts) say what the goal counts; none means everything, and when accounts are given the portfolios are ignored. The body is strict: `poolId` or any other field answers 400.",
+        "tags": [
+          "Goals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "value",
+                      "invested",
+                      "income",
+                      "contrib"
+                    ]
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "date",
+                      "eta",
+                      "none"
+                    ]
+                  },
+                  "deadline": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "monthly": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "yield": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "includeSavings": {
+                    "type": "boolean"
+                  },
+                  "portfolioIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 60
+                  },
+                  "accounts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "subAccountId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "accountId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 60
+                  }
+                },
+                "required": [
+                  "name",
+                  "color",
+                  "type",
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "value",
+                        "invested",
+                        "income",
+                        "contrib"
+                      ]
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "date",
+                        "eta",
+                        "none"
+                      ]
+                    },
+                    "deadline": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "monthly": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yield": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeSavings": {
+                      "type": "boolean"
+                    },
+                    "portfolioIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "subAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "subAccountId"
+                        ]
+                      }
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "date",
+                            "eta",
+                            "none"
+                          ]
+                        },
+                        "current": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "projected": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "required": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reachIn": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "etaMonth": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "months": {
+                          "type": "integer"
+                        },
+                        "progress": {
+                          "type": "string"
+                        },
+                        "done": {
+                          "type": "boolean"
+                        },
+                        "onTrack": {
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "reached",
+                            "on_track",
+                            "behind",
+                            "eta",
+                            "no_contribution",
+                            "tracking"
+                          ]
+                        },
+                        "yieldPct": {
+                          "type": "string"
+                        },
+                        "monthly": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "month": {
+                                "type": "integer"
+                              },
+                              "planned": {
+                                "type": "string"
+                              },
+                              "required": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "month",
+                              "planned",
+                              "required"
+                            ]
+                          }
+                        },
+                        "scopeNames": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "includesSavings": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "current",
+                        "target",
+                        "projected",
+                        "required",
+                        "reachIn",
+                        "etaMonth",
+                        "months",
+                        "progress",
+                        "done",
+                        "onTrack",
+                        "status",
+                        "yieldPct",
+                        "monthly",
+                        "path",
+                        "scopeNames",
+                        "includesSavings"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "color",
+                    "type",
+                    "target",
+                    "mode",
+                    "deadline",
+                    "monthly",
+                    "rate",
+                    "yield",
+                    "includeSavings",
+                    "portfolioIds",
+                    "accounts",
+                    "result",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/goals/{id}": {
+      "get": {
+        "operationId": "getGoal",
+        "summary": "One",
+        "description": "Any member may read.",
+        "tags": [
+          "Goals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "value",
+                        "invested",
+                        "income",
+                        "contrib"
+                      ]
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "date",
+                        "eta",
+                        "none"
+                      ]
+                    },
+                    "deadline": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "monthly": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yield": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeSavings": {
+                      "type": "boolean"
+                    },
+                    "portfolioIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "subAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "subAccountId"
+                        ]
+                      }
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "date",
+                            "eta",
+                            "none"
+                          ]
+                        },
+                        "current": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "projected": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "required": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reachIn": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "etaMonth": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "months": {
+                          "type": "integer"
+                        },
+                        "progress": {
+                          "type": "string"
+                        },
+                        "done": {
+                          "type": "boolean"
+                        },
+                        "onTrack": {
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "reached",
+                            "on_track",
+                            "behind",
+                            "eta",
+                            "no_contribution",
+                            "tracking"
+                          ]
+                        },
+                        "yieldPct": {
+                          "type": "string"
+                        },
+                        "monthly": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "month": {
+                                "type": "integer"
+                              },
+                              "planned": {
+                                "type": "string"
+                              },
+                              "required": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "month",
+                              "planned",
+                              "required"
+                            ]
+                          }
+                        },
+                        "scopeNames": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "includesSavings": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "current",
+                        "target",
+                        "projected",
+                        "required",
+                        "reachIn",
+                        "etaMonth",
+                        "months",
+                        "progress",
+                        "done",
+                        "onTrack",
+                        "status",
+                        "yieldPct",
+                        "monthly",
+                        "path",
+                        "scopeNames",
+                        "includesSavings"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "color",
+                    "type",
+                    "target",
+                    "mode",
+                    "deadline",
+                    "monthly",
+                    "rate",
+                    "yield",
+                    "includeSavings",
+                    "portfolioIds",
+                    "accounts",
+                    "result",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateGoal",
+        "summary": "Change",
+        "description": "Needs `goals.write`. Fields left out stay; `portfolioIds` or `accounts` replace what the goal counts.",
+        "tags": [
+          "Goals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  },
+                  "color": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "value",
+                      "invested",
+                      "income",
+                      "contrib"
+                    ]
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "date",
+                      "eta",
+                      "none"
+                    ]
+                  },
+                  "deadline": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "monthly": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "yield": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "includeSavings": {
+                    "type": "boolean"
+                  },
+                  "portfolioIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 60
+                  },
+                  "accounts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "accountId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "subAccountId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "accountId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 60
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "value",
+                        "invested",
+                        "income",
+                        "contrib"
+                      ]
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "date",
+                        "eta",
+                        "none"
+                      ]
+                    },
+                    "deadline": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "monthly": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "yield": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "includeSavings": {
+                      "type": "boolean"
+                    },
+                    "portfolioIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "subAccountId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          }
+                        },
+                        "required": [
+                          "accountId",
+                          "subAccountId"
+                        ]
+                      }
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "date",
+                            "eta",
+                            "none"
+                          ]
+                        },
+                        "current": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "projected": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "required": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "reachIn": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "etaMonth": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "months": {
+                          "type": "integer"
+                        },
+                        "progress": {
+                          "type": "string"
+                        },
+                        "done": {
+                          "type": "boolean"
+                        },
+                        "onTrack": {
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "reached",
+                            "on_track",
+                            "behind",
+                            "eta",
+                            "no_contribution",
+                            "tracking"
+                          ]
+                        },
+                        "yieldPct": {
+                          "type": "string"
+                        },
+                        "monthly": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "month": {
+                                "type": "integer"
+                              },
+                              "planned": {
+                                "type": "string"
+                              },
+                              "required": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "month",
+                              "planned",
+                              "required"
+                            ]
+                          }
+                        },
+                        "scopeNames": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "includesSavings": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "current",
+                        "target",
+                        "projected",
+                        "required",
+                        "reachIn",
+                        "etaMonth",
+                        "months",
+                        "progress",
+                        "done",
+                        "onTrack",
+                        "status",
+                        "yieldPct",
+                        "monthly",
+                        "path",
+                        "scopeNames",
+                        "includesSavings"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "color",
+                    "type",
+                    "target",
+                    "mode",
+                    "deadline",
+                    "monthly",
+                    "rate",
+                    "yield",
+                    "includeSavings",
+                    "portfolioIds",
+                    "accounts",
+                    "result",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteGoal",
+        "summary": "Delete",
+        "description": "Needs `goals.write`. The goal and what it counts are deleted.",
+        "tags": [
+          "Goals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/portfolios": {
       "get": {
         "operationId": "listPortfolios",
@@ -23628,7 +25276,7 @@
                           "type": "integer",
                           "minimum": 0
                         },
-                        "goalsSkipped": {
+                        "goals": {
                           "type": "integer",
                           "minimum": 0
                         }
@@ -23652,7 +25300,7 @@
                         "investmentOps",
                         "cashMoves",
                         "interestEntries",
-                        "goalsSkipped"
+                        "goals"
                       ]
                     },
                     "warnings": {
@@ -23663,7 +25311,6 @@
                           "code": {
                             "type": "string",
                             "enum": [
-                              "goals_not_imported",
                               "holder_matched",
                               "transaction_notes_dropped",
                               "transaction_skipped",
@@ -23681,6 +25328,8 @@
                               "op_skipped",
                               "op_adjusted",
                               "plan_skipped",
+                              "goal_skipped",
+                              "goal_scope_dropped",
                               "cash_move_skipped",
                               "duplicate_skipped",
                               "fx_skipped",

@@ -87,6 +87,15 @@ export type {
   InterestEntryValues,
 } from './app/repositories/interest-entries.repo';
 export { PERIOD_UNITS } from './app/schema/savings';
+export { GOAL_MODES, GOAL_TYPES } from './app/schema/goals';
+export type { GoalMode, GoalType } from './app/schema/goals';
+export { goalsRepo } from './app/repositories/goals.repo';
+export type {
+  GoalRow,
+  GoalScopeRow,
+  GoalScopeValue,
+  GoalValues,
+} from './app/repositories/goals.repo';
 export { plansRepo } from './app/repositories/plans.repo';
 export type { PlanRow, PlanValues } from './app/repositories/plans.repo';
 export { INVESTMENT_OP_TYPES, investmentOpsRepo } from './app/repositories/investment-ops.repo';

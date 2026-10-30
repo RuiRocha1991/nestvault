@@ -1,18 +1,22 @@
-import type {
-  AccountValues,
-  AssetValues,
-  CategorySettingsValues,
-  CategoryValues,
-  DepositValues,
-  ImportedTransactionValues,
-  InterestEntryValues,
-  InvestmentOpValues,
-  PlanValues,
-  PortfolioCashMoveValues,
-  PortfolioValues,
-  PriceValues,
-  RuleValues,
-  SavingsProductValues,
+import {
+  GOAL_MODES,
+  GOAL_TYPES,
+  type AccountValues,
+  type GoalScopeValue,
+  type GoalValues,
+  type AssetValues,
+  type CategorySettingsValues,
+  type CategoryValues,
+  type DepositValues,
+  type ImportedTransactionValues,
+  type InterestEntryValues,
+  type InvestmentOpValues,
+  type PlanValues,
+  type PortfolioCashMoveValues,
+  type PortfolioValues,
+  type PriceValues,
+  type RuleValues,
+  type SavingsProductValues,
 } from '@nestvault/db';
 import {
   dec,
@@ -46,6 +50,8 @@ import {
 // Turns a prototype export into everything the importer will write, with new ids, and counts what
 // it dropped on the way. Pure: no database, no clock; ids come from `newId` and the pool's current
 // state (people, global categories) is passed in. The dry run stops here; the commit writes the plan.
+
+const DEFAULT_GOAL_COLOR = '#8C8FB8';
 
 const ACCOUNT_TYPES: Record<string, string> = {
   ordem: 'checking',
@@ -146,7 +152,7 @@ export interface ImportCounts {
   investmentOps: number;
   cashMoves: number;
   interestEntries: number;
-  goalsSkipped: number;
+  goals: number;
 }
 
 export interface ImportPlan {
@@ -173,6 +179,7 @@ export interface ImportPlan {
   ops: (InvestmentOpValues & { id: string })[];
   cashMoves: { id: string; values: PortfolioCashMoveValues }[];
   interest: { id: string; values: InterestEntryValues }[];
+  goals: { id: string; values: GoalValues; scopes: GoalScopeValue[] }[];
   /** `null` when the file carries no settings. */
   settings: {
     transferWindowDays: number | null;
@@ -875,8 +882,55 @@ export function buildImportPlan(input: PlanInput): ImportPlan {
     };
   }
 
-  const goals = (data.goals ?? []).length;
-  if (goals > 0) found.warn('goals_not_imported', goals);
+  /* --------------------------------------------------------------- goals */
+  const goals: ImportPlan['goals'] = [];
+  for (const goal of firstOfEach(data.goals, found)) {
+    const type = GOAL_TYPES.find((candidate) => candidate === goal.type);
+    const name = oneLine(goal.name, 60);
+    const target = money(goal.target);
+    // `contrib` is always about a date; other goals default to one too, like the prototype.
+    const mode =
+      type === 'contrib'
+        ? 'date'
+        : (GOAL_MODES.find((candidate) => candidate === goal.when) ?? 'date');
+    const deadline = isoDate(goal.deadline);
+    if (!type || !name || target === null || !dec(target).gt(0) || (mode === 'date' && !deadline)) {
+      found.warn('goal_skipped');
+      continue;
+    }
+    const scopes: GoalScopeValue[] = [];
+    for (const protoId of goal.pfs ?? []) {
+      const portfolioId = portfolioIdOf.get(protoId);
+      if (portfolioId) scopes.push({ portfolioId, accountId: null, subAccountId: null });
+      else found.warn('goal_scope_dropped');
+    }
+    for (const key of goal.accs ?? []) {
+      const [protoAccount = '', protoSub] = key.split('|');
+      const accountId = accountIdOf.get(protoAccount);
+      const subAccountId = protoSub ? subIdOf.get(`${protoAccount}|${protoSub}`) : null;
+      if (accountId && subAccountId !== undefined) {
+        scopes.push({ portfolioId: null, accountId, subAccountId });
+      } else found.warn('goal_scope_dropped');
+    }
+    const yieldPct = percent(goal.yield);
+    goals.push({
+      id: newId(),
+      values: {
+        name,
+        color: hexColor(goal.color) ?? DEFAULT_GOAL_COLOR,
+        type,
+        target,
+        mode,
+        deadline,
+        monthly: money(goal.monthly),
+        rate: percent(goal.rate),
+        // A yield of 0 means "use the portfolio's own yield".
+        yield: yieldPct !== null && dec(yieldPct).gt(0) ? yieldPct : null,
+        includeSavings: goal.savings ?? false,
+      },
+      scopes,
+    });
+  }
 
   if (found.issues.length > 0) {
     throw new ValidationError('The file has data the application cannot store.', found.issues);
@@ -900,6 +954,7 @@ export function buildImportPlan(input: PlanInput): ImportPlan {
     ops,
     cashMoves,
     interest,
+    goals,
     settings,
     counts: {
       holders: newHolders.length,
@@ -920,7 +975,7 @@ export function buildImportPlan(input: PlanInput): ImportPlan {
       investmentOps: ops.length,
       cashMoves: cashMoves.length,
       interestEntries: interest.length,
-      goalsSkipped: goals,
+      goals: goals.length,
     },
     warnings: [...found.warnings].map(([code, count]) => ({ code, count })),
   };

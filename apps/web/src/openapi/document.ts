@@ -6,6 +6,7 @@ import './imports';
 import './accounts';
 import './transactions';
 import './expenses';
+import './goals';
 import './investments';
 import './savings';
 import './notes';

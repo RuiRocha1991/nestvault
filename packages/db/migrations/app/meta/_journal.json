@@ -85,6 +85,13 @@
       "when": 1792705750191,
       "tag": "0011_import_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793353857653,
+      "tag": "0012_goals",
+      "breakpoints": true
     }
   ]
 }

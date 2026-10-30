@@ -8,6 +8,7 @@ import { createAuditService, type AuditService } from '../audit';
 import { createCategoriesService, type CategoriesService } from '../categories';
 import type { EmailSender } from '../email';
 import { createExpensesService, type ExpensesService } from '../expenses';
+import { createGoalsService, type GoalsService } from '../goals';
 import { createHoldersService, type HoldersService } from '../holders';
 import {
   createEncryptedFileStore,
@@ -91,6 +92,7 @@ export interface AuthRuntime {
   /** Cash moves from a portfolio to a bank account. */
   cashMoves: CashMovesService;
   plans: PlansService;
+  goals: GoalsService;
   /** Savings products, term deposits and manual interest entries. */
   products: ProductsService;
   deposits: DepositsService;
@@ -161,6 +163,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     ops: createOpsService({ auth, identity, ...hops }),
     cashMoves: createCashMovesService({ auth, identity, ...hops }),
     plans: createPlansService({ auth, identity, ...hops }),
+    goals: createGoalsService({ auth, identity, ...hops }),
     products: createProductsService({ auth, identity, ...hops }),
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),

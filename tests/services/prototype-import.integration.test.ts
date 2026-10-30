@@ -82,6 +82,8 @@ async function tableCounts(poolId: string): Promise<Record<string, number>> {
     'portfolios',
     'investment_ops',
     'plans',
+    'goals',
+    'goal_scopes',
     'portfolio_cash_moves',
     'savings_products',
     'deposits',
@@ -156,6 +158,8 @@ describe('prototype import: commit', () => {
       portfolios: 2,
       investment_ops: 9,
       plans: 1,
+      goals: 2,
+      goal_scopes: 3,
       portfolio_cash_moves: 2,
       savings_products: 1,
       deposits: 1,
@@ -188,6 +192,22 @@ describe('prototype import: commit', () => {
     expect(stored.tx.filter((row) => row.manual_category)).toHaveLength(3);
     expect(stored.tx.filter((row) => row.kind_lock)).toHaveLength(3);
     expect(stored.tx.filter((row) => row.dep_link)).toHaveLength(1);
+  });
+
+  it('imports the goals with what they count, calculated like the prototype’s', async () => {
+    await run('owner', body(false));
+    const { goals } = await world.goals.list(await s.as('owner'), s.poolA);
+    expect(goals.map((goal) => [goal.name, goal.type, goal.mode])).toEqual([
+      ['Independência financeira', 'value', 'date'],
+      ['Investir 6000 € este ano', 'contrib', 'date'],
+    ]);
+    const [value, contrib] = goals;
+    expect(value).toMatchObject({ target: '300000.0000', monthly: '450.0000', yield: null });
+    expect(value?.portfolioIds).toHaveLength(1);
+    // The second goal counts one account and one sub-account of it.
+    expect(contrib?.accounts).toHaveLength(2);
+    expect(contrib?.accounts.filter((scope) => scope.subAccountId)).toHaveLength(1);
+    expect(contrib?.deadline).toBe('2026-12-31');
   });
 
   it('records one audit entry with the number of rows and nothing else', async () => {

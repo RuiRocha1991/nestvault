@@ -1,16 +1,16 @@
 import {
   accountsRepo,
-  assetPricesRepo,
-  assetsRepo,
   categoriesRepo,
   categorySettingsRepo,
+  goalsRepo,
   investmentOpsRepo,
+  plansRepo,
   poolSettingsRepo,
   portfolioCashMovesRepo,
   portfoliosRepo,
+  subAccountsRepo,
   transactionsRepo,
   withPool,
-  type AccountRow,
   type IdentityDatabase,
   type PoolContext,
   type PoolRunner,
@@ -18,15 +18,13 @@ import {
 } from '@nestvault/db';
 import {
   accountBalancesAt,
-  accountInterest,
   dec,
   dividendsForecast,
   dividendsReceived,
   hasDividends,
   expensesByCategory,
   fx,
-  interestLast12Months,
-  interestTotal,
+  goalCalc,
   lastMonths,
   monthEnd,
   monthFlows,
@@ -36,18 +34,14 @@ import {
   nextMonths,
   portfolioSummary,
   sum,
-  toEur,
   toFxRates,
   toPlain,
   type Category,
   type CategoryKind,
   type Dec,
   type FxRates,
-  type InterestCandidate,
-  type InvestmentAsset,
   type LedgerData,
   type PortfolioSummary,
-  type SummaryAccount,
   type Transaction,
 } from '@nestvault/domain';
 
@@ -55,12 +49,14 @@ import { toLedgerAccount } from '../accounts/ledger';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { ValidationError } from '../errors';
+import { toDomainGoal, toGoalData } from '../goals/goal-data';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { toCashMove, toInvestmentOp } from '../investments/domain';
 import { loadSavingsLedger } from '../savings/domain';
 import { loadFxRates } from '../settings/fx';
 
 import { OVERVIEW_MAX_MONTHS, OverviewDto, OverviewQuery, type OverviewRange } from './schemas';
+import { loadAssets, summaryAccountsOf } from './summary-input';
 
 export interface OverviewService {
   /**
@@ -113,42 +109,6 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
     return lastMonths(Math.min(OVERVIEW_MAX_MONTHS, Math.max(2, first)), today);
   }
 
-  /** The price history from `from` on, with the price in force at `from` as its first entry. */
-  async function loadAssets(
-    tx: PoolTx,
-    ctx: PoolContext,
-    from: string,
-    today: string,
-  ): Promise<InvestmentAsset[]> {
-    const [assetRows, baseline, later] = await Promise.all([
-      assetsRepo.list(tx, ctx),
-      assetPricesRepo.latestAsOf(tx, ctx, from),
-      assetPricesRepo.since(tx, ctx, from),
-    ]);
-    const history = new Map<string, { date: string; price: string }[]>();
-    for (const row of [...baseline, ...later]) {
-      const list = history.get(row.assetId) ?? [];
-      list.push({ date: row.date, price: row.price });
-      history.set(row.assetId, list);
-    }
-    return assetRows.map((row) => {
-      const prices = history.get(row.id) ?? [];
-      // The price in force today: the newest entry dated up to today (a future one is ignored).
-      let current: { date: string; price: string } | undefined;
-      for (const entry of prices) {
-        if (entry.date <= today && (!current || entry.date >= current.date)) current = entry;
-      }
-      return {
-        id: row.id,
-        currency: row.currency,
-        price: current?.price ?? '0',
-        prices,
-        dps: row.dps,
-        divMonths: row.divMonths,
-      };
-    });
-  }
-
   async function load(
     tx: PoolTx,
     ctx: PoolContext,
@@ -166,6 +126,10 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       pool,
       savings,
       resolved,
+      goalRows,
+      goalScopeRows,
+      planRows,
+      subAccountRows,
     ] = await Promise.all([
       accountsRepo.list(tx, ctx),
       investmentOpsRepo.list(tx, ctx),
@@ -177,6 +141,10 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       poolSettingsRepo.find(tx, ctx),
       loadSavingsLedger(tx, ctx),
       loadFxRates(tx, ctx, today),
+      goalsRepo.list(tx, ctx),
+      goalsRepo.listScopes(tx, ctx),
+      plansRepo.list(tx, ctx),
+      subAccountsRepo.list(tx, ctx),
     ]);
     const rates: FxRates = toFxRates(resolved);
     const ops = opRows.map(toInvestmentOp);
@@ -227,50 +195,16 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
     const balancesAt = accountBalancesAt(data, dates);
     const balances = balancesAt[balancesAt.length - 1] ?? new Map<string, Dec>();
     const categoryById = new Map(categoryRows.map((row) => [row.id, row]));
-    const candidatesOf = new Map<string, InterestCandidate[]>();
-    for (const movement of transactions) {
-      // Interest is money coming in: expenses (the bulk of the rows) can be skipped at once.
-      if (String(movement.amount).startsWith('-')) continue;
-      const category = movement.categoryId ? categoryById.get(movement.categoryId) : undefined;
-      const list = candidatesOf.get(movement.accountId) ?? [];
-      list.push({
-        id: movement.id,
-        date: movement.date,
-        amount: movement.amount,
-        description: movement.description,
-        ...(movement.transfer !== undefined && { transfer: movement.transfer }),
-        ...(movement.depositInterest !== undefined && {
-          depositInterest: movement.depositInterest,
-        }),
-        category: category
-          ? { kind: category.kind, name: category.name, systemKey: category.systemKey }
-          : null,
-      });
-      candidatesOf.set(movement.accountId, list);
-    }
-    let interest12 = ZERO;
-    const summaryAccounts: SummaryAccount[] = accountRows.map((row: AccountRow) => {
-      const entries = accountInterest(
-        {
-          deposit: savings.deposits.get(row.id) ?? null,
-          manual: savings.interestEntries.filter((entry) => entry.accountId === row.id),
-          transactions: candidatesOf.get(row.id) ?? [],
-        },
-        today,
-        defaultTax,
-      );
-      interest12 = interest12.plus(
-        toEur(interestLast12Months(entries, today), row.currency, rates),
-      );
-      return {
-        id: row.id,
-        currency: row.currency,
-        trackCash: row.trackCash,
-        isBrokerage: row.type === 'brokerage',
-        portfolioId: row.portfolioId,
-        balance: balances.get(row.id) ?? '0',
-        interest: toPlain(interestTotal(entries, today)),
-      };
+    const { accounts: summaryAccounts, interest12 } = summaryAccountsOf({
+      accountRows,
+      balances,
+      transactions,
+      deposits: savings.deposits,
+      interestEntries: savings.interestEntries,
+      categoryById,
+      rates,
+      defaultTax,
+      today,
     });
 
     const summaryInput = { ops, assets, accounts: summaryAccounts, moves, rates };
@@ -281,6 +215,38 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         ...(portfolioIds ? { portfolioIds } : {}),
       });
     const all = summaryOf();
+
+    // The goals card: the same calculation as the goals screen, from the data loaded above.
+    const goalData = goalRows.length
+      ? toGoalData({
+          accountRows,
+          subAccountRows,
+          summaryAccounts,
+          deposits: savings.deposits,
+          defaultTax,
+          today,
+          ops,
+          assets,
+          moves,
+          rates,
+          portfolios: portfolioRows,
+          planRows,
+        })
+      : null;
+    const goalViews = goalData
+      ? goalRows.map((row) => {
+          const own = goalScopeRows.filter((scope) => scope.goalId === row.id);
+          const result = goalCalc(toDomainGoal(row, own), goalData, today);
+          return {
+            id: row.id,
+            name: row.name,
+            color: row.color,
+            progress: toPlain(result.progress),
+            status: result.status,
+            etaMonth: result.etaMonth,
+          };
+        })
+      : [];
 
     const worth = netWorths(data, dates, today, balancesAt);
     const totals = worth.map((w) => w.net);
@@ -347,7 +313,7 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         },
       },
       evolution: { months, total: plain(totals), investments: plain(investments) },
-      goals: [],
+      goals: goalViews,
       portfolios: portfolioRows.map((row) => {
         const summary = summaryOf([row.id]);
         return {

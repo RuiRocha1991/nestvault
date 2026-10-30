@@ -55,7 +55,7 @@ describe('import card helpers (NES-47)', () => {
   });
 
   it('turns a warning code into a camelCase message key', () => {
-    expect(warningKey('goals_not_imported')).toBe('goalsNotImported');
+    expect(warningKey('goal_scope_dropped')).toBe('goalScopeDropped');
     expect(warningKey('pair_dropped')).toBe('pairDropped');
   });
 
