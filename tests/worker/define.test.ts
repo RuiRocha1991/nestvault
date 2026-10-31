@@ -63,7 +63,7 @@ describe('defineJob', () => {
 });
 
 // The registry only needs the connection to build the jobs; nothing runs here.
-const PRODUCTION_JOBS = createProductionJobs({ db: {} as never });
+const PRODUCTION_JOBS = createProductionJobs({ db: {} as never, withPool: {} as never });
 
 describe('registry', () => {
   it('keeps the sample job out of the production registry', () => {

@@ -11,5 +11,6 @@ export type { RunRow } from './runs';
 export { samplePing } from './jobs/sample';
 export { createProductionJobs } from './jobs/registry';
 export { createIndexRatesJob } from './jobs/index-rates';
+export { createDepositsLinkJob, createPlansRemindJob, lisbonToday } from './jobs/pool-jobs';
 export { createEcbProvider, parseEcbResponse } from './index-rates/ecb';
 export type { IndexRateProvider } from './index-rates/ecb';

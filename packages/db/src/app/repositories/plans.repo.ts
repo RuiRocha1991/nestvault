@@ -31,6 +31,15 @@ export const plansRepo = {
       .orderBy(asc(plans.createdAt), asc(plans.id));
   },
 
+  /** The plans that are switched on. */
+  async listActive(tx: PoolTx, ctx: PoolContext): Promise<PlanRow[]> {
+    return tx
+      .select()
+      .from(plans)
+      .where(and(eq(plans.poolId, ctx.poolId), eq(plans.active, true)))
+      .orderBy(asc(plans.createdAt), asc(plans.id));
+  },
+
   async find(tx: PoolTx, ctx: PoolContext, id: string): Promise<PlanRow | undefined> {
     const [row] = await tx
       .select()

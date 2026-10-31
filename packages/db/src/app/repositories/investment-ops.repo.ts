@@ -6,6 +6,15 @@ import { investmentOps, type InvestmentOpRow } from '../schema/investments';
 
 export type { InvestmentOpRow };
 
+/** A buy as the plan reminders read it. */
+export interface PlanBuy {
+  portfolioId: string;
+  assetId: string;
+  planId: string | null;
+  planPeriod: string | null;
+  date: string;
+}
+
 export const INVESTMENT_OP_TYPES = ['buy', 'sell', 'dividend'] as const;
 export type InvestmentOpType = (typeof INVESTMENT_OP_TYPES)[number];
 
@@ -74,6 +83,32 @@ export const investmentOpsRepo = {
       .from(investmentOps)
       .where(and(eq(investmentOps.poolId, ctx.poolId), eq(investmentOps.id, id)));
     return row;
+  },
+
+  /** The buys dated between two days (inclusive), as much of them as matching a plan needs. */
+  async listBuysBetween(
+    tx: PoolTx,
+    ctx: PoolContext,
+    from: string,
+    to: string,
+  ): Promise<PlanBuy[]> {
+    return tx
+      .select({
+        portfolioId: investmentOps.portfolioId,
+        assetId: investmentOps.assetId,
+        planId: investmentOps.planId,
+        planPeriod: investmentOps.planPeriod,
+        date: investmentOps.date,
+      })
+      .from(investmentOps)
+      .where(
+        and(
+          eq(investmentOps.poolId, ctx.poolId),
+          eq(investmentOps.type, 'buy'),
+          gte(investmentOps.date, from),
+          lte(investmentOps.date, to),
+        ),
+      );
   },
 
   /** The buy a plan created for `period` (yyyy-mm), if it ran. */

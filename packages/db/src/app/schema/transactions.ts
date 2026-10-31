@@ -43,6 +43,11 @@ export const transactions = pgTable(
     manualCategory: boolean('manual_category').notNull().default(false),
     /** Linked to a term deposit's interest, so it is not counted twice (NES-40). */
     depositInterest: boolean('dep_link').notNull().default(false),
+    /**
+     * The deposit flow (`<depositId>:<date>:<kind>`) `deposits.link` linked this line to; a flow
+     * links to at most one line. `dep_link` and `is_transfer` carry the effect (NES-68).
+     */
+    depositFlowKey: text('deposit_flow_key'),
     hash: text('hash').notNull(),
     importBatchId: uuid('import_batch_id'),
     /**
@@ -66,6 +71,9 @@ export const transactions = pgTable(
       table.accountId,
       table.date.desc(),
     ),
+    uniqueIndex('transactions_deposit_flow_uniq')
+      .on(table.poolId, table.depositFlowKey)
+      .where(sql`${table.depositFlowKey} is not null`),
     uniqueIndex('transactions_loan_installment_uniq')
       .on(table.poolId, table.loanInstallmentId)
       .where(sql`${table.loanInstallmentId} is not null`),

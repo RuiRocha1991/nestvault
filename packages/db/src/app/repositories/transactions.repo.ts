@@ -1,4 +1,17 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lt, lte, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
@@ -8,6 +21,16 @@ import { categories } from '../schema/categories';
 import { transactions, type TransactionRow } from '../schema/transactions';
 
 export type { TransactionRow };
+
+/** A statement line as `deposits.link` reads it. */
+export interface DepositLinkCandidate {
+  id: string;
+  accountId: string;
+  date: string;
+  amount: string;
+  depositFlowKey: string | null;
+  transferLocked: boolean;
+}
 
 export interface TransactionValues {
   accountId: string;
@@ -622,6 +645,70 @@ export const transactionsRepo = {
       updated += result.rowCount ?? 0;
     }
     return updated;
+  },
+
+  /**
+   * The lines of some accounts dated between `from` and `to`, plus the ones already linked, with
+   * what `deposits.link` needs to match them to deposit flows.
+   */
+  async listForDepositLink(
+    tx: PoolTx,
+    ctx: PoolContext,
+    accountIds: readonly string[],
+    from: string,
+    to: string,
+  ): Promise<DepositLinkCandidate[]> {
+    if (accountIds.length === 0) return [];
+    return tx
+      .select({
+        id: transactions.id,
+        accountId: transactions.accountId,
+        date: transactions.date,
+        amount: transactions.amount,
+        depositFlowKey: transactions.depositFlowKey,
+        transferLocked: transactions.transferLocked,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          inArray(transactions.accountId, [...accountIds]),
+          // The lines in the window, and every line already linked (its key blocks a second link).
+          or(
+            isNotNull(transactions.depositFlowKey),
+            and(gte(transactions.date, from), lte(transactions.date, to)),
+          ),
+        ),
+      );
+  },
+
+  /**
+   * Records a line's link to a deposit flow: the flow key, the interest marking and, for capital and
+   * redemptions, the transfer flag. Only a line that has no link yet changes, so running it twice
+   * writes nothing the second time. Returns whether the line was linked now.
+   */
+  async linkDepositFlow(
+    tx: PoolTx,
+    ctx: PoolContext,
+    id: string,
+    link: { flowKey: string; depositInterest: boolean; transfer: boolean },
+  ): Promise<boolean> {
+    const rows = await tx
+      .update(transactions)
+      .set({
+        depositFlowKey: link.flowKey,
+        ...(link.depositInterest && { depositInterest: true }),
+        ...(link.transfer && { transfer: true }),
+      })
+      .where(
+        and(
+          eq(transactions.poolId, ctx.poolId),
+          eq(transactions.id, id),
+          isNull(transactions.depositFlowKey),
+        ),
+      )
+      .returning({ id: transactions.id });
+    return rows.length > 0;
   },
 
   /** Whether the accounts exist in the pool (a movement is written only into its own pool's account). */
