@@ -538,6 +538,19 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   allow-list of series and a `yyyy-mm` start month, validates the answer with zod (shape, month, range),
   caps its size and time, never puts the response body or the error message in a log or an error, and
   upserts per month, so a retry changes nothing.
+- **FX refresh job (NES-67)**: `fx.refresh` (daily 17:00 Europe/Lisbon) is the only writer of
+  `fx_rates` besides the migration seed (`app_rw` stays `SELECT` only). It reads one fixed ECB URL
+  (the 90-day XML, every run, so a missed run or a revision is recovered), refuses redirects, caps
+  the time and the size (counted while streaming, aborted past 1 MB) and parses the XML with a strict
+  scanner, not an XML parser: any `DOCTYPE`, `ENTITY` or entity reference is refused (no XXE, no
+  entity expansion). Only USD, GBP and CHF are validated (a bad value in another currency cannot fail
+  the run); dates must be real; a day lacking one of the three is skipped and counted in the log, not
+  fatal. Rates are stored as EUR per unit (inverse, 8 decimals) and upserted per day and currency,
+  never over a `manual` row. Errors carry only the status, logs only the error type or counts.
+  Verified by `tests/worker/fx-rates.test.ts` (recorded ECB fixture, inversion, XXE, impossible
+  dates, ignored currencies, skipped days, redirect, streamed size cap) and
+  `tests/worker/fx-refresh-job.integration.test.ts` (idempotent for the same date, revised rate,
+  manual rate kept, injection payload, log without message).
 - **Verified by:** `tests/services/loans.integration.test.ts` (events, impact, guards, preview, audit),
   `tests/db/loan-events.repo.integration.test.ts` (checks, cascade, injection payloads,
   `expectIsolated`, RLS), `tests/db/index-rates.repo.integration.test.ts` (`app_rw` refused every

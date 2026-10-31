@@ -1,6 +1,8 @@
+import { createEcbFxProvider } from '../fx-rates/ecb';
 import { createEcbProvider } from '../index-rates/ecb';
 
 import type { Job } from './define';
+import { createFxRefreshJob } from './fx-refresh';
 import { createIndexRatesJob, type IndexRatesJobDeps } from './index-rates';
 import { createDepositsLinkJob, createPlansRemindJob, type PoolJobDeps } from './pool-jobs';
 
@@ -15,6 +17,7 @@ export interface ProductionJobDeps {
 export function createProductionJobs(deps: ProductionJobDeps): readonly Job[] {
   return [
     createIndexRatesJob({ db: deps.db, provider: createEcbProvider() }),
+    createFxRefreshJob({ db: deps.db, provider: createEcbFxProvider() }),
     createDepositsLinkJob(deps),
     createPlansRemindJob(deps),
   ];
