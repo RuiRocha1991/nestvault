@@ -158,7 +158,9 @@ dependencies. The essentials:
   updated). Never `NEXT_PUBLIC_` for a secret. Claude must not read `.env` files.
 - Postgres users: `identity_rw` sees only the identity DB; `app_rw` sees only the app DB and
   has no `BYPASSRLS`; `worker_rw` (worker process only) sees only the app DB, has no `BYPASSRLS` and
-  uses the job queues in schema `pgboss`; a separate migration user. Postgres port bound to `127.0.0.1`.
+  uses the job queues in schema `pgboss`; the worker process also holds `identity_rw` on a separate
+  connection (pool list, session/invite cleanup), but `worker_rw` itself still cannot connect to the
+  identity DB; a separate migration user. Postgres port bound to `127.0.0.1`.
 - Sign-up closed by default (`ALLOW_SIGNUP=false`); people join by invite.
 
 ## Local development
@@ -176,6 +178,7 @@ dependencies. The essentials:
   - `pnpm db:up` / `pnpm db:down` / `pnpm db:reset` / `pnpm db:check` / `pnpm db:psql:identity` /
     `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`
   - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm worker:runs` — last job runs and failures;
+    `pnpm worker:backfill-snapshots` — rebuild past month-end net worth snapshots;
     `pnpm db:worker-role` — create `worker_rw` on an existing volume; `pnpm build`
   - `pnpm db:generate:app` / `pnpm db:generate:identity` — generate a migration from the schema
   - `pnpm lint`, `pnpm typecheck`, `pnpm test` (needs `pnpm db:up`: it includes the integration

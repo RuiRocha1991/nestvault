@@ -191,6 +191,11 @@ export type { SessionRow } from './identity/repositories/sessions.repo';
 export { usersRepo } from './identity/repositories/users.repo';
 export type { NewCredentialUser } from './identity/repositories/users.repo';
 export { propertyCostsRepo } from './app/repositories/property-costs.repo';
+export { netWorthSnapshotsRepo } from './app/repositories/net-worth-snapshots.repo';
+export type {
+  NetWorthSnapshotRow,
+  SnapshotValues,
+} from './app/repositories/net-worth-snapshots.repo';
 export type {
   PropertyCostPaymentRow,
   PropertyCostRow,

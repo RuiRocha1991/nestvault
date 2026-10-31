@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
@@ -232,5 +232,35 @@ export const importBatchesRepo = {
       )
       .returning();
     return row;
+  },
+
+  /**
+   * Deletes the pool's batches discarded before `cutoff` and returns the SHA-256 of each one's file
+   * (one per batch, repeats possible), so the caller can remove files no other batch still uses. Only `discarded` rows are touched.
+   */
+  async deleteDiscardedBefore(tx: PoolTx, ctx: PoolContext, cutoff: Date): Promise<string[]> {
+    const rows = await tx
+      .delete(importBatches)
+      .where(
+        and(
+          eq(importBatches.poolId, ctx.poolId),
+          eq(importBatches.status, 'discarded'),
+          lt(importBatches.updatedAt, cutoff),
+        ),
+      )
+      .returning({ sha: importBatches.fileSha256 });
+    return rows.map((row) => row.sha);
+  },
+
+  /** The hashes among `hashes` that a remaining batch of the pool still points at. */
+  async hashesInUse(tx: PoolTx, ctx: PoolContext, hashes: readonly string[]): Promise<string[]> {
+    if (hashes.length === 0) return [];
+    const rows = await tx
+      .selectDistinct({ sha: importBatches.fileSha256 })
+      .from(importBatches)
+      .where(
+        and(eq(importBatches.poolId, ctx.poolId), inArray(importBatches.fileSha256, [...hashes])),
+      );
+    return rows.map((row) => row.sha);
   },
 };

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { CryptoError, encrypt, parseKeyRing } from '@nestvault/crypto';
-import { createEncryptedFileStore, NotFoundError } from '@nestvault/services';
+import { createEncryptedFileStore, NotFoundError, removeStoredFile } from '@nestvault/services';
 
 const POOL = '0198f000-0000-7000-8000-000000000001';
 const OTHER_POOL = '0198f000-0000-7000-8000-000000000002';
@@ -127,5 +127,34 @@ describe('encrypted file store', () => {
     await store.put(POOL, SHA, Buffer.from('statement')); // creates the folder
     await writeFile(join(dir, POOL, `${SHA}.bin`), encrypt(ring, Buffer.from('forged'), 'other'));
     await expect(store.get(POOL, SHA)).rejects.toBeInstanceOf(CryptoError);
+  });
+});
+
+describe('removeStoredFile', () => {
+  it('deletes one file, ignores a missing one and refuses a path-like hash', async () => {
+    const store = createEncryptedFileStore({ dir, ring: parseKeyRing(key()) });
+    await store.put(POOL, SHA, Buffer.from('x'));
+    await removeStoredFile(dir, POOL, SHA);
+    expect(await readdir(join(dir, POOL))).toEqual([]);
+    await removeStoredFile(dir, POOL, SHA);
+    await expect(removeStoredFile(dir, POOL, '../../etc/passwd')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+
+  it('keeps a file written less than minAgeMs ago and removes an older one', async () => {
+    const store = createEncryptedFileStore({ dir, ring: parseKeyRing(key()) });
+    await store.put(POOL, SHA, Buffer.from('x'));
+    const now = Date.now();
+    expect(await removeStoredFile(dir, POOL, SHA, { minAgeMs: 3_600_000, now: () => now })).toBe(
+      false,
+    );
+    expect(await readdir(join(dir, POOL))).toEqual([`${SHA}.bin`]);
+    expect(
+      await removeStoredFile(dir, POOL, SHA, { minAgeMs: 3_600_000, now: () => now + 7_200_000 }),
+    ).toBe(true);
+    expect(await readdir(join(dir, POOL))).toEqual([]);
+    // Nothing there any more: not an error, and nothing removed.
+    expect(await removeStoredFile(dir, POOL, SHA, { minAgeMs: 1 })).toBe(false);
   });
 });
