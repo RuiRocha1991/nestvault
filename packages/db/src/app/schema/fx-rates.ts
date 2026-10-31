@@ -2,8 +2,8 @@ import { sql } from 'drizzle-orm';
 import { check, date, numeric, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 
 // Global reference data (no `pool_id`, no RLS, listed in RLS_EXEMPT_TABLES): EUR per one unit of a
-// currency on a day. `app_rw` can only read it; the migration seeds it and, from phase 3, a worker
-// role writes the daily ECB rates. A pool's own override lives in `pool_settings`.
+// currency on a day. `app_rw` can only read it; the migration seeds it and the worker's fx.refresh job
+// writes the ECB rates daily (never over a `manual` row). A pool's own override lives in `pool_settings`.
 export const fxRates = pgTable(
   'fx_rates',
   {

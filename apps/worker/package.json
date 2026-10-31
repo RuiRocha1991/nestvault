@@ -15,6 +15,7 @@
     "@nestvault/config": "workspace:*",
     "@nestvault/db": "workspace:*",
     "@nestvault/services": "workspace:*",
+    "decimal.js": "10.6.0",
     "pg": "^8.23.1",
     "pg-boss": "12.38.0",
     "tsx": "^4.23.15",
