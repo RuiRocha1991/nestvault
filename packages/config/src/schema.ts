@@ -136,6 +136,13 @@ const migratorShape = {
 const workerShape = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL_WORKER: postgresUrl,
+  // sessions.cleanup and the pool list: the worker also reads the identity database, as `identity_rw`.
+  DATABASE_URL_IDENTITY: postgresUrl,
+  // sessions.cleanup removes the files of discarded import previews from here.
+  IMPORT_STORAGE_DIR: concrete(z.string().min(1).max(300)).refine(
+    (value) => !value.includes('\0'),
+    'must be a directory path',
+  ),
 };
 
 const testShape = {
@@ -174,7 +181,9 @@ const runtimeSchema = z
 const migratorSchema = z
   .object(migratorShape)
   .superRefine(differentDatabases('MIGRATOR_URL_IDENTITY', 'MIGRATOR_URL_APP'));
-const workerSchema = z.object(workerShape);
+const workerSchema = z
+  .object(workerShape)
+  .superRefine(differentDatabases('DATABASE_URL_IDENTITY', 'DATABASE_URL_WORKER'));
 const testSchema = z
   .object(testShape)
   .superRefine(differentDatabases('TEST_DATABASE_URL_IDENTITY', 'TEST_DATABASE_URL_APP'))

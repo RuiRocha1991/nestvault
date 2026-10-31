@@ -24,6 +24,8 @@ export const VALID_MIGRATOR_ENV: Record<string, string> = {
 
 export const VALID_WORKER_ENV: Record<string, string> = {
   DATABASE_URL_WORKER: 'postgres://worker_rw:fake-pw@127.0.0.1:5433/nestvault_app',
+  DATABASE_URL_IDENTITY: 'postgres://identity_rw:fake-pw@127.0.0.1:5433/nestvault_identity',
+  IMPORT_STORAGE_DIR: '.data/imports',
 };
 
 export const VALID_TEST_ENV: Record<string, string> = {

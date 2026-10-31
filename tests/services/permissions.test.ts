@@ -42,6 +42,8 @@ const PRD_MATRIX: Record<Permission, readonly [boolean, boolean, boolean, boolea
   'settings.write': [true, true, false, false],
   // Not in the PRD table: the audit log shows who did what, so only the owner reads it (NES-29).
   'audit.read': [true, false, false, false],
+  // Held by the worker's system context only (NES-69): no person's role has it.
+  'snapshots.write': [false, false, false, false],
 };
 
 const ROLE_ORDER: readonly Role[] = ['owner', 'admin', 'member', 'viewer'];

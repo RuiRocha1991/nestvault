@@ -80,7 +80,9 @@ variable is added, renamed or removed):
 - `worker_rw` (the worker process only) is like `app_rw`: no superuser, no `BYPASSRLS`, not an owner, and
   `CONNECT` only to the app databases. The migrations install the job queues (schema `pgboss`, owned by
   `nestvault_migrator`) and give it `USAGE`/`CREATE` there, because pg-boss makes one table per queue at
-  run time. On a volume created before NES-65 run
+  run time. The worker process also opens a second, separate connection as `identity_rw`
+  (`DATABASE_URL_IDENTITY`: pool list, session and invite cleanup); `worker_rw` itself still cannot
+  connect to the identity database. On a volume created before NES-65 run
   `pnpm env:sync && pnpm db:worker-role && pnpm db:migrate`.
 - `nestvault_migrator` owns the databases and creates tables; only migrations use it.
 - The roles are created once, by `docker/postgres/init/01-roles-and-databases.sh`, the first time
@@ -98,6 +100,7 @@ variable is added, renamed or removed):
 | `pnpm db:psql:identity` / `db:psql:app`  | Open `psql` as the runtime user of that database                |
 | `pnpm db:worker-role`                    | Create or refresh `worker_rw` on an existing volume             |
 | `pnpm dev:worker` / `pnpm worker:runs`   | Start the job worker / list the last runs and failures          |
+| `pnpm worker:backfill-snapshots`         | Rebuild past month-end net worth snapshots (`--pool <uuid>`)     |
 
 `pnpm db:check` fails if: a runtime user can connect to the other database or to `postgres`;
 `app_rw` is a superuser or can bypass RLS; `app_rw` can drop tables; Postgres is published on

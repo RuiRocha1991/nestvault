@@ -141,6 +141,20 @@
       "when": 1793454689250,
       "tag": "0019_deposit_links_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793482144589,
+      "tag": "0020_net_worth_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793482158463,
+      "tag": "0021_snapshot_invalidation",
+      "breakpoints": true
     }
   ]
 }

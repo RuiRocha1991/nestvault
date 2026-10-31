@@ -1,7 +1,12 @@
 export { parserResponseSchema } from './parser-rows.generated';
 export type { ParserResponseSchema as ParserResponse } from './parser-rows.generated';
 export { cleanFileName, contentKindOf, sniffUpload, type UploadKind } from './file-type';
-export { createEncryptedFileStore, type FileStore, type FileStoreOptions } from './storage';
+export {
+  createEncryptedFileStore,
+  removeStoredFile,
+  type FileStore,
+  type FileStoreOptions,
+} from './storage';
 export {
   createParserClient,
   importSpecSchema,

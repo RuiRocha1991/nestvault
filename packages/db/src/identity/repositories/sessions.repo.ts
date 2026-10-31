@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, ne, or } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lt, ne, or } from 'drizzle-orm';
 
 import type { IdentityDatabase, IdentityExecutor } from '../client';
 import { session } from '../schema';
@@ -99,6 +99,15 @@ export const sessionsRepo = {
       .where(and(eq(session.userId, userId), eq(session.activePoolId, poolId)))
       .returning({ id: session.id });
     return ended.length;
+  },
+
+  /** Deletes the sessions whose expiry has passed (`expires_at < now`). Returns how many went. */
+  async deleteExpired(db: IdentityExecutor, now: Date): Promise<number> {
+    const rows = await db
+      .delete(session)
+      .where(lt(session.expiresAt, now))
+      .returning({ id: session.id });
+    return rows.length;
   },
 
   /** Forgets the pool as the active one of the user's sessions (the user left it). */
