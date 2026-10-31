@@ -34,6 +34,12 @@ function locate(dir: string, poolId: string, sha256: string): { folder: string; 
   return { folder, file: join(folder, `${sha256}.bin`) };
 }
 
+/** Deletes a stored statement (if it is there). The worker uses it for discarded previews. */
+export async function removeStoredFile(dir: string, poolId: string, sha256: string): Promise<void> {
+  const { file } = locate(dir, poolId, sha256);
+  await rm(file, { force: true });
+}
+
 export function createEncryptedFileStore({ dir, ring }: FileStoreOptions): FileStore {
   return {
     async put(poolId, sha256, bytes) {

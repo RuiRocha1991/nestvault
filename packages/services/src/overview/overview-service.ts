@@ -4,6 +4,7 @@ import {
   categorySettingsRepo,
   goalsRepo,
   investmentOpsRepo,
+  netWorthSnapshotsRepo,
   plansRepo,
   poolSettingsRepo,
   portfolioCashMovesRepo,
@@ -255,9 +256,33 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
         })
       : [];
 
-    const worth = netWorths(data, dates, today, balancesAt);
-    const totals = worth.map((w) => w.net);
-    const investments = worth.map((w) => w.investments);
+    // Past month ends come from the stored snapshots when there are any (NES-69); only the dates
+    // without one (and always today, which is still changing) are computed.
+    const stored = new Map(
+      (
+        await netWorthSnapshotsRepo.listForDates(
+          tx,
+          ctx,
+          dates.filter((date) => date < today),
+        )
+      ).map((row) => [row.date, row]),
+    );
+    const missing = dates.flatMap((date, i) => (stored.has(date) ? [] : [i]));
+    const computed = netWorths(
+      data,
+      missing.map((i) => dates[i] ?? today),
+      today,
+      missing.map((i) => balancesAt[i] ?? new Map<string, Dec>()),
+    );
+    const computedAt = new Map(missing.map((i, k) => [i, computed[k]] as const));
+    const totals = dates.map((date, i) => {
+      const row = stored.get(date);
+      return row ? dec(row.net) : (computedAt.get(i)?.net ?? ZERO);
+    });
+    const investments = dates.map((date, i) => {
+      const row = stored.get(date);
+      return row ? dec(row.investments) : (computedAt.get(i)?.investments ?? ZERO);
+    });
     const flows = monthFlows(data, months);
     const flow = flows[flows.length - 1];
     const previousFlow = flows[flows.length - 2];
@@ -321,8 +346,8 @@ export function createOverviewService(deps: OverviewServiceDeps): OverviewServic
       },
       realEstate: realEstate.realEstate
         ? {
-            value: toPlain(worth[worth.length - 1]?.realEstate ?? ZERO),
-            liabilities: toPlain(worth[worth.length - 1]?.liabilities ?? ZERO),
+            value: toPlain(computed[computed.length - 1]?.realEstate ?? ZERO),
+            liabilities: toPlain(computed[computed.length - 1]?.liabilities ?? ZERO),
           }
         : null,
       evolution: { months, total: plain(totals), investments: plain(investments) },

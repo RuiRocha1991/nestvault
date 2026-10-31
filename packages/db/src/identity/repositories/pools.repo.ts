@@ -41,6 +41,12 @@ const toRow = (row: {
 
 /** Every value is a bound parameter; the caller passes ids it got from a session or a guard. */
 export const poolsRepo = {
+  /** Every pool id, for the background jobs that visit each pool in turn. */
+  async listIds(db: IdentityDatabase['db']): Promise<string[]> {
+    const rows = await db.select({ id: pools.id }).from(pools).orderBy(pools.createdAt);
+    return rows.map((row) => row.id);
+  },
+
   async insert(db: IdentityExecutor, pool: { id: string; name: string }): Promise<void> {
     await db.insert(pools).values({ id: pool.id, name: pool.name });
   },

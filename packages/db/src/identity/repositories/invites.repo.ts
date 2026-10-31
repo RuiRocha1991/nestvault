@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { parseRole, type Role } from '../../pool-context';
 import type { IdentityDatabase, IdentityExecutor } from '../client';
@@ -162,5 +162,22 @@ export const invitesRepo = {
       .where(and(eq(invites.id, inviteId), isNull(invites.acceptedAt), gt(invites.expiresAt, now)))
       .returning({ id: invites.id });
     return updated.length > 0;
+  },
+
+  /**
+   * Deletes the invites that are over: accepted before `cutoff`, or never accepted and expired before
+   * it. A pending invite that can still be used is never touched. Returns how many went.
+   */
+  async deleteStale(db: IdentityExecutor, cutoff: Date): Promise<number> {
+    const rows = await db
+      .delete(invites)
+      .where(
+        or(
+          and(isNotNull(invites.acceptedAt), lt(invites.acceptedAt, cutoff)),
+          and(isNull(invites.acceptedAt), lt(invites.expiresAt, cutoff)),
+        ),
+      )
+      .returning({ id: invites.id });
+    return rows.length;
   },
 };

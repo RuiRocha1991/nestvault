@@ -98,6 +98,7 @@ variable is added, renamed or removed):
 | `pnpm db:psql:identity` / `db:psql:app`  | Open `psql` as the runtime user of that database                |
 | `pnpm db:worker-role`                    | Create or refresh `worker_rw` on an existing volume             |
 | `pnpm dev:worker` / `pnpm worker:runs`   | Start the job worker / list the last runs and failures          |
+| `pnpm worker:backfill-snapshots`         | Rebuild past month-end net worth snapshots (`--pool <uuid>`)     |
 
 `pnpm db:check` fails if: a runtime user can connect to the other database or to `postgres`;
 `app_rw` is a superuser or can bypass RLS; `app_rw` can drop tables; Postgres is published on

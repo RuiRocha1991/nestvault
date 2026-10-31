@@ -176,6 +176,7 @@ dependencies. The essentials:
   - `pnpm db:up` / `pnpm db:down` / `pnpm db:reset` / `pnpm db:check` / `pnpm db:psql:identity` /
     `pnpm db:psql:app` / `pnpm db:migrate` / `pnpm db:seed`
   - `pnpm dev` — web app; `pnpm dev:worker` — worker; `pnpm worker:runs` — last job runs and failures;
+    `pnpm worker:backfill-snapshots` — rebuild past month-end net worth snapshots;
     `pnpm db:worker-role` — create `worker_rw` on an existing volume; `pnpm build`
   - `pnpm db:generate:app` / `pnpm db:generate:identity` — generate a migration from the schema
   - `pnpm lint`, `pnpm typecheck`, `pnpm test` (needs `pnpm db:up`: it includes the integration

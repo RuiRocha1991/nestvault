@@ -116,6 +116,22 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/worker/pool-isolation.integration.test.ts` (a context sees and writes only its pool, no
   `BYPASSRLS`), `tests/worker/runtime.integration.test.ts` (retry and failure, logs without payload
   or message, restart after a crash) and `tests/worker/exposure.test.ts` (nothing in `apps/web`).
+- **Snapshots and cleanup (NES-69)**: `net_worth_snapshots` (PK `(pool_id, date)`, FORCE RLS,
+  `net_worth_snapshots_pool_isolation`) is written only by `snapshots.daily` (23:30 Lisbon) and
+  `pnpm worker:backfill-snapshots`, through `snapshotPool` under a system context holding
+  `snapshots.write`, a permission no role has (`ROLE_PERMISSIONS`), so no route can reach it. The
+  overview chart reads past month ends from it and always computes today. `sessions.cleanup` (daily)
+  deletes sessions past `expires_at`, invites used or expired more than 30 days ago, ended rate-limit
+  windows, and, per pool under `imports.run`, import batches discarded more than 7 days ago plus
+  their encrypted file when no remaining batch of the pool uses the same hash. For this the worker
+  process also receives `DATABASE_URL_IDENTITY` (`identity_rw`, a separate connection from
+  `worker_rw`, which still cannot connect to the identity database) and `IMPORT_STORAGE_DIR`; the
+  web app is unchanged. Logs carry counts only. Verified by
+  `tests/db/net-worth-snapshots.repo.integration.test.ts` (isolation, RLS, injection payload),
+  `tests/services/snapshots.integration.test.ts` (backfill equals the domain figures, permission
+  and pool isolation), `tests/services/maintenance.integration.test.ts` (an active session, a usable
+  invite and a shared file are never deleted; injection payload) and
+  `tests/worker/housekeeping-jobs.integration.test.ts` (both jobs as `worker_rw`).
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or
