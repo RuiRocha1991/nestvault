@@ -22,21 +22,28 @@ const env = workerEnv();
 const log = createLogger();
 const identity = createIdentityDatabase(env.DATABASE_URL_IDENTITY, 1);
 const run = createWorkerPoolRunner(env.DATABASE_URL_WORKER);
+let exitCode = 0;
 try {
   const today = lisbonDay(new Date());
   const known = await poolsRepo.listIds(identity.db);
-  // A pool id that does not exist is ignored, never written to.
   const poolIds = only?.success ? known.filter((id) => id === only.data) : known;
-  await forEachPool(poolIds, ['pool.read', 'snapshots.write'], log, async (ctx) => {
-    const stored = await snapshotPool(ctx, { today, backfill: true }, run);
-    log.info({ stored }, 'snapshots rebuilt');
-  });
-} catch {
+  if (only?.success && poolIds.length === 0) {
+    console.error('No pool has that id; nothing was written.');
+    exitCode = 2;
+  } else {
+    await forEachPool(poolIds, ['pool.read', 'snapshots.write'], log, async (ctx) => {
+      const stored = await snapshotPool(ctx, { today, backfill: true }, run);
+      log.info({ stored }, 'snapshots rebuilt');
+    });
+  }
+} catch (error) {
+  // Only the error type: a driver message can carry values.
+  log.error({ error: error instanceof Error ? error.name : 'Error' }, 'backfill failed');
   console.error(
     'The backfill failed for at least one pool; see the log above. It is safe to rerun.',
   );
-  process.exitCode = 1;
+  exitCode = 1;
 } finally {
   await identity.close();
-  process.exit(process.exitCode ?? 0);
+  process.exit(exitCode);
 }

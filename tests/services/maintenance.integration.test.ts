@@ -6,6 +6,7 @@ import {
   cleanIdentity,
   cleanImportPreviews,
   ForbiddenError,
+  IdentityCleanupError,
   logger,
   systemContext,
 } from '@nestvault/services';
@@ -126,6 +127,34 @@ describe('cleanIdentity', () => {
     expect((await rows('rate_limits')).map((row) => row.key_hash)).toEqual(['now']);
   });
 
+  it('runs every step even when one fails, then reports which failed', async () => {
+    const owner = s.ids.owner;
+    const expired = await insertSession(owner, ago(3));
+    const oldInvite = await insertInvite({ expiresAt: ago(45), email: 'f@example.test' });
+    // The first delete (the sessions) fails; the invites and the rate limits must still be cleaned.
+    let first = true;
+    const flaky = {
+      db: new Proxy(db(), {
+        get(target, property) {
+          if (property === 'delete' && first) {
+            first = false;
+            return () => {
+              throw new Error('connection reset with a secret value');
+            };
+          }
+          return Reflect.get(target, property, target) as unknown;
+        },
+      }),
+    };
+    const failure = await cleanIdentity(flaky, NOW).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(IdentityCleanupError);
+    expect((failure as IdentityCleanupError).failures).toEqual(['sessions']);
+    expect((failure as IdentityCleanupError).message).not.toContain('secret');
+    expect((failure as IdentityCleanupError).done.invites).toBe(1);
+    expect((await rows('session')).map((row) => row.id)).toContain(expired);
+    expect((await rows('invites')).map((row) => row.id)).not.toContain(oldInvite);
+  });
+
   it('is idempotent: a second run finds nothing', async () => {
     await insertSession(s.ids.owner, ago(3));
     await cleanIdentity(world.identity, NOW);
@@ -206,7 +235,7 @@ describe('cleanImportPreviews', () => {
     await batch(s.poolA, shared, 'preview', 1);
 
     const result = await cleanImportPreviews(ctxOf(s.poolA), NOW, remove, run());
-    expect(result).toEqual({ batches: 2, files: 1 });
+    expect(result).toEqual({ batches: 2, files: 1, failed: 0 });
     expect(removed).toEqual([[s.poolA, old]]);
     expect(await remaining(s.poolA)).toEqual(['b'.repeat(64), 'c'.repeat(64)]);
   });
@@ -215,11 +244,12 @@ describe('cleanImportPreviews', () => {
     const sha = 'a'.repeat(64);
     await batch(s.poolB, sha, 'discarded', 30);
     const result = await cleanImportPreviews(ctxOf(s.poolA), NOW, remove, run());
-    expect(result).toEqual({ batches: 0, files: 0 });
+    expect(result).toEqual({ batches: 0, files: 0, failed: 0 });
     expect(removed).toEqual([]);
     expect(await cleanImportPreviews(ctxOf(s.poolB), NOW, remove, run())).toEqual({
       batches: 1,
       files: 1,
+      failed: 0,
     });
   });
 
@@ -231,6 +261,51 @@ describe('cleanImportPreviews', () => {
     );
     expect(found).toEqual([]);
     expect(await remaining(s.poolA)).toEqual(['a'.repeat(64)]);
+  });
+
+  it('counts a failing removal and still removes the next file', async () => {
+    const [bad, good] = ['a', 'b'].map((c) => c.repeat(64)) as [string, string];
+    await batch(s.poolA, bad, 'discarded', 20);
+    await batch(s.poolA, good, 'discarded', 20);
+    const attempted: string[] = [];
+    const result = await cleanImportPreviews(
+      ctxOf(s.poolA),
+      NOW,
+      (poolId, sha) => {
+        attempted.push(sha);
+        return sha === bad
+          ? Promise.reject(new Error(`EACCES /secret/${poolId}/${sha}`))
+          : Promise.resolve();
+      },
+      run(),
+    );
+    expect(attempted.sort()).toEqual([bad, good]);
+    expect(result).toEqual({ batches: 2, files: 1, failed: 1 });
+  });
+
+  it('keeps a file whose hash a new batch took up just before the removal', async () => {
+    const sha = 'a'.repeat(64);
+    await batch(s.poolA, sha, 'discarded', 20);
+    let calls = 0;
+    // The same statement is uploaded again between the first check and the removal.
+    const racing: typeof run extends () => infer R ? R : never = (ctx, work) =>
+      run()(ctx, async (tx) => {
+        calls += 1;
+        if (calls === 2) await importBatchesRepo.insert(tx, ctx, newId(), values(sha), s.ids.owner);
+        return work(tx);
+      });
+    const removed: string[] = [];
+    const result = await cleanImportPreviews(
+      ctxOf(s.poolA),
+      NOW,
+      (_pool, hash) => {
+        removed.push(hash);
+        return Promise.resolve();
+      },
+      racing,
+    );
+    expect(removed).toEqual([]);
+    expect(result).toEqual({ batches: 1, files: 0, failed: 0 });
   });
 
   it('needs imports.run', async () => {

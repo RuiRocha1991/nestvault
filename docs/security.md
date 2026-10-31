@@ -120,10 +120,21 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `net_worth_snapshots_pool_isolation`) is written only by `snapshots.daily` (23:30 Lisbon) and
   `pnpm worker:backfill-snapshots`, through `snapshotPool` under a system context holding
   `snapshots.write`, a permission no role has (`ROLE_PERMISSIONS`), so no route can reach it. The
-  overview chart reads past month ends from it and always computes today. `sessions.cleanup` (daily)
+  overview chart reads past month ends from it and always computes today. A snapshot never outlives
+  its data: statement-level triggers (migration 0020, `app_invalidate_snapshots`) on every table that
+  feeds the net worth delete the pool's snapshots from the earliest date a write touched (all of them
+  for tables without a date), and `snapshots.daily` stores the month ends that are missing, so the
+  history heals itself. The trigger runs as the caller (RLS applies, nothing outside `withPool`), and
+  `tests/db/snapshot-invalidation.integration.test.ts` fails when a new pool table is neither covered
+  nor listed as without effect. The services stay free of invalidation code on purpose: there are
+  about sixty write sites in twenty services, and one forgotten site would show stale history. `sessions.cleanup` (daily)
   deletes sessions past `expires_at`, invites used or expired more than 30 days ago, ended rate-limit
   windows, and, per pool under `imports.run`, import batches discarded more than 7 days ago plus
-  their encrypted file when no remaining batch of the pool uses the same hash. For this the worker
+  their encrypted file when no remaining batch of the pool uses the same hash (checked again just
+  before each removal, and a file written in the last hour is kept: an upload writes the file with
+  `put`, which replaces it with a fresh modification time, a moment before it records its batch).
+  Each step and each file removal runs on its own: one failure does not skip the rest, and the run
+  fails at the end with step names only so pg-boss retries it. For this the worker
   process also receives `DATABASE_URL_IDENTITY` (`identity_rw`, a separate connection from
   `worker_rw`, which still cannot connect to the identity database) and `IMPORT_STORAGE_DIR`; the
   web app is unchanged. Logs carry counts only. Verified by

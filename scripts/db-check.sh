@@ -26,7 +26,9 @@ echo "Database isolation"
 sql identity_rw "$IDENTITY_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && pass "identity_rw connects to nestvault_identity" || fail "identity_rw cannot connect to nestvault_identity"
 sql app_rw "$APP_RW_PASSWORD" nestvault_app "select 1" >/dev/null && pass "app_rw connects to nestvault_app" || fail "app_rw cannot connect to nestvault_app"
 sql worker_rw "$WORKER_RW_PASSWORD" nestvault_app "select 1" >/dev/null && pass "worker_rw connects to nestvault_app" || fail "worker_rw cannot connect to nestvault_app (run: pnpm db:worker-role)"
-sql worker_rw "$WORKER_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && fail "worker_rw CAN connect to nestvault_identity" || pass "worker_rw cannot connect to nestvault_identity"
+# The worker process also holds identity_rw (a separate connection, DATABASE_URL_IDENTITY) for the
+# pool list and the session cleanup; the worker_rw role itself must still be locked out of identity.
+sql worker_rw "$WORKER_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && fail "worker_rw CAN connect to nestvault_identity" || pass "worker_rw (the queue and app role of the worker) cannot connect to nestvault_identity"
 sql app_rw "$APP_RW_PASSWORD" nestvault_identity "select 1" >/dev/null && fail "app_rw CAN connect to nestvault_identity" || pass "app_rw cannot connect to nestvault_identity"
 sql identity_rw "$IDENTITY_RW_PASSWORD" nestvault_app "select 1" >/dev/null && fail "identity_rw CAN connect to nestvault_app" || pass "identity_rw cannot connect to nestvault_app"
 sql app_rw "$APP_RW_PASSWORD" nestvault_app_test "select 1" >/dev/null && pass "app_rw connects to nestvault_app_test" || fail "app_rw cannot connect to nestvault_app_test"

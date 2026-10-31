@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { PoolTx } from '../client';
@@ -17,26 +17,35 @@ export interface SnapshotValues {
 
 /** Daily net worth of a pool. Every function filters by `ctx.poolId` (and RLS repeats it). */
 export const netWorthSnapshotsRepo = {
-  /** Creates the day's row or replaces it; the pool always comes from `ctx`. */
+  /** Creates the days' rows or replaces them, in one statement; the pool always comes from `ctx`. */
   async upsertMany(tx: PoolTx, ctx: PoolContext, rows: readonly SnapshotValues[]): Promise<void> {
     if (rows.length === 0) return;
-    for (const row of rows) {
-      const fields = {
-        net: row.net,
-        cash: row.cash,
-        savings: row.savings,
-        investments: row.investments,
-        byCcy: row.byCcy,
-        createdAt: new Date(),
-      };
-      await tx
-        .insert(netWorthSnapshots)
-        .values({ poolId: ctx.poolId, date: row.date, ...fields })
-        .onConflictDoUpdate({
-          target: [netWorthSnapshots.poolId, netWorthSnapshots.date],
-          set: fields,
-        });
-    }
+    const createdAt = new Date();
+    await tx
+      .insert(netWorthSnapshots)
+      .values(
+        rows.map((row) => ({
+          poolId: ctx.poolId,
+          date: row.date,
+          net: row.net,
+          cash: row.cash,
+          savings: row.savings,
+          investments: row.investments,
+          byCcy: row.byCcy,
+          createdAt,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [netWorthSnapshots.poolId, netWorthSnapshots.date],
+        set: {
+          net: sql`excluded.net`,
+          cash: sql`excluded.cash`,
+          savings: sql`excluded.savings`,
+          investments: sql`excluded.investments`,
+          byCcy: sql`excluded.by_ccy`,
+          createdAt: sql`excluded.created_at`,
+        },
+      });
   },
 
   /** The rows stored for exactly these dates. */

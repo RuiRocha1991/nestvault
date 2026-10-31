@@ -24,14 +24,14 @@ describe('migrations', () => {
 
   it('are applied by the global setup to both databases', async () => {
     expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('8');
-    expect((await migrationRows(targets.appUrl))[0]?.n).toBe('19');
+    expect((await migrationRows(targets.appUrl))[0]?.n).toBe('21');
   });
 
   it('are idempotent: running them again changes nothing and does not fail', async () => {
     await runMigrations(targets);
     await runMigrations(targets);
     expect((await migrationRows(targets.identityUrl))[0]?.n).toBe('8');
-    expect((await migrationRows(targets.appUrl))[0]?.n).toBe('19');
+    expect((await migrationRows(targets.appUrl))[0]?.n).toBe('21');
   });
 
   it('keep the two databases separate: each has its own migration history and objects', async () => {

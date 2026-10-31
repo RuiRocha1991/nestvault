@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -81,8 +81,10 @@ describe('snapshots.daily', () => {
     await job.execute({}, info(job.name)); // a retry or a second run changes nothing
 
     const [a, b] = [await ids(s.poolA), await ids(s.poolB)];
-    expect(a).toHaveLength(1);
-    expect(a[0]).toMatchObject({ date: '2026-10-31', net: '750.0000' });
+    // January to September were missing and are filled in; the pool B has no records at all.
+    expect(a).toHaveLength(10);
+    expect(a.at(-1)).toMatchObject({ date: '2026-10-31', net: '750.0000' });
+    expect(a[0]).toMatchObject({ date: '2026-01-31', net: '750.0000' });
     expect(b).toEqual([expect.objectContaining({ date: '2026-10-31', net: '0.0000' })]);
   });
 
@@ -126,6 +128,11 @@ describe('sessions.cleanup', () => {
     const [gone, kept] = ['1', '2'].map((c) => c.repeat(64)) as [string, string];
     await store.put(s.poolA, gone, Buffer.from('discarded statement'));
     await store.put(s.poolA, kept, Buffer.from('committed statement'));
+    // Files written a moment ago are kept on purpose (an upload may be recording them): age them.
+    const longAgo = new Date(NOW.getTime() - 2 * DAY);
+    for (const sha of [gone, kept]) {
+      await utimes(join(storageDir, s.poolA, `${sha}.bin`), longAgo, longAgo);
+    }
 
     const ctx = systemContext(s.poolA, ['imports.run']);
     const values = (fileSha256: string) => ({

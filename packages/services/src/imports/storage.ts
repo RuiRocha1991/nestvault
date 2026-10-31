@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { decrypt, encrypt, type KeyRing } from '@nestvault/crypto';
@@ -34,10 +34,30 @@ function locate(dir: string, poolId: string, sha256: string): { folder: string; 
   return { folder, file: join(folder, `${sha256}.bin`) };
 }
 
-/** Deletes a stored statement (if it is there). The worker uses it for discarded previews. */
-export async function removeStoredFile(dir: string, poolId: string, sha256: string): Promise<void> {
+/**
+ * Deletes a stored statement (if it is there). The worker uses it for discarded previews. A file
+ * written within `minAgeMs` is kept: an upload of the same statement writes the file (`put`
+ * replaces it, with a fresh modification time) a moment before it records its batch, and that
+ * window must not lose the file. Returns whether a file was removed.
+ */
+export async function removeStoredFile(
+  dir: string,
+  poolId: string,
+  sha256: string,
+  options: { minAgeMs?: number; now?: () => number } = {},
+): Promise<boolean> {
   const { file } = locate(dir, poolId, sha256);
+  if (options.minAgeMs) {
+    try {
+      const { mtimeMs } = await stat(file);
+      if ((options.now ?? Date.now)() - mtimeMs < options.minAgeMs) return false;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+  }
   await rm(file, { force: true });
+  return true;
 }
 
 export function createEncryptedFileStore({ dir, ring }: FileStoreOptions): FileStore {

@@ -104,20 +104,21 @@ describe('pastMonthEnds', () => {
 });
 
 describe('snapshotPool', () => {
-  it('stores today for the pool, and a second run the same day replaces the row', async () => {
+  it('stores today and the month ends it lacks, and a second run only replaces today', async () => {
     await household();
+    // Nine month ends (January to September) are missing, plus today.
+    expect(await snapshotPool(ctxOf(s.poolA), { today: TODAY_ISO }, run())).toBe(10);
     expect(await snapshotPool(ctxOf(s.poolA), { today: TODAY_ISO }, run())).toBe(1);
-    await snapshotPool(ctxOf(s.poolA), { today: TODAY_ISO }, run());
     const rows = await stored(s.poolA);
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(10);
     // 1 000 − 200 + 1 500 in cash, 2 × 100 invested.
-    expect(rows[0]).toMatchObject({
+    expect(rows.at(-1)).toMatchObject({
       date: TODAY_ISO,
       cash: '2300.0000',
       investments: '200.0000',
       net: '2500.0000',
     });
-    expect(rows[0]?.byCcy).toMatchObject({ EUR: '2500' });
+    expect(rows.at(-1)?.byCcy).toMatchObject({ EUR: '2500' });
   });
 
   it('backfill month ends equal what the domain computes for the overview chart', async () => {
@@ -193,5 +194,92 @@ describe('snapshotPool', () => {
     await snapshotPool(ctxOf(s.poolB), { today: TODAY_ISO, backfill: true }, run());
     expect(await stored(s.poolB)).toEqual([expect.objectContaining({ net: '0.0000' })]);
     expect(await stored(s.poolA)).toEqual([]);
+  });
+});
+
+describe('stale snapshots', () => {
+  const store = (poolId: string, ...entries: [string, string][]) =>
+    run()(ctxOf(poolId), (tx) =>
+      netWorthSnapshotsRepo.upsertMany(
+        tx,
+        ctxOf(poolId),
+        entries.map(([date, net]) => ({
+          date,
+          net,
+          cash: net,
+          savings: '0.0000',
+          investments: '0.0000',
+          byCcy: {},
+        })),
+      ),
+    );
+  const dates = async (poolId: string) => (await stored(poolId)).map((row) => row.date);
+
+  it('corrects the chart when data dated before a stored month end arrives later', async () => {
+    const owner = await s.as('owner');
+    // The pool was empty at the end of August and September: both month ends are stored as 0.
+    await store(s.poolA, ['2026-08-31', '0.0000'], ['2026-09-30', '0.0000']);
+    expect((await overview()).evolution.total.at(-2)).toBe('0');
+
+    const holder = (await world.holders.list(owner, s.poolA)).holders[0]?.id ?? '';
+    const account = await world.accounts.create(owner, s.poolA, {
+      type: 'checking',
+      name: 'Conta',
+      currency: 'EUR',
+      holderIds: [holder],
+      opening: '500',
+      openingDate: '2026-01-01',
+    });
+    // An account touches every date: nothing stale is left.
+    expect(await dates(s.poolA)).toEqual([]);
+    const chart = await overview();
+    expect(chart.evolution.total.at(-2)).toBe('500');
+
+    // A later backdated movement only removes the snapshots from its own date on.
+    await snapshotPool(ctxOf(s.poolA), { today: TODAY_ISO }, run());
+    await world.transactions.create(owner, s.poolA, {
+      accountId: account.id,
+      date: '2026-09-10',
+      description: 'Compras',
+      amount: '-100',
+    });
+    const left = await dates(s.poolA);
+    expect(left).toContain('2026-08-31');
+    expect(left).not.toContain('2026-09-30');
+    expect(left).not.toContain(TODAY_ISO);
+    const corrected = await overview();
+    expect(corrected.evolution.total.at(-2)).toBe('400');
+    expect(corrected.evolution.total.at(-3)).toBe('500');
+
+    // The next daily run puts the deleted month end back, with the new figure.
+    await snapshotPool(ctxOf(s.poolA), { today: TODAY_ISO }, run());
+    expect((await stored(s.poolA)).find((row) => row.date === '2026-09-30')?.net).toBe('400.0000');
+  });
+
+  it('keeps the history when the change is dated today, and never touches another pool', async () => {
+    const owner = await s.as('owner');
+    const holder = (await world.holders.list(owner, s.poolA)).holders[0]?.id ?? '';
+    const account = await world.accounts.create(owner, s.poolA, {
+      type: 'checking',
+      name: 'Conta',
+      currency: 'EUR',
+      holderIds: [holder],
+      opening: '500',
+      openingDate: '2026-01-01',
+    });
+    await store(s.poolA, ['2026-08-31', '500.0000'], ['2026-09-30', '500.0000']);
+    await store(s.poolB, ['2026-08-31', '7.0000'], ['2026-09-30', '7.0000']);
+    await world.transactions.create(owner, s.poolA, {
+      accountId: account.id,
+      date: '2026-10-05',
+      description: 'Salario',
+      amount: '100',
+    });
+    expect(await dates(s.poolA)).toEqual(['2026-08-31', '2026-09-30']);
+    expect(await dates(s.poolB)).toEqual(['2026-08-31', '2026-09-30']);
+    // A change in pool A that touches every date leaves pool B alone.
+    await world.accounts.update(owner, s.poolA, account.id, { name: 'Outra' });
+    expect(await dates(s.poolA)).toEqual([]);
+    expect(await dates(s.poolB)).toEqual(['2026-08-31', '2026-09-30']);
   });
 });

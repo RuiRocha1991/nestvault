@@ -122,13 +122,18 @@ export function pastMonthEnds(firstDate: string | null, today: string): string[]
 export interface SnapshotOptions {
   /** The day being stored (`yyyy-mm-dd`); prices up to it are used. */
   today: string;
-  /** Also rebuild every past month end from the records (the backfill). */
+  /**
+   * Rebuild every past month end from the records, replacing the stored ones (the backfill).
+   * Without it only the month ends with no stored snapshot are added, which is how the history
+   * heals itself after an edit deleted part of it.
+   */
   backfill?: boolean;
 }
 
 /**
  * Computes the pool's net worth with the domain engine (`netWorths`) and stores one row per date:
- * `today` and, for a backfill, each past month end. Idempotent: a row is replaced, never doubled.
+ * `today` and each past month end (all of them for a backfill, only the missing ones otherwise,
+ * since a write to the data deletes the snapshots it made stale). Idempotent: a row is replaced, never doubled.
  * The context must hold `pool.read` and `snapshots.write`; nothing here can reach another pool.
  * Returns the number of rows stored.
  */
@@ -142,9 +147,12 @@ export async function snapshotPool(
   const { today } = options;
   return run(ctx, async (tx) => {
     const { data, firstDate } = await loadLedger(tx, ctx, today, (first) =>
-      options.backfill && first ? `${monthKey(first)}-01` : today,
+      first ? `${monthKey(first)}-01` : today,
     );
-    const dates = [...(options.backfill ? pastMonthEnds(firstDate, today) : []), today];
+    const past = pastMonthEnds(firstDate, today);
+    const stored = options.backfill ? [] : await netWorthSnapshotsRepo.listForDates(tx, ctx, past);
+    const have = new Set(stored.map((row) => row.date));
+    const dates = [...past.filter((date) => !have.has(date)), today];
     const worth = netWorths(data, dates, today);
     const rows: SnapshotValues[] = worth.map((w, i) => ({
       date: dates[i] ?? today,

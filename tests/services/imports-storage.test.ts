@@ -141,4 +141,20 @@ describe('removeStoredFile', () => {
       NotFoundError,
     );
   });
+
+  it('keeps a file written less than minAgeMs ago and removes an older one', async () => {
+    const store = createEncryptedFileStore({ dir, ring: parseKeyRing(key()) });
+    await store.put(POOL, SHA, Buffer.from('x'));
+    const now = Date.now();
+    expect(await removeStoredFile(dir, POOL, SHA, { minAgeMs: 3_600_000, now: () => now })).toBe(
+      false,
+    );
+    expect(await readdir(join(dir, POOL))).toEqual([`${SHA}.bin`]);
+    expect(
+      await removeStoredFile(dir, POOL, SHA, { minAgeMs: 3_600_000, now: () => now + 7_200_000 }),
+    ).toBe(true);
+    expect(await readdir(join(dir, POOL))).toEqual([]);
+    // Nothing there any more: not an error, and nothing removed.
+    expect(await removeStoredFile(dir, POOL, SHA, { minAgeMs: 1 })).toBe(false);
+  });
 });
