@@ -21,6 +21,7 @@ export * from './transactions';
 export * from './expenses';
 export * from './investments';
 export * from './savings';
+export * from './automation';
 export * from './notes';
 export * from './overview';
 export * from './entitlements';

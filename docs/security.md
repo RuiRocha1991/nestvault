@@ -116,6 +116,17 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/worker/pool-isolation.integration.test.ts` (a context sees and writes only its pool, no
   `BYPASSRLS`), `tests/worker/runtime.integration.test.ts` (retry and failure, logs without payload
   or message, restart after a crash) and `tests/worker/exposure.test.ts` (nothing in `apps/web`).
+- **Pool jobs and notifications (NES-68)**: `deposits.link` (links statement lines to the flows of
+  term deposits; flow key on `transactions.deposit_flow_key`, unique per pool) and `plans.remind`
+  (daily 09:00; one `notifications` row per plan and month) run per pool through `forEachPool`: one
+  system context and one `withPool` each, so RLS applies. Payloads are `{ poolId? }`, strict uuid.
+  The pools to sweep come from `worker_pools`, the second global table: no `pool_id`, no RLS, in
+  `RLS_EXEMPT_TABLES`; a `SECURITY DEFINER` trigger on `accounts` fills it, `app_rw` has no privilege
+  on it and `worker_rw` only `SELECT` (the migration guards the grants with `pg_roles` checks and
+  `02-worker-role.sh` re-applies them, so the role order does not matter). `notifications` and `notification_reads` (read state per
+  user) have `pool_id`, FORCE RLS and `*_pool_isolation` policies; notifications hold ids only, no
+  user text. Verified by `tests/worker/pool-jobs.integration.test.ts` (pool isolation, idempotence,
+  RLS on notifications, `worker_rw` has only `SELECT` on `worker_pools`) and `tests/worker/pool-jobs.test.ts` (payloads).
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or

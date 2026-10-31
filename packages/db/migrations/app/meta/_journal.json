@@ -134,6 +134,13 @@
       "when": 1793380337339,
       "tag": "0018_installment_split",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793454689250,
+      "tag": "0019_deposit_links_notifications",
+      "breakpoints": true
     }
   ]
 }

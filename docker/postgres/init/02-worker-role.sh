@@ -26,5 +26,12 @@ ALTER DEFAULT PRIVILEGES FOR ROLE nestvault_migrator IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO worker_rw;
 ALTER DEFAULT PRIVILEGES FOR ROLE nestvault_migrator IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO worker_rw;
+-- worker_pools is written only by the trigger on accounts (NES-68): the worker just reads it.
+DO $$ BEGIN
+  IF to_regclass('public.worker_pools') IS NOT NULL THEN
+    REVOKE ALL ON public.worker_pools FROM worker_rw;
+    GRANT SELECT ON public.worker_pools TO worker_rw;
+  END IF;
+END $$;
 SQL
 done

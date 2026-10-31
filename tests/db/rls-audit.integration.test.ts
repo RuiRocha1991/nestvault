@@ -58,7 +58,12 @@ describe('every nestvault_app table has Row-Level Security', () => {
     });
 
     it('an exempt table is not reported', async () => {
-      const found = await findAppTablesWithoutRls(database.app.db, ['_no_rls_probe', 'fx_rates', 'index_rates']);
+      const found = await findAppTablesWithoutRls(database.app.db, [
+        '_no_rls_probe',
+        'fx_rates',
+        'index_rates',
+        'worker_pools',
+      ]);
       expect(found).toEqual(['_enable_only_probe']);
     });
   });

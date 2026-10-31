@@ -42,7 +42,13 @@ export {
   TRANSACTION_SORTS,
   transactionsRepo,
 } from './app/repositories/transactions.repo';
+export type { PlanBuy } from './app/repositories/investment-ops.repo';
+export { notificationsRepo, workerPoolsRepo } from './app/repositories/notifications.repo';
+export type { NotificationRow, OpenNotification } from './app/repositories/notifications.repo';
+export { NOTIFICATION_KINDS } from './app/schema/notifications';
+export type { NotificationKind } from './app/schema/notifications';
 export type {
+  DepositLinkCandidate,
   EngineChange,
   EngineTransaction,
   OverviewTransaction,
