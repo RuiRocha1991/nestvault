@@ -348,17 +348,20 @@ describe('PortfoliosScreen', () => {
         id: '0192f3a1-0000-7000-8000-000000000051',
         planId: '0192f3a1-0000-7000-8000-000000000040',
         period: '2026-10',
-        createdAt: '2026-10-15T09:00:00.000Z',
         read: false,
         ticker: 'VWCE',
+        assetType: 'etf',
         amount: '100',
+        currency: 'EUR',
+        day: 5,
+        portfolioName: 'Longo prazo',
         portfolioId: PORTFOLIO,
         active: true,
       },
     ];
     const html = screen('transactions', { reminders });
-    expect(html).toContain('Investimento regular por registar: VWCE');
+    expect(html).toContain('Investimentos regulares por registar');
     expect(html).toContain('1 por ler');
-    expect(screen('summary', { reminders })).not.toContain('Investimento regular por registar');
+    expect(screen('summary', { reminders })).not.toContain('Investimentos regulares por registar');
   });
 });

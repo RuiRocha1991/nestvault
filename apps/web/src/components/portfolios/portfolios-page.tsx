@@ -4,12 +4,12 @@ import { getTranslations } from 'next-intl/server';
 import { PortfoliosScreen } from '@webapp/components/portfolios/portfolios-screen';
 import { Topbar } from '@webapp/components/topbar';
 import { todayInLisbon } from '@webapp/lib/lisbon-date';
-import { remindersOf } from '@webapp/lib/plan-reminders-view';
+import { buildPlanReminders, remindersOf } from '@webapp/lib/plan-reminders-view';
 import { isPoolSegment } from '@webapp/lib/pool';
 import { parseCurrencyMode, parseGroup, parseTab } from '@webapp/lib/portfolios-view';
 import { getAccountsScreen } from '@webapp/server/accounts-screen';
 import { getHolders } from '@webapp/server/holders';
-import { getPlanReminders } from '@webapp/server/plan-reminders';
+import { getOpenNotifications } from '@webapp/server/plan-reminders';
 import { getPoolPermissions } from '@webapp/server/pool';
 import {
   getAccounts,
@@ -56,7 +56,7 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
       // The value on each chip, in the portfolio's own currency like the prototype.
       Promise.all(portfolios.map((p) => getPortfolioSummary(poolId, p.id, 'portfolio'))),
       getAccountsScreen(poolId),
-      getPlanReminders(poolId),
+      getOpenNotifications(poolId),
     ]);
   const allValue = (await getPortfolioSummary(poolId, '', 'base')).valueAll;
 
@@ -99,7 +99,10 @@ export async function PortfoliosPage({ poolId, portfolioId, searchParams }: Port
           assetsById: new Map(assets.map((asset) => [asset.id, asset])),
           accounts,
           plans,
-          reminders: remindersOf(due.reminders, selected || null),
+          reminders: remindersOf(
+            buildPlanReminders(due, plans, assets, portfolios),
+            selected || null,
+          ),
           holders: holders.map((holder) => ({ id: holder.id, name: holder.name })),
           permissions: {
             ops: permissions.includes('ops.write'),

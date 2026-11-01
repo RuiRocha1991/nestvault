@@ -1,25 +1,22 @@
 'use client';
 
-import { Button, Chip, cn, formatMoney } from '@nestvault/ui';
-import { BellRing, Check, Play } from 'lucide-react';
+import { Button, Card, CardHeader, Chip, cn, formatMoney, useToast } from '@nestvault/ui';
+import { Check, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
-import {
-  formatPeriod,
-  markReadRequest,
-  registerRequest,
-  type PlanReminderView,
-} from '@webapp/lib/plan-reminders-view';
+import { AssetCell } from '@webapp/components/portfolios/asset-badge';
+import { formatPeriod, type PlanReminderView } from '@webapp/lib/plan-reminders-view';
 import { postJson } from '@webapp/lib/post-json';
+import { createReminderActions, type ReminderNotice } from '@webapp/lib/reminder-actions';
 
 export interface PlanRemindersProps {
   poolId: string;
   reminders: readonly PlanReminderView[];
   /**
-   * `banner`: the unread reminders on top of the overview (reading one dismisses it).
-   * `list`: every open reminder, read ones dimmed, with the unread badge.
+   * `banner`: the unread reminders on top of the overview (marking one as read dismisses it).
+   * `list`: every open reminder, read ones labelled, with the unread badge.
    */
   variant: 'banner' | 'list';
   /** `ops.write`: the server enforces it; without it the button is hidden. */
@@ -27,105 +24,118 @@ export interface PlanRemindersProps {
 }
 
 /**
- * "Investimento regular por registar" reminders. "Registar" runs the plan for the reminder's month
- * through the plan-run endpoint; the worker resolves the reminder once the buy exists, so the row
- * stays until then. Marking as read is personal (each member has their own state).
+ * "Investimentos regulares por registar" (the prototype's warn-bordered card): asset, amount, plan
+ * day and portfolio, and "Registar compra". It runs the plan for the reminder's month through the
+ * plan-run endpoint, which also resolves the reminder, so the row goes away after the refresh.
+ * Marking as read is personal (each member has their own state).
  */
 export function PlanReminders({ poolId, reminders, variant, canRegister }: PlanRemindersProps) {
   const t = useTranslations('notifications.planReminder');
   const router = useRouter();
+  const toast = useToast();
+  const region = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+
+  // The actions read the latest `t`, `router` and `toast` without being rebuilt: the in-flight
+  // guard lives in them.
+  const latest = useRef({ t, router, toast });
+  latest.current = { t, router, toast };
+  const actions = useMemo(
+    () =>
+      createReminderActions(poolId, {
+        post: postJson,
+        refresh: () => {
+          latest.current.router.refresh();
+        },
+        notify: (notice: ReminderNotice) => {
+          latest.current.toast.show(latest.current.t(`notices.${notice}`));
+        },
+        setBusy,
+        // The clicked row is about to go away: keep the keyboard user in the card.
+        settled: () => region.current?.focus(),
+      }),
+    [poolId],
+  );
 
   const shown = variant === 'banner' ? reminders.filter((r) => !r.read) : reminders;
   const unread = reminders.filter((r) => !r.read).length;
   if (shown.length === 0) return null;
 
-  async function send(id: string, request: () => Promise<Response>) {
-    if (busy) return;
-    setBusy(id);
-    setFailed(false);
-    try {
-      const response = await request();
-      if (response.ok) router.refresh();
-      else setFailed(true);
-    } catch {
-      setFailed(true);
-    }
-    setBusy(null);
-  }
-
-  const call = ({ path, body }: { path: string; body: unknown }) => postJson(path, body);
-  const markRead = (r: PlanReminderView) => send(r.id, () => call(markReadRequest(poolId, r)));
-  const register = (r: PlanReminderView) => send(r.id, () => call(registerRequest(poolId, r)));
-
   return (
-    <section
-      aria-label={t('region')}
+    <div
+      ref={region}
+      tabIndex={-1}
+      className="outline-none"
       data-testid={`plan-reminders-${variant}`}
-      className="flex flex-col gap-2 rounded-md border border-warn bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] px-3 py-2.5"
     >
-      {variant === 'list' && (
-        <header className="flex items-center gap-2 text-md font-semibold">
-          <BellRing aria-hidden className="size-[18px] text-warn" />
-          {t('title')}
-          {unread > 0 && (
-            <Chip tone="warn" data-testid="plan-reminders-unread">
-              {t('unread', { count: unread })}
-            </Chip>
-          )}
-        </header>
-      )}
-      <ul className="m-0 flex list-none flex-col gap-2 p-0">
-        {shown.map((r) => (
-          <li
-            key={r.id}
-            data-testid="plan-reminder"
-            className={cn('flex flex-wrap items-center gap-2 text-md', r.read && 'text-fg-3')}
-          >
-            {variant === 'banner' && (
-              <BellRing aria-hidden className="size-[18px] shrink-0 text-warn" />
-            )}
-            <span className="mr-auto">
-              {t('message', {
-                ticker: r.ticker,
-                amount: formatMoney(r.amount),
-                period: formatPeriod(r.period),
-              })}
-            </span>
-            {canRegister && r.active && (
-              <Button
-                size="sm"
-                disabled={busy !== null}
-                onClick={() => {
-                  void register(r);
-                }}
+      <Card className="border border-warn" aria-busy={busy !== null}>
+        <CardHeader
+          title={t('title')}
+          headingLevel={3}
+          actions={
+            variant === 'list' &&
+            unread > 0 && (
+              <Chip tone="warn" data-testid="plan-reminders-unread">
+                {t('unread', { count: unread })}
+              </Chip>
+            )
+          }
+        />
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {shown.map((r) => {
+            const period = formatPeriod(r.period);
+            const working = busy === r.id;
+            return (
+              <li
+                key={r.id}
+                data-testid="plan-reminder"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2"
               >
-                <Play aria-hidden />
-                {t('register')}
-              </Button>
-            )}
-            {!r.read && (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy !== null}
-                onClick={() => {
-                  void markRead(r);
-                }}
-              >
-                <Check aria-hidden />
-                {t('markRead')}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {failed && (
-        <p role="alert" className="m-0 text-sm text-neg">
-          {t('failed')}
-        </p>
-      )}
-    </section>
+                <AssetCell ticker={r.ticker} type={r.assetType} compact />
+                <span className="text-md text-fg-2">
+                  {t('details', {
+                    amount: formatMoney(r.amount, r.currency),
+                    day: r.day,
+                    portfolio: r.portfolioName,
+                    period,
+                  })}
+                </span>
+                {r.read && <Chip>{t('read')}</Chip>}
+                <span className="grow" />
+                {!r.read && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy !== null}
+                    aria-label={t('markReadLabel', { ticker: r.ticker, period })}
+                    onClick={() => {
+                      void actions.markRead(r);
+                    }}
+                  >
+                    <Check aria-hidden />
+                    {t('markRead')}
+                  </Button>
+                )}
+                {canRegister && r.active && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={busy !== null}
+                    aria-label={t('registerLabel', { ticker: r.ticker, period })}
+                    className={cn(working && 'opacity-70')}
+                    onClick={() => {
+                      void actions.register(r);
+                    }}
+                  >
+                    <Play aria-hidden />
+                    {working ? t('registering') : t('register')}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    </div>
   );
 }

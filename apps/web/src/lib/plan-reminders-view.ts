@@ -1,4 +1,4 @@
-import type { NotificationDto, PlanDto } from '@nestvault/services';
+import type { AssetDto, NotificationDto, PlanDto, PortfolioDto } from '@nestvault/services';
 
 /** One plan reminder as the screens show it: the notification joined with its plan and asset. */
 export interface PlanReminderView {
@@ -8,55 +8,66 @@ export interface PlanReminderView {
   period: string;
   /** The caller's own read state. */
   read: boolean;
-  createdAt: string;
   ticker: string;
-  /** The plan's amount (decimal string). */
+  assetType: string;
+  /** The plan's amount, in the asset's currency. */
   amount: string;
+  currency: string;
+  /** Day of the month the plan buys on. */
+  day: number;
   portfolioId: string;
+  portfolioName: string;
   /** A paused plan cannot be registered from the reminder. */
   active: boolean;
-}
-
-export interface PlanRemindersView {
-  reminders: PlanReminderView[];
 }
 
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /**
- * Joins the open notifications with the plans and assets to build the reminders. The text is not
- * stored, so the UI builds it from these fields. A reminder whose plan is unknown (deleted
- * meanwhile) or whose period is missing is left out (`plan_reminder` is the only kind today): there is nothing to register.
+ * Joins the open notifications with the plans, assets and portfolios the caller already has. The
+ * text is not stored, so the UI builds it from these fields. A reminder is left out when there is
+ * nothing to register or nothing to show: its plan, asset or portfolio is unknown (deleted
+ * meanwhile) or its period is missing.
  */
 export function buildPlanReminders(
   notifications: readonly NotificationDto[],
-  plans: readonly PlanDto[],
-  tickers: ReadonlyMap<string, string>,
-): PlanRemindersView {
-  const byId = new Map(plans.map((plan) => [plan.id, plan]));
-  const reminders = notifications.flatMap((n): PlanReminderView[] => {
-    const plan = n.planId ? byId.get(n.planId) : undefined;
-    if (!plan || !n.period || !PERIOD.test(n.period)) return [];
+  plans: readonly Pick<PlanDto, 'id' | 'assetId' | 'portfolioId' | 'amount' | 'day' | 'active'>[],
+  assets: readonly Pick<AssetDto, 'id' | 'ticker' | 'type' | 'currency'>[],
+  portfolios: readonly Pick<PortfolioDto, 'id' | 'name'>[],
+): PlanReminderView[] {
+  const planById = new Map(plans.map((plan) => [plan.id, plan]));
+  const assetById = new Map(assets.map((asset) => [asset.id, asset]));
+  const portfolioById = new Map(portfolios.map((portfolio) => [portfolio.id, portfolio]));
+  // `plan_reminder` is the only notification kind today.
+  return notifications.flatMap((n): PlanReminderView[] => {
+    const plan = n.planId ? planById.get(n.planId) : undefined;
+    const asset = plan && assetById.get(plan.assetId);
+    const portfolio = plan && portfolioById.get(plan.portfolioId);
+    if (!plan || !asset || !portfolio || !asset.ticker || !n.period || !PERIOD.test(n.period)) {
+      return [];
+    }
     return [
       {
         id: n.id,
         planId: plan.id,
         period: n.period,
         read: n.read,
-        createdAt: n.createdAt,
-        ticker: tickers.get(plan.assetId) ?? '',
+        ticker: asset.ticker,
+        assetType: asset.type,
         amount: plan.amount,
+        currency: asset.currency,
+        day: plan.day,
         portfolioId: plan.portfolioId,
+        portfolioName: portfolio.name,
         active: plan.active,
       },
     ];
   });
-  return { reminders };
 }
 
 const base = (poolId: string) => `/api/v1/pools/${encodeURIComponent(poolId)}`;
 
-/** "Registar": the plan-run call for the month of the reminder (the server enforces `ops.write`). */
+/** "Registar compra": the plan-run call for the month of the reminder (the server enforces `ops.write`). */
 export function registerRequest(poolId: string, reminder: PlanReminderView) {
   return {
     path: `${base(poolId)}/plans/${encodeURIComponent(reminder.planId)}/run`,

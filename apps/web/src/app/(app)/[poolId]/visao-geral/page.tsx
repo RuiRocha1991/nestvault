@@ -36,7 +36,7 @@ export default async function OverviewPage({
       poolId={poolId}
       data={data}
       holders={holders.holders.map(({ id, name, color }) => ({ id, name, color }))}
-      reminders={planReminders.reminders}
+      reminders={planReminders}
       can={{
         addTransaction: permissions.includes('transactions.write'),
         addPortfolio: permissions.includes('portfolios.write'),

@@ -1,31 +1,56 @@
-import { NotFoundError } from '@nestvault/services';
+import { logger, NotFoundError } from '@nestvault/services';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 
-import { buildPlanReminders } from '@webapp/lib/plan-reminders-view';
+import { buildPlanReminders, type PlanReminderView } from '@webapp/lib/plan-reminders-view';
 
-import { getAssetsService, getNotificationsService, getPlansService } from './auth';
+import {
+  getAssetsService,
+  getNotificationsService,
+  getPlansService,
+  getPortfoliosService,
+} from './auth';
 
 /**
- * The open plan reminders of the pool with the caller's read state (once per page). Every read goes
- * through a service, which checks the session, the membership and `pool.read`.
+ * Runs an extra read of a page. A pool the caller cannot see keeps ending in the 404 page, but
+ * reminders are a nice-to-have: any other failure is logged (its type only, never a message or
+ * data) and the page renders without them.
  */
-export const getPlanReminders = cache(async (poolId: string) => {
+async function orNothing<T>(read: () => Promise<T>, empty: T): Promise<T> {
   try {
-    const h = await headers();
-    const [{ notifications }, { plans }, { assets }] = await Promise.all([
-      (await getNotificationsService()).list(h, poolId, {}),
-      (await getPlansService()).list(h, poolId),
-      (await getAssetsService()).list(h, poolId),
-    ]);
-    return buildPlanReminders(
-      notifications,
-      plans,
-      new Map(assets.map((asset) => [asset.id, asset.ticker])),
-    );
+    return await read();
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
-    throw error;
+    logger.warn(
+      { errorType: error instanceof Error ? error.name : typeof error },
+      'plan reminders unavailable',
+    );
+    return empty;
   }
-});
+}
+
+const listNotifications = async (poolId: string) =>
+  (await (await getNotificationsService()).list(await headers(), poolId, {})).notifications;
+
+/** The open plan notifications of the pool with the caller's read state (once per page). */
+export const getOpenNotifications = cache((poolId: string) =>
+  orNothing(() => listNotifications(poolId), []),
+);
+
+/**
+ * The reminders for a page that does not load plans, assets and portfolios itself (the overview).
+ * A page that has them calls `getOpenNotifications` and `buildPlanReminders` with its own data.
+ */
+export const getPlanReminders = cache((poolId: string): Promise<PlanReminderView[]> =>
+  orNothing(async () => {
+    const h = await headers();
+    const [notifications, { plans }, { assets }, { portfolios }] = await Promise.all([
+      listNotifications(poolId),
+      (await getPlansService()).list(h, poolId),
+      (await getAssetsService()).list(h, poolId),
+      (await getPortfoliosService()).list(h, poolId),
+    ]);
+    return buildPlanReminders(notifications, plans, assets, portfolios);
+  }, []),
+);

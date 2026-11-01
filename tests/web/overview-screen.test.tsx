@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ToastProvider } from '@nestvault/ui';
 import {
   OverviewScreen,
   type OverviewScreenProps,
@@ -25,7 +26,7 @@ const NBSP = '\u00a0';
 const wrap = (node: React.ReactNode) =>
   renderToStaticMarkup(
     <NextIntlClientProvider locale="pt-PT" messages={messages} timeZone="Europe/Lisbon">
-      {node}
+      <ToastProvider>{node}</ToastProvider>
     </NextIntlClientProvider>,
   );
 
@@ -265,17 +266,20 @@ describe('overview screen', () => {
       id: '0192f3a1-0000-7000-8000-000000000051',
       planId: '0192f3a1-0000-7000-8000-000000000040',
       period: '2026-10',
-      createdAt: '2026-10-15T09:00:00.000Z',
       ticker: 'VWCE',
+      assetType: 'etf',
       amount: '100',
+      currency: 'EUR',
+      day: 5,
+      portfolioName: 'Longo prazo',
       portfolioId: '0192f3a1-0000-7000-8000-000000000020',
       active: true,
     };
     expect(screen({ reminders: [{ ...base, read: false }] })).toContain(
-      'Investimento regular por registar: VWCE',
+      'Investimentos regulares por registar',
     );
     expect(screen({ reminders: [{ ...base, read: true }] })).not.toContain(
-      'Investimento regular por registar',
+      'Investimentos regulares por registar',
     );
     expect(screen()).not.toContain('plan-reminders-banner');
   });
