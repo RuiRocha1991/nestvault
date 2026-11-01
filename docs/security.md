@@ -259,7 +259,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `pool.read` (the read state is personal, so viewers keep their own; no write permission exists
   to deny); the reader is always the session user, never a body or query value, and the response
   carries the caller's own `read` flag only. A notification id of another pool answers 404 and
-  changes nothing. Marking as read is not audited (personal bookkeeping, no text or amounts).
+  changes nothing, and so does a resolved one (404, no read row). Marking as read is audited:
+  `notification.read` (target = the notification id, only when this call newly marks it) and
+  `notification.read_all` (meta `count`, none when nothing changed); ids and counts only, never
+  notification content. A repeated query key (`?status=a&status=b`) is rejected with 400.
   Verified by `tests/db/notifications.repo.integration.test.ts` (`expectIsolated`, injection
   payloads), `tests/services/notifications.integration.test.ts` and the generated route cases for
   `/notifications`.

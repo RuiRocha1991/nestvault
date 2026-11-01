@@ -6,11 +6,13 @@ import {
   type PoolRunner,
 } from '@nestvault/db';
 
+import { recordAudit } from '../audit/audit';
 import type { Auth } from '../auth/create-auth';
 import { requireSession } from '../auth/require-session';
 import { ForbiddenError, NotFoundError, ValidationError } from '../errors';
 import { can, requirePoolAccess } from '../guards/pool-access';
 import { parseId } from '../investments/checks';
+import { clientIpResolver } from '../rate-limit/client-ip';
 
 import {
   ListNotificationsQuery,
@@ -27,10 +29,15 @@ export interface NotificationsService {
   list(headers: Headers, poolId: string, query: unknown): Promise<NotificationListDto>;
   /**
    * Marks one notification as read for the caller only (`pool.read`: the read state is personal, so
-   * even a viewer keeps their own). Idempotent; a notification of another pool answers 404.
+   * even a viewer keeps their own). Idempotent. A notification that is not open in this pool
+   * (unknown, another pool's, resolved) answers 404. Audited as `notification.read` (the id only)
+   * when this call newly marks it; a repeat writes no entry.
    */
   markRead(headers: Headers, poolId: string, id: string): Promise<void>;
-  /** Marks every open notification of the pool as read for the caller only (`pool.read`). */
+  /**
+   * Marks every open notification of the pool as read for the caller only (`pool.read`). Audited as
+   * one `notification.read_all` entry with the count (none when nothing changed).
+   */
   markAllRead(headers: Headers, poolId: string): Promise<MarkAllReadDto>;
 }
 
@@ -48,11 +55,11 @@ function readerOf(ctx: PoolContext): string {
   return ctx.actor.userId;
 }
 
-// Read state is the caller's own bookkeeping, not household data, so marking as read is not written
-// to the audit log (it would only be noise); `notification_reads` keeps `read_at` per user.
+// Audit entries hold ids and counts only, never notification content.
 export function createNotificationsService(deps: NotificationsServiceDeps): NotificationsService {
   const { auth, identity } = deps;
   const run = deps.run ?? withPool;
+  const ipOf = clientIpResolver(deps.trustedProxyHops ?? 0);
 
   return {
     async list(headers, poolId, query) {
@@ -77,10 +84,16 @@ export function createNotificationsService(deps: NotificationsServiceDeps): Noti
       const ctx = await requirePoolAccess(identity, session, poolId);
       can(ctx, 'pool.read');
       const userId = readerOf(ctx);
-      const found = await run(ctx, (tx) =>
+      const result = await run(ctx, (tx) =>
         notificationsRepo.markRead(tx, ctx, notificationId, userId),
       );
-      if (!found) throw new NotFoundError();
+      if (result === 'missing') throw new NotFoundError();
+      if (result === 'marked') {
+        await recordAudit(identity, ctx, 'notification.read', {
+          target: notificationId,
+          ip: ipOf(headers),
+        });
+      }
     },
 
     async markAllRead(headers, poolId) {
@@ -89,6 +102,12 @@ export function createNotificationsService(deps: NotificationsServiceDeps): Noti
       can(ctx, 'pool.read');
       const userId = readerOf(ctx);
       const marked = await run(ctx, (tx) => notificationsRepo.markAllRead(tx, ctx, userId));
+      if (marked > 0) {
+        await recordAudit(identity, ctx, 'notification.read_all', {
+          meta: { count: marked },
+          ip: ipOf(headers),
+        });
+      }
       return MarkAllReadDto.parse({ marked });
     },
   };

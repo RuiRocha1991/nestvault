@@ -12,9 +12,11 @@ export type ListNotificationsQuery = z.input<typeof ListNotificationsQuery>;
  * and the ids through i18n. `read` is the caller's own state; what other members read is never shown.
  * A `plan_reminder` says the regular plan `planId` has no buy for `period` (`yyyy-mm`) yet.
  */
+const NotificationKind = z.enum(NOTIFICATION_KINDS);
+
 export const NotificationDto = z.object({
   id: z.uuid(),
-  kind: z.enum(NOTIFICATION_KINDS),
+  kind: NotificationKind,
   planId: z.uuid().nullable(),
   period: z.string().nullable(),
   createdAt: z.iso.datetime(),
@@ -36,7 +38,8 @@ export type MarkAllReadDto = z.infer<typeof MarkAllReadDto>;
 
 export const toNotificationDto = (row: OpenNotification): NotificationDto => ({
   id: row.id,
-  kind: row.kind as NotificationDto['kind'],
+  // Validated, not cast: a kind the DTO does not know fails here instead of reaching the client.
+  kind: NotificationKind.parse(row.kind),
   planId: row.planId,
   period: row.period,
   createdAt: row.createdAt.toISOString(),

@@ -3695,6 +3695,7 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     negatives: [
       { name: 'an unknown status', query: '?status=everything', expect: 400 },
       { name: 'an extra query parameter', query: '?poolId=x', expect: 400 },
+      { name: 'a repeated status', query: '?status=bogus&status=unread', expect: 400 },
     ],
   },
   {

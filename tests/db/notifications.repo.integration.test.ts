@@ -1,8 +1,10 @@
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   assetsRepo,
   newId,
+  NOTIFICATION_KINDS,
   notificationsRepo,
   plansRepo,
   portfoliosRepo,
@@ -66,6 +68,41 @@ async function reminders(tx: PoolTx, ctx: PoolContext, periods: string[]) {
   return { planId: plan.id, ids };
 }
 
+describe('notificationsRepo.markRead', () => {
+  it('says marked, already or missing, and writes no row for a resolved notification', async () => {
+    const { a } = createTwoPools();
+    const { ids } = await withPool(a.ctx, (tx) => reminders(tx, a.ctx, ['2026-01', '2026-02']));
+    const [open, resolved] = [ids[0] ?? '', ids[1] ?? ''];
+    await withPool(a.ctx, (tx) => notificationsRepo.resolve(tx, a.ctx, [resolved]));
+
+    const mark = (id: string) =>
+      withPool(a.ctx, (tx) => notificationsRepo.markRead(tx, a.ctx, id, USER));
+    expect(await mark(open)).toBe('marked');
+    expect(await mark(open)).toBe('already');
+    expect(await mark(resolved)).toBe('missing');
+    expect(await mark(newId())).toBe('missing');
+
+    const reads = await withPool(a.ctx, (tx) =>
+      tx.execute(sql`select notification_id from notification_reads`),
+    );
+    expect(reads.rows).toEqual([{ notification_id: open }]);
+  });
+});
+
+describe('notifications.kind', () => {
+  it('keeps NOTIFICATION_KINDS equal to the values of the CHECK constraint', async () => {
+    const { a } = createTwoPools();
+    const result = await withPool(a.ctx, (tx) =>
+      tx.execute(
+        sql`select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'notifications_kind_known'`,
+      ),
+    );
+    const def = String((result.rows[0] as { def?: string } | undefined)?.def);
+    const inDb = [...def.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort();
+    expect(inDb).toEqual([...NOTIFICATION_KINDS].sort());
+  });
+});
+
 describe('notificationsRepo.markAllRead', () => {
   it('marks the open notifications for one user only and is idempotent', async () => {
     const { a } = createTwoPools();
@@ -87,6 +124,10 @@ describe('notificationsRepo.markAllRead', () => {
     const { ids } = await withPool(a.ctx, (tx) => reminders(tx, a.ctx, ['2026-01', '2026-02']));
     await withPool(a.ctx, (tx) => notificationsRepo.resolve(tx, a.ctx, [ids[0] ?? '']));
     expect(await withPool(a.ctx, (tx) => notificationsRepo.markAllRead(tx, a.ctx, USER))).toBe(1);
+    const reads = await withPool(a.ctx, (tx) =>
+      tx.execute(sql`select notification_id from notification_reads`),
+    );
+    expect(reads.rows).toEqual([{ notification_id: ids[1] }]);
   });
 });
 
@@ -101,7 +142,10 @@ describe('notifications isolation', () => {
   it('listOpen finds nothing of pool B', () =>
     check((tx, ctxA) => notificationsRepo.listOpen(tx, ctxA, USER)));
   it('markRead marks nothing of pool B', () =>
-    check((tx, ctxA, s) => notificationsRepo.markRead(tx, ctxA, s.ids[0] ?? '', USER)));
+    check(async (tx, ctxA, s) => {
+      const result = await notificationsRepo.markRead(tx, ctxA, s.ids[0] ?? '', USER);
+      return result === 'missing' ? undefined : result; // 'missing' is the empty answer
+    }));
   it('markAllRead marks nothing of pool B', () =>
     check((tx, ctxA) => notificationsRepo.markAllRead(tx, ctxA, USER)));
 });

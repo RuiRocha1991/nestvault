@@ -144,6 +144,10 @@
     {
       "key": "transactionId",
       "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
     }
   ],
   "item": [
@@ -7739,10 +7743,24 @@
                 "read"
               ]
             },
-            "description": "Any member. Marks it read for you only (idempotent); other members keep their own state. A notification of another pool answers 404."
+            "description": "Any member. Marks it read for you only (idempotent); other members keep their own state. A notification that is not open in this pool (unknown, another pool, resolved) answers 404. Uses {{notificationId}}; when it is empty the pre-request script takes the first unread notification of {{poolId}} (so this request works when sent alone; it needs at least one unread notification, otherwise set notificationId by hand)."
           },
           "response": [],
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('notificationId')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/v1/pools/{{poolId}}/notifications?status=unread'), method: 'GET' }, (err, res) => {",
+                  "    const first = !err && res.code === 200 ? res.json().notifications[0] : undefined;",
+                  "    if (first) pm.collectionVariables.set('notificationId', first.id);",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {

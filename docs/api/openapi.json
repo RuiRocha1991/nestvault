@@ -28017,7 +28017,7 @@
       "get": {
         "operationId": "listNotifications",
         "summary": "The open notifications of the pool with my read state",
-        "description": "Any member may read. Newest first; resolved notifications are not listed. `read` is the caller's own state. `status=unread` keeps only unread ones; `unreadCount` always counts every unread open notification (the badge). The text is not stored: build it from `kind`, `planId` and `period` (a `plan_reminder` says the plan has no buy for `period`, `yyyy-mm`). An unknown `status` or extra query parameter answers 400.",
+        "description": "Any member may read. Newest first; resolved notifications are not listed. `read` is the caller's own state. `status=unread` keeps only unread ones; `unreadCount` always counts every unread open notification (the badge). The text is not stored: build it from `kind`, `planId` and `period` (a `plan_reminder` says the plan has no buy for `period`, `yyyy-mm`). An unknown `status`, a repeated `status` or an extra query parameter answers 400.",
         "tags": [
           "Notifications"
         ],
@@ -28169,7 +28169,7 @@
       "post": {
         "operationId": "markNotificationRead",
         "summary": "Mark one notification as read (for me only)",
-        "description": "Any member. Idempotent. Other members keep their own state. A notification that does not exist in this pool (including one of another pool) answers 404.",
+        "description": "Any member. Idempotent. Other members keep their own state. A notification that is not open in this pool (unknown, of another pool, or resolved) answers 404. The first time it is audited as `notification.read` (id only); a repeat writes no entry.",
         "tags": [
           "Notifications"
         ],
@@ -28199,16 +28199,6 @@
           },
           "401": {
             "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed (permission, or a request from another origin)",
             "content": {
               "application/json": {
                 "schema": {
@@ -28254,7 +28244,7 @@
       "post": {
         "operationId": "markAllNotificationsRead",
         "summary": "Mark every open notification as read (for me only)",
-        "description": "Any member. `marked` is how many changed from unread to read for the caller; calling it again answers 0. Other members keep their own state.",
+        "description": "Any member. `marked` is how many changed from unread to read for the caller; calling it again answers 0. Audited as one `notification.read_all` entry with the count (none when 0). Other members keep their own state.",
         "tags": [
           "Notifications"
         ],
@@ -28291,16 +28281,6 @@
           },
           "401": {
             "description": "Not signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed (permission, or a request from another origin)",
             "content": {
               "application/json": {
                 "schema": {

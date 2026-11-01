@@ -1,5 +1,8 @@
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { notificationsRepo } from '@nestvault/db';
+import { createPoolContext } from '@nestvault/db/pool-context-factory';
 import {
   logger,
   NotFoundError,
@@ -9,6 +12,7 @@ import {
 } from '@nestvault/services';
 
 import { createApiWorld, type ApiWorld, type Scenario } from '../support/api-world';
+import { rows } from '../support/auth-harness';
 import { notificationIn } from '../support/route-registry';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 180_000 });
@@ -31,6 +35,23 @@ afterAll(async () => {
 
 const list = async (persona: Parameters<Scenario['as']>[0], query: unknown = {}, pool = s.poolA) =>
   world.notifications.list(await s.as(persona), pool, query);
+
+const audit = (action: string) =>
+  rows<{ target: string | null; meta: unknown; user_id: string | null }>(
+    world.identity,
+    sql`select target, meta, user_id from audit_log where action = ${action} and pool_id = ${s.poolA} order by at`,
+  );
+
+/** Resolves a notification of pool A, as the worker does once the buy exists. */
+const resolve = (id: string) => {
+  const ctx = createPoolContext({
+    poolId: s.poolA,
+    actor: { kind: 'system' },
+    role: 'system',
+    permissions: [],
+  });
+  return world.database.withPool(ctx, (tx) => notificationsRepo.resolve(tx, ctx, [id]));
+};
 
 describe('list', () => {
   it('lists the open notifications of the pool with the caller’s own read state', async () => {
@@ -94,6 +115,7 @@ describe('list', () => {
       { status: "' OR 1=1 --" },
       { status: 'unread', poolId: s.poolB },
       { limit: '5' },
+      { status: ['bogus', 'unread'] },
     ]) {
       await expect(list('owner', query)).rejects.toBeInstanceOf(ValidationError);
     }
@@ -148,6 +170,36 @@ describe('markRead', () => {
   });
 });
 
+describe('markRead: resolved and audit', () => {
+  it('answers 404 for a resolved notification and writes no audit entry', async () => {
+    const one = await notificationIn(s, 'A');
+    await resolve(one.id);
+    await expect(
+      world.notifications.markRead(await s.as('owner'), s.poolA, one.id),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(await audit('notification.read')).toHaveLength(0);
+  });
+
+  it('audits the id once per newly marked notification, never content', async () => {
+    const one = await notificationIn(s, 'A', '2026-03');
+    const two = await notificationIn(s, 'A', '2026-04');
+    const owner = await s.as('owner');
+    await world.notifications.markRead(owner, s.poolA, one.id);
+    await world.notifications.markRead(owner, s.poolA, one.id); // repeat: no new entry
+    await world.notifications.markRead(owner, s.poolA, two.id);
+    await world.notifications.markRead(await s.as('member'), s.poolA, one.id);
+    const entries = await audit('notification.read');
+    expect(entries.map((e) => e.target)).toEqual([one.id, two.id, one.id]);
+    expect(entries.map((e) => e.user_id)).toEqual([s.ids.owner, s.ids.owner, s.ids.member]);
+    const everything = await rows(
+      world.identity,
+      sql`select * from audit_log where pool_id = ${s.poolA}`,
+    );
+    expect(JSON.stringify(everything)).not.toContain('plan_reminder');
+    expect(JSON.stringify(everything)).not.toContain(one.planId);
+  });
+});
+
 describe('markAllRead', () => {
   it('marks everything for the caller only and answers how many', async () => {
     await notificationIn(s, 'A', '2026-03');
@@ -172,5 +224,17 @@ describe('markAllRead', () => {
     await expect(world.notifications.markAllRead(new Headers(), s.poolA)).rejects.toBeInstanceOf(
       UnauthorizedError,
     );
+  });
+
+  it('writes one audit entry with the count, none when nothing changed', async () => {
+    await notificationIn(s, 'A', '2026-03');
+    await notificationIn(s, 'A', '2026-04');
+    const owner = await s.as('owner');
+    await world.notifications.markAllRead(owner, s.poolA);
+    await world.notifications.markAllRead(owner, s.poolA);
+    const entries = await audit('notification.read_all');
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.meta).toEqual({ count: 2 });
+    expect(entries[0]?.target).toBeNull();
   });
 });
