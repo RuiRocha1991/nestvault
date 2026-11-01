@@ -45,6 +45,10 @@ DO $$ BEGIN
      AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
     GRANT EXECUTE ON FUNCTION public.request_pool_job(text) TO app_rw;
   END IF;
+  -- reconcile_worker_pools() (NES-150) is the only way the worker changes worker_pools.
+  IF to_regprocedure('public.reconcile_worker_pools()') IS NOT NULL THEN
+    GRANT EXECUTE ON FUNCTION public.reconcile_worker_pools() TO worker_rw;
+  END IF;
 END $$;
 SQL
 done

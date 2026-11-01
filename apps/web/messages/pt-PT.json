@@ -1228,6 +1228,7 @@
       "deposit": "Depósitos",
       "interest": "Juros",
       "note": "Notas",
+      "notification": "Notificações",
       "import": "Importações"
     },
     "actions": {
@@ -1379,10 +1380,15 @@
       "note": {
         "updated": "Nota alterada"
       },
+      "notification": {
+        "read": "Notificação lida",
+        "readAll": "Notificações lidas"
+      },
       "import": {
         "uploaded": "Extrato carregado",
         "committed": "Importação confirmada",
-        "discarded": "Importação descartada"
+        "discarded": "Importação descartada",
+        "realestateCommitted": "Importação de imobiliário confirmada"
       }
     },
     "table": {
@@ -1798,6 +1804,26 @@
       "movementDeleted": "Movimento apagado",
       "categorySaved": "Categoria guardada",
       "categoryDeleted": "Categoria apagada"
+    }
+  },
+  "notifications": {
+    "planReminder": {
+      "title": "Investimentos regulares por registar",
+      "unread": "{count} por ler",
+      "details": "{amount} · dia {day} · {portfolio} · {period}",
+      "read": "Lido",
+      "register": "Registar compra",
+      "registering": "A registar…",
+      "registerLabel": "Registar compra de {ticker} ({period})",
+      "markRead": "Marcar como lido",
+      "markReadLabel": "Marcar como lido: {ticker} ({period})",
+      "notices": {
+        "registered": "Compra registada",
+        "notFound": "Este lembrete já não existe: o plano foi apagado ou a compra já foi registada.",
+        "forbidden": "Não tens permissão para fazer isto.",
+        "inactive": "Este plano está em pausa. Ativa-o para registar a compra.",
+        "failed": "Não foi possível concluir a ação. Tenta outra vez."
+      }
     }
   },
   "notes": {
@@ -2785,6 +2811,94 @@
       "nominal": "Valorização nominal",
       "real": "Valorização real",
       "note": "As taxas anuais são compostas ({compounded} acumulado), não somadas ({summed}). A alteração do IPC aplica-se só a esta página."
+    },
+    "import": {
+      "open": "Importar folha de cálculo",
+      "title": "Importar folha de cálculo",
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "back": "Escolher outro ficheiro",
+      "choose": "Escolher ficheiro",
+      "inputLabel": "Ficheiro a importar (.xlsx ou .csv)",
+      "prompt": "Largue aqui a folha de cálculo ou um modelo CSV",
+      "hint": "Aceitamos a folha do crédito habitação (.xlsx) e os modelos CSV de prestações e de pagamentos de obras, até 10 MB. As fórmulas não são calculadas: só os valores guardados no ficheiro.",
+      "templates": "Modelos CSV",
+      "templateInstallments": "Prestações",
+      "templateWorks": "Pagamentos de obras",
+      "reading": "A ler o ficheiro…",
+      "detected": "Detetado automaticamente · {percent}",
+      "sheet": "Folha",
+      "what": "O que vai ser importado",
+      "rows": "Linhas",
+      "action": "Ação",
+      "csvFile": "Ficheiro CSV",
+      "actions": {
+        "import": "Importar",
+        "recalculated": "Recalculado",
+        "shown": "Só leitura"
+      },
+      "shownNotStored": "O IPC é lido e mostrado, mas a aplicação ainda não o guarda: não conta nas linhas a importar. Podes editá-lo no separador de venda.",
+      "recalculated": "Calculados pela app a partir das prestações",
+      "sheets": {
+        "installments": "Prestações (capital, juros, comissões, imposto, seguros)",
+        "prepayments": "Amortizações antecipadas",
+        "works": "Obras: orçamento, fornecedor, entrada, estado",
+        "payments": "Fases de pagamento das obras",
+        "inflation": "IPC anual",
+        "csvInstallments": "Prestações do ficheiro CSV",
+        "csvPayments": "Pagamentos de obras do ficheiro CSV",
+        "other": "Dados do ficheiro"
+      },
+      "costs": "Custos de aquisição: {total}",
+      "fields": "Campos de prestação ativados por terem valores: {fields}",
+      "field": {
+        "lifeInsurance": "Seguro vida",
+        "homeInsurance": "Seguro casa",
+        "creditInsurance": "Seguro crédito",
+        "fees": "Comissões",
+        "stampTax": "Imposto de selo"
+      },
+      "noticeTitle": "Antes de importar:",
+      "noticeCredit": "o seguro de crédito ({amount}) não entra nos totais da folha e passa a contar no custo do crédito.",
+      "noticeInflation": "A inflação passa a ser composta ({compounded}) em vez de somada ({summed}).",
+      "update": "Atualizar prestações existentes sem duplicar",
+      "updateHint": "Notas, o estado das prestações e das obras, pagamentos já marcados e ligações a movimentos bancários nunca são substituídos por uma importação.",
+      "plan": "Vai criar {created}, atualizar {updated} e deixar {unchanged} como estão.",
+      "nothingNew": "Não há nada de novo neste ficheiro: tudo já está na aplicação.",
+      "rejected": "{count} linhas ou valores não podem ser guardados (negativos ou demasiado grandes) e são ignorados.",
+      "kept": "{count} fases de pagamento já marcadas como pagas ou ligadas a movimentos bancários não são alteradas.",
+      "needsLoan": "Este ficheiro tem prestações, mas o imóvel ainda não tem um crédito. Cria o crédito primeiro.",
+      "warnings": "Avisos do ficheiro",
+      "warning": {
+        "installmentsWithoutValues": "{count} prestações sem valores guardados (fórmulas por calcular) foram ignoradas.",
+        "installmentsRepeated": "{count} números de prestação repetidos foram ignorados.",
+        "prepaymentsTableMissing": "A folha das amortizações não tem uma tabela reconhecida.",
+        "worksTableMissing": "A folha das obras não tem uma tabela reconhecida.",
+        "paymentsTableMissing": "A folha dos pagamentos não tem uma tabela reconhecida.",
+        "inflationTableMissing": "A folha da inflação não tem uma tabela anual reconhecida.",
+        "paymentsPaidWithoutDate": "{count} pagamentos marcados como pagos não têm data de pagamento e ficam como previstos.",
+        "depositReadAsFraction": "{count} entradas abaixo de 1 foram lidas como fração (0,25 = 25 %).",
+        "depositOneReadAsPercent": "{count} entradas com o valor 1 foram lidas como 1 %, não como 100 %.",
+        "prepaymentRemovedFromCapital": "{count} prestações incluíam uma amortização antecipada no capital: ficam guardadas só com o capital normal e a amortização conta uma vez.",
+        "prepaymentNotInCapital": "{count} amortizações antecipadas não estavam incluídas no capital da prestação: nada foi subtraído.",
+        "stampDutyNotFound": "O imposto de selo da compra não foi encontrado na secção de custos de aquisição: não é importado.",
+        "rowsNotInstallments": "{count} linhas não são prestações válidas e foram ignoradas.",
+        "rowsNotPayments": "{count} linhas não são pagamentos válidos e foram ignoradas.",
+        "unknown": "O ficheiro tem um aviso que a aplicação não reconhece."
+      },
+      "submit": "Importar {count} linhas",
+      "submitting": "A importar…",
+      "done": "Importação concluída: {created} criadas, {updated} atualizadas, {unchanged} já existiam.",
+      "problem": {
+        "invalid": "O ficheiro não é válido.",
+        "tooLarge": "O ficheiro é maior do que 10 MB.",
+        "unsupported": "Só aceitamos ficheiros .xlsx e .csv.",
+        "unrecognised": "Não reconhecemos este ficheiro como uma folha de crédito habitação ou um modelo CSV.",
+        "forbidden": "A tua função neste agregado não permite importar.",
+        "limit": "Fizeste demasiados envios. Tenta novamente daqui a pouco.",
+        "conflict": "O crédito foi alterado entretanto. Tenta novamente.",
+        "generic": "Não foi possível importar. Tenta novamente dentro de instantes."
+      }
     }
   }
 }

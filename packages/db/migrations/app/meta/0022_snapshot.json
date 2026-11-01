@@ -1,5 +1,5 @@
 {
-  "id": "e2765d3c-aed1-414e-8ac4-8e9cbb972bd2",
+  "id": "1289c3cb-d6b9-4b32-8b6e-f3fd2bac94bc",
   "prevId": "60442a2e-d7e0-4eef-a5b6-fe0a1c9b239b",
   "version": "7",
   "dialect": "postgresql",
@@ -3154,6 +3154,13 @@
           "notNull": true,
           "default": "now()"
         },
+        "activated_at": {
+          "name": "activated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
@@ -5865,58 +5872,6 @@
         "net_worth_snapshots_by_ccy_object": {
           "name": "net_worth_snapshots_by_ccy_object",
           "value": "jsonb_typeof(\"net_worth_snapshots\".\"by_ccy\") = 'object'"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.job_requests": {
-      "name": "job_requests",
-      "schema": "",
-      "columns": {
-        "pool_id": {
-          "name": "pool_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "job_name": {
-          "name": "job_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "requested_at": {
-          "name": "requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "job_requests_pool_id_job_name_pk": {
-          "name": "job_requests_pool_id_job_name_pk",
-          "columns": [
-            "pool_id",
-            "job_name"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "job_requests_job_known": {
-          "name": "job_requests_job_known",
-          "value": "\"job_requests\".\"job_name\" in ('deposits.link')"
         }
       },
       "isRLSEnabled": false

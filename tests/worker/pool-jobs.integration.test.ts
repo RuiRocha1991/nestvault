@@ -18,10 +18,11 @@ import {
   type PoolTx,
 } from '@nestvault/db';
 import { depositSchedule } from '@nestvault/domain';
-import { createLogger } from '@nestvault/services';
+import { createLogger, remindPlansInPool } from '@nestvault/services';
 
 import { createWorkerPoolRunner } from '../../apps/worker/src/database';
 import { createDepositsLinkJob, createPlansRemindJob } from '../../apps/worker/src/jobs/pool-jobs';
+import { createPoolsReconcileJob } from '../../apps/worker/src/jobs/pools-reconcile';
 import { failureCodeOf, openTestDatabase, createTwoPools } from '../db/harness';
 
 // Every test works in pools of its own (random ids), so it needs no truncate and cannot disturb a
@@ -186,7 +187,7 @@ describe('deposits.link', () => {
 describe('plans.remind', () => {
   const job = createPlansRemindJob({ db: worker.db, withPool: workerWithPool, now: () => TODAY });
 
-  async function planPool(ctx: PoolContext, day = 5, existed = true) {
+  async function planPool(ctx: PoolContext, day = 5, existed: string | boolean = true) {
     const made = await withPool(ctx, async (tx) => {
       const portfolio = await portfoliosRepo.insert(tx, ctx, newId(), {
         name: 'Reforma',
@@ -217,19 +218,19 @@ describe('plans.remind', () => {
       });
       return { portfolio, asset, plan };
     });
-    if (existed) await backdate(ctx.poolId, made.plan.id);
+    if (existed) {
+      await backdate(ctx.poolId, made.plan.id, typeof existed === 'string' ? existed : undefined);
+    }
     return made;
   }
 
-  /** The jobs run "in June": plans are backdated so they existed before their day. */
-  const backdate = (poolId: string, planId: string) =>
+  /** The jobs run "in June": plans are backdated so they were active before their day. */
+  const backdate = (poolId: string, planId: string, at = '2026-06-01T00:00:00Z') =>
     database.asMigrator(async (pool) => {
       // The owner is bound by FORCE RLS too: the pool is set on the single connection first.
       await pool.query("select set_config('app.pool_id', $1, false)", [poolId]);
       try {
-        await pool.query("update plans set updated_at = '2026-05-01T00:00:00Z' where id = $1", [
-          planId,
-        ]);
+        await pool.query('update plans set activated_at = $2 where id = $1', [planId, at]);
       } finally {
         await pool.query("select set_config('app.pool_id', '', false)");
       }
@@ -312,6 +313,138 @@ describe('plans.remind', () => {
     expect(await open(a.ctx)).toEqual([]);
   });
 
+  const buyFor = (
+    ctx: PoolContext,
+    made: Awaited<ReturnType<typeof planPool>>,
+    date: string,
+    planPeriod: string | null,
+  ) =>
+    withPool(ctx, (tx) =>
+      investmentOpsRepo.insert(tx, ctx, newId(), {
+        portfolioId: made.portfolio.id,
+        assetId: made.asset.id,
+        accountId: null,
+        subAccountId: null,
+        type: 'buy',
+        date,
+        qty: '1',
+        price: '100',
+        fee: null,
+        amount: null,
+        gross: null,
+        tax: null,
+        fromCash: false,
+        planId: planPeriod ? made.plan.id : null,
+        planPeriod,
+        extId: null,
+        note: null,
+      }),
+    );
+
+  it('catches up the months missed while the worker was down, inside the window, once', async () => {
+    const { a } = createTwoPools();
+    // Active since March; today is June 10, plan day 5: April, May and June are late, March is out of the window.
+    const made = await planPool(a.ctx, 5, '2026-03-01T00:00:00Z');
+    await buyFor(a.ctx, made, '2026-05-07', null); // a manual buy of the asset answers May
+
+    const first = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    expect(first).toEqual({ raised: 2, resolved: 0, expired: 0 });
+    expect((await open(a.ctx)).map((n) => n.period).sort()).toEqual(['2026-04', '2026-06']);
+
+    const again = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    expect(again).toEqual({ raised: 0, resolved: 0, expired: 0 });
+  });
+
+  it('expires open reminders of months older than the window, and resolves the answered ones', async () => {
+    const { a } = createTwoPools();
+    const made = await planPool(a.ctx, 5, '2026-01-01T00:00:00Z');
+    // The worker ran in March and raised that month's reminder, then it was down until June.
+    await withPool(a.ctx, (tx) =>
+      notificationsRepo.raisePlanReminder(tx, a.ctx, newId(), made.plan.id, '2026-03'),
+    );
+    await withPool(a.ctx, (tx) =>
+      notificationsRepo.raisePlanReminder(tx, a.ctx, newId(), made.plan.id, '2026-04'),
+    );
+    await buyFor(a.ctx, made, '2026-04-06', '2026-04'); // April was bought meanwhile
+
+    const outcome = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    expect(outcome).toEqual({ raised: 2, resolved: 1, expired: 1 });
+    expect((await open(a.ctx)).map((n) => n.period).sort()).toEqual(['2026-05', '2026-06']);
+    // The expired month is not raised again: it is out of the window and the row stays as a record.
+    const again = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    expect(again).toEqual({ raised: 0, resolved: 0, expired: 0 });
+  });
+
+  it('counts a plan from the day it was switched on, not from its last edit', async () => {
+    const { a } = createTwoPools();
+    const made = await planPool(a.ctx, 5, '2026-05-20T00:00:00Z'); // active since May 20: May 5 never applied
+    const values = {
+      portfolioId: made.portfolio.id,
+      assetId: made.asset.id,
+      accountId: null,
+      subAccountId: null,
+      amount: '250',
+      day: 5,
+      active: true,
+    };
+    // Editing the amount after the day keeps the activation date...
+    const edited = await withPool(a.ctx, (tx) => plansRepo.update(tx, a.ctx, made.plan.id, values));
+    expect(edited?.activatedAt.toISOString()).toBe('2026-05-20T00:00:00.000Z');
+    await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    expect((await open(a.ctx)).map((n) => n.period)).toEqual(['2026-06']);
+
+    // ...and switching it off and on again starts a new activation.
+    await withPool(a.ctx, (tx) =>
+      plansRepo.update(tx, a.ctx, made.plan.id, { ...values, active: false }),
+    );
+    const back = await withPool(a.ctx, (tx) => plansRepo.update(tx, a.ctx, made.plan.id, values));
+    expect(back?.activatedAt.getTime()).toBeGreaterThan(Date.parse('2026-06-10T00:00:00Z'));
+  });
+
+  it('reminds for February on its last day, and the window crosses the year', async () => {
+    const { a } = createTwoPools();
+    await planPool(a.ctx, 28, '2025-11-01T00:00:00Z');
+    // March 10: the window is January to March; the 28th of January and February have passed, March's has not.
+    const outcome = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-03-10'));
+    expect(outcome.raised).toBe(2);
+    expect((await open(a.ctx)).map((n) => n.period).sort()).toEqual(['2026-01', '2026-02']);
+  });
+
+  it('does not take a manual buy from before the plan was activated as its answer', async () => {
+    const { a, b } = createTwoPools();
+    // Both plans are active since June 3 and due on June 5: the day counts for them.
+    const before = await planPool(a.ctx, 5, '2026-06-03T00:00:00Z');
+    await buyFor(a.ctx, before, '2026-06-01', null); // bought two days before the plan existed
+    const after = await planPool(b.ctx, 5, '2026-06-03T00:00:00Z');
+    await buyFor(b.ctx, after, '2026-06-04', null); // bought after it
+    await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    await withPool(b.ctx, (tx) => remindPlansInPool(tx, b.ctx, '2026-06-10'));
+    expect((await open(a.ctx)).map((n) => n.period)).toEqual(['2026-06']);
+    expect(await open(b.ctx)).toEqual([]);
+  });
+
+  it('moves the activation date forward when the plan day moves earlier, not when it moves later', async () => {
+    const { a } = createTwoPools();
+    const made = await planPool(a.ctx, 20, '2026-03-01T00:00:00Z');
+    const values = (day: number) => ({
+      portfolioId: made.portfolio.id,
+      assetId: made.asset.id,
+      accountId: null,
+      subAccountId: null,
+      amount: '100',
+      day,
+      active: true,
+    });
+    const later = await withPool(a.ctx, (tx) =>
+      plansRepo.update(tx, a.ctx, made.plan.id, values(25)),
+    );
+    expect(later?.activatedAt.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    const earlier = await withPool(a.ctx, (tx) =>
+      plansRepo.update(tx, a.ctx, made.plan.id, values(5)),
+    );
+    expect(earlier?.activatedAt.getTime()).toBeGreaterThan(Date.parse('2026-06-10T00:00:00Z'));
+  });
+
   it('keeps the read state per user', async () => {
     const { a } = createTwoPools();
     await planPool(a.ctx);
@@ -323,7 +456,7 @@ describe('plans.remind', () => {
       await withPool(a.ctx, (tx) =>
         notificationsRepo.markRead(tx, a.ctx, reminder?.id ?? '', user1),
       ),
-    ).toBe(true);
+    ).toBe('marked');
 
     expect((await open(a.ctx, user1))[0]?.read).toBe(true);
     expect((await open(a.ctx, user2))[0]?.read).toBe(false);
@@ -341,7 +474,7 @@ describe('plans.remind', () => {
       await withPool(b.ctx, (tx) =>
         notificationsRepo.markRead(tx, b.ctx, reminder?.id ?? '', newId()),
       ),
-    ).toBe(false);
+    ).toBe('missing');
     expect(
       await failureCodeOf(
         withPool(b.ctx, (tx) =>
@@ -374,5 +507,136 @@ describe('worker_pools', () => {
       DELETE: false,
       TRUNCATE: false,
     });
+  });
+});
+
+describe('pools.reconcile', () => {
+  const job = createPoolsReconcileJob({ db: worker.db });
+  /** Runs SQL as the owner on the single connection, with no pool set (what a restore script would do). */
+  const asOwner = (sqlText: string, params: unknown[] = []) =>
+    database.asMigrator((pool) => pool.query(sqlText, params));
+
+  it('adds a pool whose accounts skipped the trigger and drops a pool with no data', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, (tx) => account(tx, a.ctx, 'checking', 'Ordem'));
+    // A restore: the data is there but the row of worker_pools never was.
+    await asOwner('delete from worker_pools where pool_id = $1', [a.poolId]);
+    expect(await workerPoolsRepo.list(worker.db)).not.toContain(a.poolId);
+    // A deleted pool: listed, but no account is left.
+    const gone = newId();
+    await asOwner('insert into worker_pools (pool_id) values ($1)', [gone]);
+
+    await job.execute({}, info('pools.reconcile'));
+
+    const listed = await workerPoolsRepo.list(worker.db);
+    expect(listed).toContain(a.poolId);
+    expect(listed).not.toContain(gone);
+    // Idempotent.
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toEqual(listed);
+  });
+
+  const portfolio = (ctx: PoolContext) =>
+    withPool(ctx, (tx) =>
+      portfoliosRepo.insert(tx, ctx, newId(), {
+        name: 'Reforma',
+        color: '#112233',
+        currency: 'EUR',
+        note: null,
+        targets: {},
+      }),
+    );
+
+  it('keeps a pool that has only a portfolio, and registers it when the portfolio is inserted', async () => {
+    const { a } = createTwoPools();
+    await portfolio(a.ctx); // no account at all
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // the trigger on portfolios
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // not swept away as "no accounts"
+    await asOwner('delete from worker_pools where pool_id = $1', [a.poolId]);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // and found again after a restore
+  });
+
+  it('finds a pool again from its plans when the triggers were skipped', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, async (tx) => {
+      const made = await portfoliosRepo.insert(tx, a.ctx, newId(), {
+        name: 'Reforma',
+        color: '#112233',
+        currency: 'EUR',
+        note: null,
+        targets: {},
+      });
+      const asset = await assetsRepo.insert(tx, a.ctx, newId(), {
+        ticker: 'VWCE',
+        symbol: null,
+        name: 'VWCE',
+        type: 'etf',
+        currency: 'EUR',
+        sector: null,
+        region: null,
+        dps: null,
+        divMonths: [],
+      });
+      await plansRepo.insert(tx, a.ctx, newId(), {
+        portfolioId: made.id,
+        assetId: asset.id,
+        accountId: null,
+        subAccountId: null,
+        amount: '100',
+        day: 5,
+        active: true,
+      });
+    });
+    await asOwner('delete from worker_pools where pool_id = $1', [a.poolId]);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
+  });
+
+  it('removes a pool once its last account, portfolio and plan are gone', async () => {
+    const { a } = createTwoPools();
+    const made = await portfolio(a.ctx);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
+    await withPool(a.ctx, (tx) => portfoliosRepo.remove(tx, a.ctx, made.id));
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).not.toContain(a.poolId);
+  });
+
+  it('waits for an account inserted in a transaction that has not committed, so it cannot drop its pool', async () => {
+    const { a } = createTwoPools();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let inserted: () => void = () => undefined;
+    const insertedSignal = new Promise<void>((resolve) => {
+      inserted = resolve;
+    });
+    // The first account of the pool: its trigger has written the worker_pools row, nothing is committed.
+    const writing = withPool(a.ctx, async (tx) => {
+      await account(tx, a.ctx, 'checking', 'Ordem');
+      inserted();
+      await gate;
+    });
+    await insertedSignal;
+    let finished = false;
+    const reconciling = workerPoolsRepo.reconcile(worker.db).then(() => {
+      finished = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(finished).toBe(false); // blocked by the lock until the account commits
+    release();
+    await writing;
+    await reconciling;
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
+  });
+
+  it('is the only way the worker changes the list, and the app role cannot call it', async () => {
+    expect(await failureCodeOf(workerPoolsRepo.reconcile(database.app.db))).toBe('42501');
+    expect(await failureCodeOf(worker.db.execute(sql`delete from worker_pools where true`))).toBe(
+      '42501',
+    );
   });
 });

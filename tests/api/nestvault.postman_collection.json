@@ -144,6 +144,10 @@
     {
       "key": "transactionId",
       "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
     }
   ],
   "item": [
@@ -7682,6 +7686,130 @@
       ]
     },
     {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications"
+              ]
+            },
+            "description": "Any member. The open notifications of the pool, newest first, with the caller's own read state. Add ?status=unread for the unread ones only. unreadCount is the badge. Resolved notifications and other pools' notifications are never listed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['notifications','unreadCount']));",
+                  "const first = pm.response.json().notifications[0]; if (first) { pm.collectionVariables.set('notificationId', first.id); pm.test('notification has exactly the documented fields', () => pm.expect(Object.keys(first).sort()).to.eql(['createdAt','id','kind','period','planId','read'])); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark a notification as read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Any member. Marks it read for you only (idempotent); other members keep their own state. A notification that is not open in this pool (unknown, another pool, resolved) answers 404. Uses {{notificationId}}; when it is empty the pre-request script takes the first unread notification of {{poolId}} (so this request works when sent alone; it needs at least one unread notification, otherwise set notificationId by hand)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('notificationId')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/v1/pools/{{poolId}}/notifications?status=unread'), method: 'GET' }, (err, res) => {",
+                  "    const first = !err && res.code === 200 ? res.json().notifications[0] : undefined;",
+                  "    if (first) pm.collectionVariables.set('notificationId', first.id);",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark all notifications as read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "Any member. Marks every open notification as read for you only. marked is how many changed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json())).to.eql(['marked']));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Import",
       "item": [
         {
@@ -8043,6 +8171,169 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Real estate imports",
+      "item": [
+        {
+          "name": "Preview a mortgage workbook or CSV template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "preview"
+              ]
+            },
+            "description": "Pro. Multipart upload: pick the mortgage workbook (.xlsx) or a CSV template in `file` (10 MB at most). `loanId` and `propertyId` are optional; with them the answer also says what importing would create, update or leave alone, with \"update existing\" off and on (`plan.keep`, `plan.update`). CPI rows are read and shown (`action: shown`) but not stored. Nothing is written. Needs `imports.run`. 415 for a file whose content is not what its name says, 413 over 10 MB, 422 when no real estate format recognises it, 429 after 20 uploads an hour per pool.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "loanId",
+                  "value": "{{loanId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "update",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has the detected format and the rows', () => { pm.expect(b.parserId).to.be.a('string'); pm.expect(b.rowCount).to.be.a('number'); pm.expect(b.sheets).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import a mortgage workbook or CSV template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "commit"
+              ]
+            },
+            "description": "Pro. Same upload as the preview; writes it in one transaction. Importing the same file twice adds nothing (two commits in parallel are serialized); existing rows change only with `update=true`, and notes, descriptions, the status of installments and works, the dates a work already has, phases marked paid by hand and links to bank movements are never touched. Needs `imports.run` and `realestate.write` (403 for members and viewers). 400 when the file has installments and no `loanId`, or works and no property.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "loanId",
+                  "value": "{{loanId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "update",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('says what was written', () => { pm.expect(b.result.installments).to.have.keys('create', 'update', 'unchanged', 'rejected'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download a CSV template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/templates/loan-installments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "templates",
+                "loan-installments"
+              ]
+            },
+            "description": "`loan-installments` or `works-payments`: a semicolon-separated CSV with a header and two example rows."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is a CSV attachment', () => { pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'); pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment'); });"
                 ]
               }
             }

@@ -49,6 +49,7 @@ export {
   workerPoolsRepo,
 } from './app/repositories/notifications.repo';
 export type {
+  MarkReadResult,
   NotificationRow,
   OpenNotification,
   PendingJobRequest,

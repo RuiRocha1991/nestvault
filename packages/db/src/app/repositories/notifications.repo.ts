@@ -13,6 +13,9 @@ import {
 
 export type { NotificationRow };
 
+/** What `markRead` did, see there. */
+export type MarkReadResult = 'marked' | 'already' | 'missing';
+
 /** An open notification with whether `userId` has read it. */
 export interface OpenNotification extends NotificationRow {
   read: boolean;
@@ -91,23 +94,57 @@ export const notificationsRepo = {
     return rows.map((row) => ({ ...row.notification, read: row.readAt !== null }));
   },
 
-  /** Records that `userId` read a notification of this pool; false when it is not one. */
+  /**
+   * Records that `userId` read an open notification of this pool: `marked` when this call did it,
+   * `already` when the user had read it, `missing` when it is not an open notification of this pool
+   * (unknown, another pool's, or resolved), in which case nothing is written.
+   */
   async markRead(
     tx: PoolTx,
     ctx: PoolContext,
     notificationId: string,
     userId: string,
-  ): Promise<boolean> {
+  ): Promise<MarkReadResult> {
     const [found] = await tx
       .select({ id: notifications.id })
       .from(notifications)
-      .where(and(eq(notifications.poolId, ctx.poolId), eq(notifications.id, notificationId)));
-    if (!found) return false;
-    await tx
+      .where(
+        and(
+          eq(notifications.poolId, ctx.poolId),
+          eq(notifications.id, notificationId),
+          isNull(notifications.resolvedAt),
+        ),
+      );
+    if (!found) return 'missing';
+    const rows = await tx
       .insert(notificationReads)
       .values({ poolId: ctx.poolId, notificationId, userId })
-      .onConflictDoNothing();
-    return true;
+      .onConflictDoNothing()
+      .returning({ notificationId: notificationReads.notificationId });
+    return rows.length > 0 ? 'marked' : 'already';
+  },
+
+  /**
+   * Records that `userId` read every open notification of this pool in one statement
+   * (`INSERT ... SELECT ... ON CONFLICT DO NOTHING`); returns how many were new.
+   */
+  async markAllRead(tx: PoolTx, ctx: PoolContext, userId: string): Promise<number> {
+    const rows = await tx
+      .insert(notificationReads)
+      .select(
+        tx
+          .select({
+            poolId: notifications.poolId,
+            notificationId: notifications.id,
+            userId: sql<string>`${userId}::uuid`.as('user_id'),
+            readAt: sql<Date>`now()`.as('read_at'),
+          })
+          .from(notifications)
+          .where(and(eq(notifications.poolId, ctx.poolId), isNull(notifications.resolvedAt))),
+      )
+      .onConflictDoNothing()
+      .returning({ notificationId: notificationReads.notificationId });
+    return rows.length;
   },
 };
 
@@ -122,6 +159,20 @@ export const workerPoolsRepo = {
       .from(workerPools)
       .orderBy(asc(workerPools.poolId));
     return rows.map((row) => row.poolId);
+  },
+
+  /**
+   * Makes the list match the pools that have accounts: adds the ones a path without the trigger
+   * (a restore) left out and removes the ones with no data left. Runs `reconcile_worker_pools()`, the
+   * only way `worker_rw` changes the table.
+   */
+  async reconcile(db: Pick<AppDb, 'execute'>): Promise<{ added: number; removed: number }> {
+    const result = await db.execute<{ added: number; removed: number }>(
+      sql`select added, removed from reconcile_worker_pools()`,
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error('reconcile returned no row');
+    return { added: row.added, removed: row.removed };
   },
 };
 

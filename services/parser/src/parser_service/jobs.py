@@ -19,8 +19,10 @@ from .engine.propose import propose
 from .engine.spec import ImportSpec
 from .errors import JobTimeoutError, ParseFailedError, ParserError
 from .models import DetectResponse, ParseResponse
+from .real_estate.models import RealEstateDetectResponse, RealEstateParseResponse
+from .real_estate.registry import RealEstateRegistry, default_real_estate_registry
 from .registry import Registry
-from .sniff import sniff
+from .sniff import SniffedFile, sniff
 
 log = logging.getLogger("parser_service.jobs")
 
@@ -29,12 +31,13 @@ RegistryFactory = Callable[[], Registry]
 
 @dataclass(frozen=True)
 class Job:
-    kind: Literal["detect", "parse", "parse-spec", "propose"]
+    kind: Literal["detect", "parse", "parse-spec", "propose", "re-detect", "re-parse"]
     data: bytes
     settings: Settings
     registry_factory: RegistryFactory
     parser_id: str | None = None
     spec: dict[str, Any] | None = None  # an ImportSpec as JSON, for "parse-spec"
+    real_estate_factory: Callable[[], RealEstateRegistry] = default_real_estate_registry
 
 
 def execute(job: Job) -> dict[str, Any]:
@@ -47,6 +50,8 @@ def execute(job: Job) -> dict[str, Any]:
             raise ParseFailedError("A spec is required.")
         spec_response = SpecParser(ImportSpec.model_validate(job.spec)).parse(file)
         return ParseResponse.model_validate(spec_response.model_dump()).model_dump(mode="json")
+    if job.kind in ("re-detect", "re-parse"):
+        return _execute_real_estate(job, file)
     registry = job.registry_factory()
     if job.kind == "detect":
         return DetectResponse(results=registry.detect(file)).model_dump(mode="json")
@@ -55,6 +60,16 @@ def execute(job: Job) -> dict[str, Any]:
     response = registry.get(job.parser_id).parse(file)
     # Parsers build models, but re-validate so a buggy parser can never emit a malformed row.
     return ParseResponse.model_validate(response.model_dump()).model_dump(mode="json")
+
+
+def _execute_real_estate(job: Job, file: SniffedFile) -> dict[str, Any]:
+    registry = job.real_estate_factory()
+    if job.kind == "re-detect":
+        return RealEstateDetectResponse(results=registry.detect(file)).model_dump(mode="json")
+    if job.parser_id is None:
+        raise ParseFailedError("A parser id is required.")
+    response = registry.get(job.parser_id).parse(file)
+    return RealEstateParseResponse.model_validate(response.model_dump()).model_dump(mode="json")
 
 
 def _child(connection: Connection, job: Job) -> None:

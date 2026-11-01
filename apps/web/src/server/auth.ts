@@ -22,6 +22,7 @@ import {
   type InterestService,
   type MonthsService,
   type NotesService,
+  type NotificationsService,
   type OverviewService,
   type PortfoliosService,
   type PrototypeImportService,
@@ -32,6 +33,7 @@ import {
   type CategoriesService,
   type HoldersService,
   type ImportsService,
+  type RealEstateImportsService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -211,6 +213,10 @@ export async function getNotesService(): Promise<NotesService> {
   return (await getRuntime()).notes;
 }
 
+export async function getNotificationsService(): Promise<NotificationsService> {
+  return (await getRuntime()).notifications;
+}
+
 export async function getInterestService(): Promise<InterestService> {
   return (await getRuntime()).interest;
 }
@@ -229,4 +235,8 @@ export async function getMonthsService(): Promise<MonthsService> {
 
 export async function getImportsService(): Promise<ImportsService> {
   return (await getRuntime()).imports;
+}
+
+export async function getRealEstateImportsService(): Promise<RealEstateImportsService> {
+  return (await getRuntime()).realEstateImports;
 }

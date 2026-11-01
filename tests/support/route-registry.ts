@@ -1,6 +1,8 @@
 import { expect } from 'vitest';
 import type { z } from 'zod';
 
+import { newId, notificationsRepo } from '@nestvault/db';
+import { createPoolContext } from '@nestvault/db/pool-context-factory';
 import {
   CashMoveDto,
   CashMoveListDto,
@@ -25,6 +27,8 @@ import {
   MonthReviewDto,
   MonthNoteListDto,
   NoteDto,
+  NotificationListDto,
+  MarkAllReadDto,
   PortfolioDto,
   PortfolioListDto,
   OverviewDto,
@@ -805,6 +809,39 @@ const foreignPlan = async (s: Scenario): Promise<Foreign> => {
   };
 };
 
+/**
+ * A plan reminder raised in pool A or pool B, as the worker does it (NES-68); made once per
+ * scenario. Exported for the notifications service tests.
+ */
+export const notificationIn = (s: Scenario, pool: 'A' | 'B', period = '2026-03') =>
+  s.memo(`notification-${pool}-${period}`, async () => {
+    const plan = await planIn(s, pool);
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const ctx = createPoolContext({
+      poolId,
+      actor: { kind: 'system' },
+      role: 'system',
+      permissions: [],
+    });
+    const id = newId();
+    await s.world.database.withPool(ctx, (tx) =>
+      notificationsRepo.raisePlanReminder(tx, ctx, id, plan.id, period),
+    );
+    return { id, planId: plan.id };
+  });
+
+/** The notification of pool B, addressed through pool A's URL: must answer 404 and stay unread. */
+const foreignNotification = async (s: Scenario): Promise<Foreign> => {
+  const other = await notificationIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.notifications.list(await s.as('outsider'), s.poolB, {});
+      expect(seen.notifications).toEqual([expect.objectContaining({ id: other.id, read: false })]);
+    },
+  };
+};
+
 /** A goal in pool A or pool B, made once per scenario. */
 const goalIn = (s: Scenario, pool: 'A' | 'B') =>
   s.memo(`goal-${pool}`, async () =>
@@ -1525,6 +1562,39 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
     load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/imports/route')),
     reason:
       'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/imports-route.integration.test.ts runs the same checks against the real handler: 401, 404 for non-members, 403 below imports.run, 413 over 10 MB, 415 for a renamed executable, unknown fields, Origin and the strict success body',
+  },
+
+  // ------------------------------------------------- pool scope: real estate import (NES-102)
+  {
+    scope: 'exempt',
+    method: 'POST',
+    path: `${POOL}/real-estate-imports/preview`,
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/preview/route'),
+      ),
+    reason:
+      'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/real-estate-imports-route.integration.test.ts runs the same checks against the real handler: 401, 404 for non-members, 403 below imports.run, 413 over 10 MB, 415 for a renamed executable, unknown fields, Origin and the strict success body',
+  },
+  {
+    scope: 'exempt',
+    method: 'POST',
+    path: `${POOL}/real-estate-imports/commit`,
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/commit/route')),
+    reason:
+      'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/real-estate-imports-route.integration.test.ts runs the same checks against the real handler (also 403 for a member, who lacks realestate.write, and Origin), and tests/services/real-estate-imports.integration.test.ts covers the commit, the other pool and idempotency',
+  },
+  {
+    scope: 'exempt',
+    method: 'GET',
+    path: `${POOL}/real-estate-imports/templates/:name`,
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/templates/[name]/route'),
+      ),
+    reason:
+      'answers text/csv, not JSON; tests/web/real-estate-imports-route.integration.test.ts checks the 200 body and headers, 401, 404 and 403',
   },
 
   // ---------------------------------------------------------------- pool scope: accounts
@@ -3640,6 +3710,51 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       },
       { name: 'no version sent', body: { body: 'sem versão' }, expect: 400 },
     ],
+  },
+
+  // ---------------------------------------------------------------- pool scope: notifications
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/notifications`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/route')),
+    prepare: async (s) => {
+      await notificationIn(s, 'A');
+    },
+    success: { status: 200, schema: NotificationListDto },
+    noForeignBecause: 'the list names no resource; the leak probe covers pool B’s reminder',
+    leaks: async (s) => [(await notificationIn(s, 'B')).planId],
+    negatives: [
+      { name: 'an unknown status', query: '?status=everything', expect: 400 },
+      { name: 'an extra query parameter', query: '?poolId=x', expect: 400 },
+      { name: 'a repeated status', query: '?status=bogus&status=unread', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/notifications/:id/read`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/[id]/read/route')),
+    params: async (s) => ({ id: (await notificationIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignNotification,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/notifications/read-all`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/read-all/route')),
+    prepare: async (s) => {
+      await notificationIn(s, 'A');
+    },
+    success: { status: 200, schema: MarkAllReadDto },
+    noForeignBecause:
+      'it names no resource; pool B’s reminder stays unread (see the service tests)',
   },
 
   // ---------------------------------------------------------------- exempt, with the reason

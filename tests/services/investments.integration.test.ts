@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { notificationsRepo, newId } from '@nestvault/db';
+import { createPoolContext } from '@nestvault/db/pool-context-factory';
 import {
   ConflictError,
   ForbiddenError,
@@ -19,6 +21,7 @@ import {
 
 import { createApiWorld, type ApiWorld, type Persona, type Scenario } from '../support/api-world';
 import { rows } from '../support/auth-harness';
+import { notificationIn } from '../support/route-registry';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 180_000 });
 
@@ -781,6 +784,65 @@ describe('plans service', () => {
   }
   const run = async (as: Persona, id: string, body: unknown = { month: '2026-03' }) =>
     world.plans.run(await s.as(as), s.poolA, id, body);
+
+  /** Opens the reminder of a plan for a month in a pool, as the worker would. */
+  async function remind(poolId: string, planId: string, period: string) {
+    const ctx = createPoolContext({
+      poolId,
+      actor: { kind: 'system' },
+      role: 'system',
+      permissions: [],
+    });
+    await world.database.withPool(ctx, (tx) =>
+      notificationsRepo.raisePlanReminder(tx, ctx, newId(), planId, period),
+    );
+  }
+  const open = async (poolId = s.poolA, as: Persona = 'owner') =>
+    (await world.notifications.list(await s.as(as), poolId, {})).notifications.map(
+      (n) => `${n.planId}:${n.period}`,
+    );
+
+  it('resolves the plan reminder of the month it registers, and only that one', async () => {
+    const { plan } = await planSetup();
+    const other = await world.plans.create(await s.as('owner'), s.poolA, {
+      portfolioId: plan.portfolioId,
+      assetId: plan.assetId,
+      amount: '50',
+      day: 6,
+    });
+    await remind(s.poolA, plan.id, '2026-03');
+    await remind(s.poolA, plan.id, '2026-02');
+    await remind(s.poolA, other.id, '2026-03');
+    expect(await open()).toHaveLength(3);
+
+    expect((await run('owner', plan.id)).created).toBe(true);
+    expect(await open()).toEqual(
+      expect.arrayContaining([`${plan.id}:2026-02`, `${other.id}:2026-03`]),
+    );
+    expect(await open()).toHaveLength(2);
+
+    // A repeat run creates nothing and changes nothing more.
+    expect((await run('owner', plan.id)).created).toBe(false);
+    expect(await open()).toHaveLength(2);
+  });
+
+  it('also resolves a reminder left open when the month already had its buy', async () => {
+    const { plan } = await planSetup();
+    expect((await run('owner', plan.id)).created).toBe(true);
+    await remind(s.poolA, plan.id, '2026-03');
+    expect(await open()).toHaveLength(1);
+    expect((await run('owner', plan.id)).created).toBe(false);
+    expect(await open()).toEqual([]);
+  });
+
+  it('does not touch the reminders of another pool', async () => {
+    const { plan } = await planSetup();
+    const foreign = (await notificationIn(s, 'B', '2026-03')).planId;
+    await remind(s.poolA, plan.id, '2026-03');
+    await run('owner', plan.id);
+    expect(await open(s.poolB, 'outsider')).toEqual([`${foreign}:2026-03`]);
+    expect(await open()).toEqual([]);
+  });
 
   it('lets owner and admin manage plans; member and viewer get 403', async () => {
     const { p, x, plan } = await planSetup();

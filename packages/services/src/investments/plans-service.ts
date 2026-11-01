@@ -2,12 +2,15 @@ import {
   assetPricesRepo,
   investmentOpsRepo,
   newId,
+  notificationsRepo,
   plansRepo,
   withPool,
   type IdentityDatabase,
   type PlanRow,
   type PlanValues,
+  type PoolContext,
   type PoolRunner,
+  type PoolTx,
 } from '@nestvault/db';
 import { dec, roundTo, toPlain } from '@nestvault/domain';
 
@@ -39,6 +42,22 @@ import {
   UpdatePlanInput,
 } from './schemas';
 
+/**
+ * Resolves the open reminder of one plan for one month (`yyyy-mm`) inside the transaction that
+ * registers (or finds) its buy, so the reminder disappears at once instead of at the next worker
+ * run. Reminders of other plans and months stay open.
+ */
+async function resolveReminder(
+  tx: PoolTx,
+  ctx: PoolContext,
+  planId: string,
+  month: string,
+): Promise<void> {
+  const open = await notificationsRepo.listOpenPlanReminders(tx, ctx);
+  const ids = open.filter((n) => n.planId === planId && n.period === month).map((n) => n.id);
+  await notificationsRepo.resolve(tx, ctx, ids);
+}
+
 export interface PlansService {
   /** Plans of the pool, optionally of one portfolio (any member). */
   list(headers: Headers, poolId: string, query?: unknown): Promise<PlanListDto>;
@@ -54,6 +73,7 @@ export interface PlansService {
    * Registers the plan's buy for a month (the current one by default, never a later one;
    * `ops.write`). The plan's amount is in the asset's currency. Running it again for the same month
    * creates nothing and returns the buy that exists.
+   * The plan's open reminder for that month is resolved in the same transaction.
    */
   run(headers: Headers, poolId: string, id: string, input?: unknown): Promise<PlanRunDto>;
 }
@@ -186,7 +206,11 @@ export function createPlansService(deps: PlansServiceDeps): PlansService {
         const plan = await plansRepo.find(tx, ctx, planId);
         if (!plan) throw new NotFoundError();
         const existing = await investmentOpsRepo.findByPlanPeriod(tx, ctx, planId, month);
-        if (existing) return { created: false, row: existing };
+        // The month has its buy: the plan's reminder for it (if open) is answered, whoever bought.
+        if (existing) {
+          await resolveReminder(tx, ctx, planId, month);
+          return { created: false, row: existing };
+        }
         if (!plan.active) throw new ConflictError('This plan is not active.');
         // Bought on the plan's day, but never dated in the future.
         const day = `${month}-${String(plan.day).padStart(2, '0')}`;
@@ -216,6 +240,7 @@ export function createPlansService(deps: PlansServiceDeps): PlansService {
           extId: null,
           note: null,
         });
+        await resolveReminder(tx, ctx, planId, month);
         return { created: true, row };
       }).catch(async (error: unknown) => {
         // Two runs at once: the second one loses the unique index and returns the first one's buy.

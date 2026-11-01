@@ -10,7 +10,7 @@ import openpyxl
 import pdfplumber
 
 from .config import Settings
-from .errors import UnsupportedFileError
+from .errors import ParseFailedError, UnsupportedFileError
 from .limits import check_zip
 
 MagicType = Literal["xlsx", "pdf", "csv"]
@@ -107,8 +107,11 @@ def _sniff_csv(data: bytes) -> SniffedFile:
         dialect = csv.excel
     reader = csv.reader(io.StringIO(text), dialect)
     head: list[list[Cell]] = []
-    for row in reader:
-        head.append(list(row[:MAX_COLUMNS]))
-        if len(head) >= HEADER_ROWS:
-            break
+    try:
+        for row in reader:
+            head.append(list(row[:MAX_COLUMNS]))
+            if len(head) >= HEADER_ROWS:
+                break
+    except csv.Error as exc:  # a field over the size limit
+        raise ParseFailedError("The CSV could not be read.") from exc
     return SniffedFile(data=data, magic="csv", header_rows={"": head}, text=text)

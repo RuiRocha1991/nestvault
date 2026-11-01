@@ -168,6 +168,27 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/worker/request-relay.integration.test.ts` (privileges, pool binding, injection payload, relay
   behaviour), `tests/services/imports.integration.test.ts` (commit writes the request for its pool
   only) and `tests/worker/exposure.test.ts` (the web app does not import the queue).
+- **Reminder lifecycle and `worker_pools` reconciliation (NES-150)**: `plans.remind` looks at the
+  current month and the two before it (a plan is late from its due date, the plan day clamped to the
+  last day of short months, and only from `plans.activated_at`: set on creation, when a plan is
+  switched back on and when its day moves earlier, not on other edits; the migration backfills it with
+  the later of the last edit and the first day of the current month so no burst of old reminders
+  appears after deploy). A manual buy from before the activation does not answer a month. Reminders
+  that are answered or whose plan is gone are resolved, then the still-open ones older than the window
+  expire (`resolved_at`). `pools.reconcile` (daily 03:40 and at worker start, a start-up failure only
+  warns) calls `reconcile_worker_pools()`: `SECURITY DEFINER`, `EXECUTE` only for `worker_rw`; it keeps
+  a pool that has data in `accounts`, `portfolios` or `plans` (the same tables whose AFTER INSERT
+  triggers call `register_worker_pool()`), adds the missing ones and removes the rest. It takes a
+  `SHARE ROW EXCLUSIVE` lock on `worker_pools` first, so it waits for a transaction that has inserted
+  a first row and cannot drop its pool. **Standing grant:** the function runs as the table owner,
+  which FORCE RLS binds, so `accounts`, `portfolios` and `plans` each have one `FOR SELECT ... USING
+  (true)` policy (`*_pool_sweep`) addressed to the role `nestvault_migrator` by name (created only if
+  the role exists): that role can read every pool's rows of those three tables. It is the migration
+  user, never used by the web app or the worker; `app_rw` and `worker_rw` still see only their own
+  pool. Verified by `tests/worker/pool-jobs.integration.test.ts` (catch-up, expiry, activation date,
+  portfolio-only and plan-only pools, deleted pools, the lock, `app_rw` cannot call the function,
+  `worker_rw` cannot write the table), `tests/db/plans-activation-backfill.integration.test.ts` and
+  `tests/services/plan-reminders-window.test.ts`.
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or
@@ -268,6 +289,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/notes.repo.integration.test.ts` (`expectIsolated` for every function, checks, injection
   payloads, re-import keeps the note), `tests/services/notes.integration.test.ts` (roles,
   lengths, 409, audit without text) and the generated route cases for `/note` and `/months`.
+- **Notifications API (NES-148)**: `notifications` / `notification_reads` (NES-68) are read and
+  marked only through `notificationsRepo` on a `PoolContext`. Listing and marking as read need
+  `pool.read` (the read state is personal, so viewers keep their own; no write permission exists
+  to deny); the reader is always the session user, never a body or query value, and the response
+  carries the caller's own `read` flag only. A notification id of another pool answers 404 and
+  changes nothing, and so does a resolved one (404, no read row). Marking as read is audited:
+  `notification.read` (target = the notification id, only when this call newly marks it) and
+  `notification.read_all` (meta `count`, none when nothing changed); ids and counts only, never
+  notification content. A repeated query key (`?status=a&status=b`) is rejected with 400.
+  Verified by `tests/db/notifications.repo.integration.test.ts` (`expectIsolated`, injection
+  payloads), `tests/services/notifications.integration.test.ts` and the generated route cases for
+  `/notifications`.
 - **Portfolio cash moves (NES-43)**: `portfolio_cash_moves` follows the block above (`pool_id`,
   FORCE RLS, repository on a `PoolContext`). The portfolio, the receiving account and the bank
   movement are composite foreign keys `(pool_id, …)`, so none can belong to another pool even by
@@ -808,6 +841,51 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/import-support.repo.integration.test.ts` (RLS, isolation, injection payloads),
   `tests/web/imports-route.integration.test.ts` (the multipart route: 401, 404, 403, 413, 415, 400,
   Origin) and the route registry of the isolation suite.
+- **Real estate imports (NES-102)** read the owner's mortgage workbook and two CSV templates (loan
+  installments, works payments). `POST /api/v1/pools/:poolId/real-estate-imports/preview` and
+  `…/commit` take the same multipart upload as the statements (one `file`, strict text fields
+  `loanId`, `propertyId`, `update`; 10 MB counted while read, 413; type decided from the bytes, 415;
+  a PDF is refused) and run the guards in this order: session, membership (404), `imports.run`
+  (403; the commit also needs `realestate.write`, so a member can read a file but not write it),
+  the Pro plan (`assertFeature('real_estate')`, 403 `plan_limit` on Free), the shared `imports`
+  rate limit (20 uploads an hour per pool; the preview and the commit each count), the body (only
+  now), strict fields, then `withPool`. The loan and the property named must be the pool's own
+  (400, never 404 after the membership check, and nothing is written). The file goes to the same
+  isolated parser service through its own endpoints (`/real-estate/detect`, `/real-estate/parse`;
+  same secret, limits, child process and zip-bomb guard). The workbook is read from cached values
+  only: formulas and macros are never evaluated, and CSV cells that look like formulas stay text.
+  Nothing is stored between the preview and the commit (no table, no file on disk): the commit
+  parses the file again, builds the same plan as the preview (`planImport`, one pure function) and
+  applies it in one `withPool` transaction through the repositories, so there is no new table and
+  no new SQL. Rows are matched by natural keys (installment number per loan, prepayment date and
+  amount, works project name per property, payment phase), so the same file twice adds nothing;
+  existing rows change only with `update=true` and only their figures. Never written: notes,
+  descriptions, the status of an installment or of a works project, the dates a project already
+  has (the file only fills empty ones), a payment phase the household marked paid (the file may
+  only advance a planned phase to paid) and the link of a phase to a bank movement. Amounts are
+  checked against `numeric(18,4)` (acquisition costs and the prepayment fee included): a value that
+  is negative or too large skips its row or cost and is counted as rejected, never a 500. The
+  commit takes a transaction-level advisory lock for the pool (`lockPoolResource`, bound
+  parameters) before it reads the current state, so two commits of the same file in parallel are
+  serialized and the second finds everything already there (the natural keys have no unique
+  index). The capital of the installment that carries a prepayment is stored without the extra
+  amount (the workbook includes it; the stored prepayment event is subtracted from the balance
+  separately), so a prepayment is counted once, and re-importing or `update` change nothing. The
+  parser reads at most 20 sheets and 60 columns, a CSV the reader rejects is a 422,
+  and its warnings are codes the web app words in Portuguese.
+  Names and descriptions from the file are stripped of control characters and bounded before they
+  are stored, and every other value is a decimal checked against the column ranges. The audit entry
+  `import.realestate_committed` carries the loan (or property) id and a row count only. The two
+  CSV templates are downloaded from `GET …/real-estate-imports/templates/:name` (allow-list of two
+  names, `text/csv`, `nosniff`, `no-store`; same guards, no audit entry).
+  Verified by `tests/services/real-estate-imports.integration.test.ts` (guards in order, Pro
+  gate, rate limit, strict fields with SQL payloads, other pool's loan and property, preview
+  writes nothing, reference totals, idempotent re-import, notes and links kept, audit without
+  content), `tests/services/real-estate-imports-plan.test.ts`,
+  `tests/services/real-estate-imports-parser-client.test.ts`,
+  `tests/web/real-estate-imports-route.integration.test.ts` (the multipart routes and the CSV
+  download: 401, 404, 403, 413, 415, 400, Origin) and `services/parser/tests/test_real_estate.py`
+  (reference values, formulas not evaluated, detection matrix against the statement parsers).
 - **The prototype's JSON export (NES-47)** is the one upload that is data, not a statement, and it
   writes a whole pool at once, so it is the strictest. `POST /api/v1/pools/:poolId/import-prototype`:
   the body is counted while it is read and cut off at 10 MB (413), parsed as strict UTF-8 JSON, its

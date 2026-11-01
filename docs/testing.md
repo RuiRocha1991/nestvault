@@ -30,6 +30,11 @@ isolation (no outbound network, non-root, read-only filesystem, the hardening in
 - `services/parser/schemas/test-vectors.json` is shared by pytest (`test_helpers.py`) and Vitest
   (`tests/domain/parser-vectors.test.ts`), so `parseNum`, `parseDate` and `normalizeText` cannot
   drift between Python and TypeScript.
+- The real estate parsers (NES-102) have their own registry and `/real-estate/...` endpoints;
+  `test_real_estate.py` runs both registries against every fixture, so the statement parsers never
+  claim the mortgage workbook or the CSV templates and the other way round. The workbook fixture
+  (`tests/fixtures/mortgage/`) is synthetic and is rewritten with `cd services/parser && uv run python
+  -m tests.support.mortgage`; its `.expected.json` is also what the Node tests use as the parser's answer.
 - `services/parser/schemas/rows.schema.json` is generated from the pydantic models; the zod schema in
   `packages/services/src/imports/parser-rows.generated.ts` is generated from it. Both have a
   `--check` run in CI.

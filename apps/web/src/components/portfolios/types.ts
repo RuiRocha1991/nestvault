@@ -1,3 +1,4 @@
+import type { PlanReminderView } from '@webapp/lib/plan-reminders-view';
 import type {
   AccountView,
   AssetView,
@@ -40,6 +41,8 @@ export interface TabContext {
   assetsById: ReadonlyMap<string, AssetView>;
   accounts: readonly AccountView[];
   plans: readonly PlanView[];
+  /** Open plan reminders of the scope (all portfolios for "Todos"). */
+  reminders: readonly PlanReminderView[];
   holders: readonly HolderName[];
   permissions: PortfolioPermissions;
 }
