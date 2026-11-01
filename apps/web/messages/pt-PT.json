@@ -2854,6 +2854,8 @@
         "paymentsPaidWithoutDate": "{count} pagamentos marcados como pagos não têm data de pagamento e ficam como previstos.",
         "depositReadAsFraction": "{count} entradas abaixo de 1 foram lidas como fração (0,25 = 25 %).",
         "depositOneReadAsPercent": "{count} entradas com o valor 1 foram lidas como 1 %, não como 100 %.",
+        "prepaymentRemovedFromCapital": "{count} prestações incluíam uma amortização antecipada no capital: ficam guardadas só com o capital normal e a amortização conta uma vez.",
+        "prepaymentNotInCapital": "{count} amortizações antecipadas não estavam incluídas no capital da prestação: nada foi subtraído.",
         "stampDutyNotFound": "O imposto de selo da compra não foi encontrado na secção de custos de aquisição: não é importado.",
         "rowsNotInstallments": "{count} linhas não são prestações válidas e foram ignoradas.",
         "rowsNotPayments": "{count} linhas não são pagamentos válidos e foram ignoradas.",

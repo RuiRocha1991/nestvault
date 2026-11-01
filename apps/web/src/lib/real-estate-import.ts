@@ -113,6 +113,8 @@ export const WARNING_KEYS = [
   'depositReadAsFraction',
   'depositOneReadAsPercent',
   'stampDutyNotFound',
+  'prepaymentRemovedFromCapital',
+  'prepaymentNotInCapital',
   'rowsNotInstallments',
   'rowsNotPayments',
 ] as const;

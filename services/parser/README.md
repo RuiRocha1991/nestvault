@@ -54,6 +54,14 @@ strictly between 0 and 1 is a fraction (0,25 = 25 %), anything else is already a
 exactly 1 is 1 %; both readings are reported as warnings. The `Inflação` sheet is reported with
 action `shown`: the rows are read, the app has no store for them.
 
+Prepayments: in the real `Sumário` sheet the capital of the prepayment month includes the amount
+amortised early. The parser returns that installment with its regular capital (file capital minus the
+prepayment; the carrying installment is the first one due on or after the prepayment date) and the
+prepayment as its own row with the whole amount, so the app, which subtracts stored prepayments from
+the balance, counts it once (warning `prepayment_removed_from_capital:N`). When the capital is smaller
+than the amount the file is taken to exclude it: nothing is subtracted (`prepayment_not_in_capital:N`).
+The stored prepayment keeps the `reduce_term` effect.
+
 The fixture workbook is synthetic: `python -m tests.support.mortgage` (with `PYTHONPATH=.:src`) rewrites
 `tests/fixtures/mortgage/`. The CSV templates are duplicated in `packages/services` (a test checks they match).
 

@@ -821,7 +821,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   commit takes a transaction-level advisory lock for the pool (`lockPoolResource`, bound
   parameters) before it reads the current state, so two commits of the same file in parallel are
   serialized and the second finds everything already there (the natural keys have no unique
-  index). The parser reads at most 20 sheets and 60 columns, a CSV the reader rejects is a 422,
+  index). The capital of the installment that carries a prepayment is stored without the extra
+  amount (the workbook includes it; the stored prepayment event is subtracted from the balance
+  separately), so a prepayment is counted once, and re-importing or `update` change nothing. The
+  parser reads at most 20 sheets and 60 columns, a CSV the reader rejects is a 422,
   and its warnings are codes the web app words in Portuguese.
   Names and descriptions from the file are stripped of control characters and bounded before they
   are stored, and every other value is a decimal checked against the column ranges. The audit entry

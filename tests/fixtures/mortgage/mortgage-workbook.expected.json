@@ -1076,6 +1076,7 @@
     ]
   },
   "warnings": [
+    "prepayment_removed_from_capital:1",
     "deposit_read_as_fraction:4"
   ]
 }

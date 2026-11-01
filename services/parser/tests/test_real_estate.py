@@ -96,7 +96,10 @@ def test_reference_totals(workbook: RealEstateParseResponse) -> None:
         == COSTS_TOTAL
         == Decimal("2559.71")
     )
-    assert workbook.warnings == ["deposit_read_as_fraction:4"]
+    assert workbook.warnings == [
+        "prepayment_removed_from_capital:1",
+        "deposit_read_as_fraction:4",
+    ]
 
 
 def test_row_counts_match_the_import_dialog(workbook: RealEstateParseResponse) -> None:
@@ -281,6 +284,39 @@ def test_a_csv_the_reader_rejects_is_a_clean_422() -> None:
     data = f"Nº;Data;Amortização;Juros\n1;2026-01-05;100;20\n2;2026-02-05;{huge};20\n".encode()
     with pytest.raises(ParseFailedError):
         LoanInstallmentsCsv().parse(sniff(data, SETTINGS))
+
+
+def _prepayment_book(capital: int) -> RealEstateParseResponse:
+    head: list[object] = ["Nº", "Data", "Amortização", "Juros"]
+    return _parse(
+        make_xlsx(
+            {
+                "Sumário": [
+                    head,
+                    [1, "2026-01-05", 100, 20],
+                    [2, "2026-02-05", capital, 20],
+                    [3, "2026-03-05", 101, 20],
+                ],
+                "Amortização": [["Data", "Valor"], ["2026-02-01", 500]],
+            }
+        )
+    )
+
+
+def test_the_capital_of_the_prepayment_month_is_stored_without_the_extra() -> None:
+    result = _prepayment_book(600)  # 100 regular + 500 amortised early, as in the real workbook
+    capital = {r.number: r.capital for r in result.rows if isinstance(r, InstallmentRow)}
+    assert capital == {1: "100", 2: "100", 3: "101"}
+    assert "prepayment_removed_from_capital:1" in result.warnings
+    prepayment = next(r for r in result.rows if isinstance(r, PrepaymentRow))
+    assert prepayment.amount == "500"  # the event keeps the whole amount
+
+
+def test_a_capital_smaller_than_the_prepayment_is_left_alone_with_a_warning() -> None:
+    result = _prepayment_book(100)
+    capital = {r.number: r.capital for r in result.rows if isinstance(r, InstallmentRow)}
+    assert capital == {1: "100", 2: "100", 3: "101"}
+    assert "prepayment_not_in_capital:1" in result.warnings
 
 
 # --- CSV templates -----------------------------------------------------------------------------

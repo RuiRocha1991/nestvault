@@ -1,9 +1,11 @@
 """A synthetic copy of the owner's mortgage workbook (NES-102).
 
 The real workbook is never stored. This one has the same sheets and columns and the same reference
-totals (capital 10 511,72 € in 73 installments plus a 15 000 € prepayment, interest 14 058,99 €,
-works 22 071,46 €, acquisition costs 2 559,71 €, credit insurance 225,38 € since 04/2026) with
-invented names, so the tests can reproduce them. `python -m tests.support.mortgage` rewrites
+totals (capital 10 511,72 € in 73 installments plus a 15 000 € prepayment, which the Sumário sheet
+includes in the capital of the installment of the prepayment month, as the real workbook does),
+interest 14 058,99 €, works 22 071,46 €, acquisition costs 2 559,71 €, credit insurance
+225,38 € since 04/2026) with invented names, so the tests can reproduce them.
+`python -m tests.support.mortgage` rewrites
 `tests/fixtures/mortgage/mortgage-workbook.anonymized.xlsx` from it.
 """
 
@@ -20,6 +22,7 @@ INSTALLMENTS = 73
 CAPITAL_TOTAL = Decimal("10511.72")  # + the 15 000 € prepayment = 25 511,72 €
 INTEREST_TOTAL = Decimal("14058.99")
 PREPAYMENT = Decimal("15000.00")
+PREPAYMENT_DATE = date(2023, 2, 1)
 CREDIT_INSURANCE_TOTAL = Decimal("225.38")
 WORKS_TOTAL = Decimal("22071.46")
 COSTS_TOTAL = Decimal("2559.71")
@@ -168,15 +171,20 @@ def mortgage_workbook() -> bytes:
             "Total",
         ]
     )
+    extra_pending = True
     for row in installments():
         parts = [row[k] for k in ("capital", "interest", "life", "home", "credit", "fees", "stamp")]
+        if extra_pending and row["date"] >= PREPAYMENT_DATE:  # type: ignore[operator]
+            # As in the real workbook: the capital of the prepayment month includes the extra.
+            parts[0] = row["capital"] + PREPAYMENT  # type: ignore[operator]
+            extra_pending = False
         total = sum((p for p in parts if isinstance(p, Decimal)), Decimal(0))
         sheet.append([row["number"], row["date"], *[float(p) for p in parts], float(total)])  # type: ignore[arg-type]
 
     prepayments = workbook.create_sheet("Amortização")
     prepayments.append(["Amortizações antecipadas"])
     prepayments.append(["Data", "Valor", "Comissão"])
-    prepayments.append([date(2023, 2, 1), float(PREPAYMENT), None])
+    prepayments.append([PREPAYMENT_DATE, float(PREPAYMENT), None])
 
     years = workbook.create_sheet("Pago por anos")
     years.append(["Ano do contrato", "Pago"])

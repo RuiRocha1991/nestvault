@@ -299,6 +299,37 @@ describe('real estate import: commit', () => {
     expect(await figures(loan.id, property.id)).toEqual(before);
   });
 
+  it('counts the prepayment exactly once: the balance is principal - installment capital - prepayment', async () => {
+    const { property, loan, fields } = await target();
+    const owner = await s.as('owner');
+    // By hand: 111 600 - 10 511,72 (capital of the 73 installments, the prepayment month taken
+    // without the extra, as the parser stores it) - 15 000 (the prepayment) = 86 088,28.
+    const expected = 111600 - 10511.72 - 15000;
+    const outstanding = async () => {
+      const detail = await world.loans.get(owner, s.poolA, loan.id);
+      const schedule = (await world.loans.schedule(owner, s.poolA, loan.id)).schedule;
+      const last = schedule.find((row) => row.number === 73);
+      return { loan: Number(detail.outstanding), lastActual: Number(last?.balanceAfter) };
+    };
+    await commit({ fields });
+    const first = await outstanding();
+    expect(first.loan).toBeCloseTo(expected, 2);
+    expect(first.lastActual).toBeCloseTo(expected, 2);
+    // The prepayment month's installment holds its regular capital, not the 15 000 on top.
+    const { installments, events } = await figures(loan.id, property.id);
+    expect(events.filter((event) => event.kind === 'prepayment')).toHaveLength(1);
+    expect(Number(installments.find((row) => row.number === 30)?.capital)).toBeLessThan(1000);
+    // Importing again, with the update flag on or off, changes nothing.
+    for (const update of ['true', 'false']) {
+      const again = await commit({ fields: { ...fields, update } });
+      expect(again.result.installments).toMatchObject({ create: 0, update: 0, unchanged: 73 });
+      expect(again.result.prepayments).toMatchObject({ create: 0, unchanged: 1 });
+      const after = await outstanding();
+      expect(after.loan).toBeCloseTo(expected, 2);
+      expect(after.lastActual).toBeCloseTo(expected, 2);
+    }
+  });
+
   it('two commits of the same file in parallel write every row once', async () => {
     const { property, loan, fields } = await target();
     const results = await Promise.all([commit({ fields }), commit({ fields })]);

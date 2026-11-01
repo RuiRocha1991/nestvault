@@ -23,6 +23,8 @@ Warnings are codes (`code` or `code:count`), not sentences: the web app words th
 - `prepayments_table_missing`, `works_table_missing`, `payments_table_missing`,
   `inflation_table_missing`
 - `payments_paid_without_date:N`
+- `prepayment_removed_from_capital:N` (installments stored without the prepayment their capital
+  carried) and `prepayment_not_in_capital:N` (a prepayment the capital did not include)
 - `deposit_read_as_fraction:N` and `deposit_one_read_as_percent:N` (see `_deposit`)
 - `stamp_duty_not_found` (an "Imposto de selo" line outside the acquisition section)
 
@@ -135,11 +137,13 @@ class MortgageWorkbookXlsx:
         summary: list[SheetSummary] = []
 
         installments = _installments(tables[INSTALLMENTS], warnings_out)
-        rows += installments
-        summary.append(_line(INSTALLMENTS, len(installments)))
-
+        prepayments: list[RealEstateRow] = []
         if PREPAYMENTS in tables:
             prepayments = _prepayments(tables[PREPAYMENTS], warnings_out)
+            installments = _without_prepayments(installments, prepayments, warnings_out)
+        rows += installments
+        summary.append(_line(INSTALLMENTS, len(installments)))
+        if PREPAYMENTS in tables:
             rows += prepayments
             summary.append(_line(PREPAYMENTS, len(prepayments)))
 
@@ -233,6 +237,47 @@ def _installments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRo
     if duplicated:
         notes.append(f"installments_repeated:{duplicated}")
     return [result[number] for number in sorted(result)]
+
+
+def _without_prepayments(
+    installments: list[RealEstateRow], prepayments: list[RealEstateRow], notes: list[str]
+) -> list[RealEstateRow]:
+    """The capital of the installment that carries a prepayment, without the extra amount.
+
+    In the workbook the capital of the month of a prepayment includes the amount amortised
+    early. The app stores the prepayment as its own event and counts it once, so that
+    installment is stored with its regular capital: file capital minus the prepayment. The
+    carrying installment is the first one due on or after the prepayment date. When the capital
+    is smaller than the amount (the file does not include it after all) the installment is left
+    as it is and a warning says so.
+    """
+    carriers = [row for row in installments if isinstance(row, InstallmentRow)]
+    extra: dict[int, Decimal] = {}
+    unmatched = 0
+    for prepayment in prepayments:
+        if not isinstance(prepayment, PrepaymentRow):
+            continue
+        carrier = next((row for row in carriers if row.due_date >= prepayment.date), None)
+        if carrier is None or Decimal(carrier.capital) < extra.get(carrier.number, 0) + Decimal(
+            prepayment.amount
+        ):
+            unmatched += 1
+            continue
+        extra[carrier.number] = extra.get(carrier.number, Decimal(0)) + Decimal(prepayment.amount)
+    if unmatched:
+        notes.append(f"prepayment_not_in_capital:{unmatched}")
+    if extra:
+        notes.append(f"prepayment_removed_from_capital:{len(extra)}")
+    return [
+        row.model_copy(update={"capital": _plain(Decimal(row.capital) - extra[row.number])})
+        if isinstance(row, InstallmentRow) and row.number in extra
+        else row
+        for row in installments
+    ]
+
+
+def _plain(value: Decimal) -> str:
+    return format(value.normalize(), "f")
 
 
 def _prepayments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
