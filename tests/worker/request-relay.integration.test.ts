@@ -1,11 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, describe, expect, it, vi } from 'vitest';
+import { ZodError } from 'zod';
 
 import { testEnv } from '@nestvault/config/node';
 import { createAppDatabase, jobRequestsRepo, type PendingJobRequest } from '@nestvault/db';
 import { createLogger } from '@nestvault/services';
 
 import { createRequestRelay } from '../../apps/worker/src/request-relay';
+import { UnknownJobError } from '../../apps/worker/src/runtime';
 import { createTwoPools, failureCodeOf, openTestDatabase } from '../db/harness';
 
 // Pools are random per test, so tests neither truncate nor disturb parallel files.
@@ -106,18 +108,119 @@ describe('request relay', () => {
     expect(await mine([a.poolId])()).toEqual([]);
   });
 
-  it('keeps the request when the enqueue fails', async () => {
+  it('retries a failing enqueue per row with a growing backoff, one error log per attempt', async () => {
     const { a } = createTwoPools();
     await withPool(a.ctx, (tx) => jobRequestsRepo.request(tx, a.ctx, 'deposits.link'));
+    const enqueue = vi.fn<Enqueue>(() => Promise.reject(new Error('queue down')));
+    const errors = vi.fn();
+    const quiet = { ...log, error: errors, child: () => quiet } as unknown as typeof log;
+    let clock = Date.now();
     const relay = createRequestRelay({
       db: worker.db,
-      enqueue: () => Promise.reject(new Error('queue down')),
-      log,
+      enqueue,
+      log: quiet,
+      backoffMs: 1000,
+      now: () => new Date(clock),
     });
     await relay.tick();
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    await relay.tick(); // same instant: the row waits for its backoff
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    clock += 1000;
+    await relay.tick();
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    clock += 1500; // the second wait is 2 s
+    await relay.tick();
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    clock += 600;
+    await relay.tick();
+    expect(enqueue).toHaveBeenCalledTimes(3);
+    expect(errors).toHaveBeenCalledTimes(3);
+    expect(await mine([a.poolId])()).toHaveLength(1); // kept: nothing was lost
+    // Past the give-up age the row goes, so a dead queue cannot grow the table.
+    clock += 6 * 60_000;
+    await relay.tick();
+    expect(await mine([a.poolId])()).toEqual([]);
+  });
+
+  it('drops at once a request the queue can never accept (unknown job, refused payload)', async () => {
+    const { a, b } = createTwoPools();
+    await withPool(a.ctx, (tx) => jobRequestsRepo.request(tx, a.ctx, 'deposits.link'));
+    await withPool(b.ctx, (tx) => jobRequestsRepo.request(tx, b.ctx, 'deposits.link'));
+    const enqueue = vi.fn<Enqueue>((_name, payload) =>
+      payload.poolId === a.poolId
+        ? Promise.reject(new UnknownJobError())
+        : Promise.reject(new ZodError([])),
+    );
+    const relay = createRequestRelay({ db: worker.db, enqueue, log });
+    await relay.tick();
+    expect(await mine([a.poolId, b.poolId])()).toEqual([]);
+  });
+
+  it('a request held by the dedupe window does not starve the ones behind it', async () => {
+    const { a, b } = createTwoPools();
+    await withPool(a.ctx, (tx) => jobRequestsRepo.request(tx, a.ctx, 'deposits.link'));
+    await withPool(b.ctx, (tx) => jobRequestsRepo.request(tx, b.ctx, 'deposits.link'));
+    const enqueue = vi.fn<Enqueue>((_name, payload) =>
+      Promise.resolve(payload.poolId === a.poolId ? null : 'run'),
+    );
+    const relay = createRequestRelay({ db: worker.db, enqueue, log });
+    await relay.tick();
+    await relay.tick();
+    // The held row is not retried in the same instant, and the other one went through.
+    expect(enqueue.mock.calls.filter(([, p]) => p.poolId === a.poolId)).toHaveLength(1);
+    expect((await mine([a.poolId, b.poolId])()).map((r) => r.poolId)).toEqual([a.poolId]);
+  });
+
+  it('dates a request from when it was made, not from the start of its transaction', async () => {
+    const { a } = createTwoPools();
+    const before = Date.now();
+    await withPool(a.ctx, async (tx) => {
+      await tx.execute(sql`select pg_sleep(0.5)`);
+      await jobRequestsRepo.request(tx, a.ctx, 'deposits.link');
+    });
     const [row] = await mine([a.poolId])();
-    expect(row).toBeDefined();
+    expect((row?.requestedAt.getTime() ?? 0) - before).toBeGreaterThanOrEqual(450);
     await jobRequestsRepo.settle(worker.db, row as PendingJobRequest);
+  });
+
+  it('start() schedules one timer and stop() leaves none, even when a pass is stuck', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, (tx) => jobRequestsRepo.request(tx, a.ctx, 'deposits.link'));
+    let release: (() => void) | undefined;
+    const enqueue = vi.fn<Enqueue>(
+      () =>
+        new Promise((resolve) => {
+          release = () => {
+            resolve('run');
+          };
+        }),
+    );
+    const relay = createRequestRelay({
+      db: worker.db,
+      enqueue,
+      log,
+      intervalMs: 50,
+      stopTimeoutMs: 200,
+    });
+    relay.start();
+    relay.start(); // idempotent
+    await vi.waitFor(() => {
+      expect(enqueue).toHaveBeenCalled();
+    });
+    // The pass is stuck in the queue call: stop() waits its timeout and returns anyway.
+    const started = Date.now();
+    await relay.stop();
+    expect(Date.now() - started).toBeLessThan(2000);
+    enqueue.mockImplementation(() => Promise.resolve('run'));
+    release?.();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    // No new pass was scheduled after stop(): the stuck one ended and nothing called the queue again.
+    const calls = enqueue.mock.calls.length;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(enqueue).toHaveBeenCalledTimes(calls);
+    const rows = await mine([a.poolId])();
+    await Promise.all(rows.map((r) => jobRequestsRepo.settle(worker.db, r)));
   });
 
   it('a request made while the worker was enqueueing is not lost', async () => {

@@ -776,6 +776,17 @@ describe('imports service: broker files', () => {
     );
     const buy = ops.find((op) => op.type === 'buy');
     expect(buy?.subAccountId).not.toBeNull(); // the sub-account named after the holder
+    // A broker file has no statement lines to link: no deposits.link request (NES-147).
+    const requests = await world.database.asMigrator(
+      async (pool) =>
+        (
+          await pool.query<{ one: number }>(
+            'select 1 as one from job_requests where pool_id = $1',
+            [s.poolA],
+          )
+        ).rows,
+    );
+    expect(requests).toEqual([]);
   });
 
   it('re-importing the same report adds nothing (broker ids)', async () => {

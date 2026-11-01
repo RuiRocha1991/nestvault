@@ -6,6 +6,14 @@ import { SCHEDULE_TIME_ZONE, type Job } from './jobs/define';
 /** Schema of the queues, installed by `pnpm db:migrate` (packages/db/src/migrate.ts). */
 const JOB_SCHEMA = 'pgboss';
 
+/** `enqueue` was asked for a job that is not registered: retrying will never help. */
+export class UnknownJobError extends Error {
+  constructor() {
+    super('unknown job');
+    this.name = 'UnknownJobError';
+  }
+}
+
 export interface WorkerOptions {
   /** Connection of `worker_rw` to the app database. */
   connectionString: string;
@@ -122,7 +130,7 @@ export function createWorker({
     },
     async enqueue(name, payload = {}) {
       const job = byName.get(name);
-      if (!job) throw new Error('unknown job');
+      if (!job) throw new UnknownJobError();
       job.validate(payload);
       const singleton = job.singletonOf(payload);
       return boss.send(

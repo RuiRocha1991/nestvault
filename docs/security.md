@@ -161,7 +161,10 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `app.pool_id` (so a caller can only ask for its own pool, and not at all outside `withPool`) inside
   the commit's transaction. `worker_rw` has `SELECT` and `DELETE` only; the worker's relay
   (`apps/worker/src/request-relay.ts`, polls every 2 s) enqueues `{ poolId }` and deletes the row it
-  read (matching `token`, so a newer request survives). The hourly sweep stays as the safety net. Verified by
+  read (matching `token`, so a newer request survives); unknown-job and invalid-payload errors drop the
+  row at once, other failures back off per row and give up after 5 minutes (`requested_at` is
+  `clock_timestamp()`, not the transaction start). The CHECK on `job_name` is built from
+  `POOL_JOB_REQUESTS`; growing the list needs a migration (`tests/db/job-requests-drift.integration.test.ts`). The hourly sweep stays as the safety net. Verified by
   `tests/worker/request-relay.integration.test.ts` (privileges, pool binding, injection payload, relay
   behaviour), `tests/services/imports.integration.test.ts` (commit writes the request for its pool
   only) and `tests/worker/exposure.test.ts` (the web app does not import the queue).

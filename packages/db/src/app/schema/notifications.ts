@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, SQL, StringChunk } from 'drizzle-orm';
 import {
   check,
   foreignKey,
@@ -97,6 +97,15 @@ export type NotificationReadRow = typeof notificationReads.$inferSelect;
 export const POOL_JOB_REQUESTS = ['deposits.link'] as const;
 export type PoolJobRequest = (typeof POOL_JOB_REQUESTS)[number];
 
+// DDL cannot take bound parameters, so the list is written as literals. The names come from the
+// constant above (never from input) and are checked against a strict pattern before they are quoted.
+function jobNameList(): SQL {
+  for (const name of POOL_JOB_REQUESTS) {
+    if (!/^[a-z]+(\.[a-z]+)+$/.test(name)) throw new Error('a pool job name is like `area.action`');
+  }
+  return new SQL([new StringChunk(POOL_JOB_REQUESTS.map((name) => `'${name}'`).join(', '))]);
+}
+
 export const jobRequests = pgTable(
   'job_requests',
   {
@@ -107,6 +116,8 @@ export const jobRequests = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.poolId, table.jobName] }),
-    check('job_requests_job_known', sql`${table.jobName} in ('deposits.link')`),
+    // Built from POOL_JOB_REQUESTS. The migration holds a copy of the list: when the constant grows,
+    // a new migration must replace this constraint (tests/db/job-requests-drift.integration.test.ts fails otherwise).
+    check('job_requests_job_known', sql`${table.jobName} in (${jobNameList()})`),
   ],
 );

@@ -10,7 +10,9 @@ CREATE TABLE "job_requests" (
 -- job_requests is global (no RLS): requests for a worker job about one pool (NES-147). app_rw has no
 -- privilege on it and writes only through request_pool_job(), which takes the pool from app.pool_id;
 -- worker_rw reads the rows and deletes the ones it turned into queue runs. The roles may not exist yet
--- (fresh clone before the init scripts, CI): docker/postgres/init/02-worker-role.sh repeats the worker part.
+-- (fresh clone before the init scripts, CI), so every grant is guarded by pg_roles. When a role is created
+-- after this migration, docker/postgres/init/02-worker-role.sh repeats the whole block (the app_rw revoke
+-- and EXECUTE grant, the worker_rw SELECT/DELETE grant), also guarded by to_regclass/to_regprocedure.
 DO $grants$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
     REVOKE ALL ON "job_requests" FROM app_rw;
@@ -28,9 +30,11 @@ BEGIN
   IF pool IS NULL THEN
     RAISE EXCEPTION 'request_pool_job needs a pool context' USING ERRCODE = '42501';
   END IF;
-  INSERT INTO job_requests (pool_id, job_name) VALUES (pool, job)
+  -- clock_timestamp(), not now(): now() is the start of the caller's transaction, and a long import
+  -- would age the request before the worker can even see it.
+  INSERT INTO job_requests (pool_id, job_name, requested_at) VALUES (pool, job, clock_timestamp())
   ON CONFLICT (pool_id, job_name) DO UPDATE
-    SET token = gen_random_uuid(), requested_at = now();
+    SET token = gen_random_uuid(), requested_at = clock_timestamp();
 END $$;--> statement-breakpoint
 REVOKE ALL ON FUNCTION request_pool_job(text) FROM PUBLIC;--> statement-breakpoint
 DO $grants$ BEGIN

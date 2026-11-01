@@ -36,6 +36,14 @@ DO $$ BEGIN
   IF to_regclass('public.job_requests') IS NOT NULL THEN
     REVOKE ALL ON public.job_requests FROM worker_rw;
     GRANT SELECT, DELETE ON public.job_requests TO worker_rw;
+    -- Same block as the migration, for roles created after it: the app role only calls the function.
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
+      REVOKE ALL ON public.job_requests FROM app_rw;
+    END IF;
+  END IF;
+  IF to_regprocedure('public.request_pool_job(text)') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
+    GRANT EXECUTE ON FUNCTION public.request_pool_job(text) TO app_rw;
   END IF;
 END $$;
 SQL
