@@ -33,6 +33,7 @@ import {
   type CategoriesService,
   type HoldersService,
   type ImportsService,
+  type RealEstateImportsService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -234,4 +235,8 @@ export async function getMonthsService(): Promise<MonthsService> {
 
 export async function getImportsService(): Promise<ImportsService> {
   return (await getRuntime()).imports;
+}
+
+export async function getRealEstateImportsService(): Promise<RealEstateImportsService> {
+  return (await getRuntime()).realEstateImports;
 }

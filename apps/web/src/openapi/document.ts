@@ -3,6 +3,7 @@ import { OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 import './auth';
 import './health';
 import './imports';
+import './real-estate-imports';
 import './accounts';
 import './transactions';
 import './expenses';

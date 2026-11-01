@@ -3133,6 +3133,1083 @@
         }
       }
     },
+    "/api/v1/pools/{poolId}/real-estate-imports/preview": {
+      "post": {
+        "operationId": "previewRealEstateImport",
+        "summary": "Read a mortgage workbook or CSV template and preview it",
+        "description": "multipart/form-data with `file` and optional `loanId`, `propertyId`, `update`. Answers with the detected format and confidence, the rows per sheet, the totals, the two notices to give before importing (credit insurance outside the workbook totals, yearly inflation summed instead of compounded) and, when a loan or property is named, what importing would create, update or leave alone. Nothing is written.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The mortgage workbook (.xlsx) or one of the CSV templates (.csv), at most 10 MB. Formulas are never evaluated: only cached values are read."
+                  },
+                  "loanId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The loan that receives installments and prepayments (the pool’s own)."
+                  },
+                  "propertyId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The property that receives works and acquisition costs; the loan’s own property when left out."
+                  },
+                  "update": {
+                    "type": "string",
+                    "enum": [
+                      "true",
+                      "false"
+                    ],
+                    "description": "`true` (the default) updates installments, works and phases that exist but differ from the file; `false` leaves every existing row alone."
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "parserId": {
+                      "type": "string"
+                    },
+                    "parserVersion": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "number"
+                    },
+                    "rowCount": {
+                      "type": "integer"
+                    },
+                    "sheets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sheet": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "rows": {
+                            "type": "integer"
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "import",
+                              "recalculated",
+                              "shown"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sheet",
+                          "label",
+                          "rows",
+                          "action"
+                        ]
+                      }
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "installments": {
+                          "type": "integer"
+                        },
+                        "capital": {
+                          "type": "string"
+                        },
+                        "interest": {
+                          "type": "string"
+                        },
+                        "prepayments": {
+                          "type": "string"
+                        },
+                        "works": {
+                          "type": "string"
+                        },
+                        "payments": {
+                          "type": "string"
+                        },
+                        "creditInsurance": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "installments",
+                        "capital",
+                        "interest",
+                        "prepayments",
+                        "works",
+                        "payments",
+                        "creditInsurance"
+                      ]
+                    },
+                    "costs": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "deed": {
+                          "type": "string"
+                        },
+                        "imt": {
+                          "type": "string"
+                        },
+                        "stampDuty": {
+                          "type": "string"
+                        },
+                        "registration": {
+                          "type": "string"
+                        },
+                        "bankFees": {
+                          "type": "string"
+                        },
+                        "total": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "deed",
+                        "imt",
+                        "stampDuty",
+                        "registration",
+                        "bankFees",
+                        "total"
+                      ]
+                    },
+                    "fieldsWithValues": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "inflation": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "year": {
+                                "type": "integer"
+                              },
+                              "ratePct": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "year",
+                              "ratePct"
+                            ]
+                          }
+                        },
+                        "compoundedPct": {
+                          "type": "string"
+                        },
+                        "summedPct": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "compoundedPct",
+                        "summedPct"
+                      ]
+                    },
+                    "notices": {
+                      "type": "object",
+                      "properties": {
+                        "creditInsurance": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "inflationSummed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "creditInsurance",
+                        "inflationSummed"
+                      ]
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "plan": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "keep": {
+                          "type": "object",
+                          "properties": {
+                            "installments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "prepayments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "works": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "payments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                },
+                                "kept": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected",
+                                "kept"
+                              ]
+                            },
+                            "costs": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "fill",
+                                "update",
+                                "unchanged"
+                              ]
+                            },
+                            "costsRejected": {
+                              "type": "integer"
+                            },
+                            "fieldsEnabled": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "inflation": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "installments",
+                            "prepayments",
+                            "works",
+                            "payments",
+                            "costs",
+                            "costsRejected",
+                            "fieldsEnabled",
+                            "inflation"
+                          ]
+                        },
+                        "update": {
+                          "type": "object",
+                          "properties": {
+                            "installments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "prepayments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "works": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "payments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                },
+                                "kept": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected",
+                                "kept"
+                              ]
+                            },
+                            "costs": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "fill",
+                                "update",
+                                "unchanged"
+                              ]
+                            },
+                            "costsRejected": {
+                              "type": "integer"
+                            },
+                            "fieldsEnabled": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "inflation": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "installments",
+                            "prepayments",
+                            "works",
+                            "payments",
+                            "costs",
+                            "costsRejected",
+                            "fieldsEnabled",
+                            "inflation"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "keep",
+                        "update"
+                      ]
+                    },
+                    "needs": {
+                      "type": "object",
+                      "properties": {
+                        "loan": {
+                          "type": "boolean"
+                        },
+                        "property": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "loan",
+                        "property"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fileName",
+                    "parserId",
+                    "parserVersion",
+                    "confidence",
+                    "rowCount",
+                    "sheets",
+                    "totals",
+                    "costs",
+                    "fieldsWithValues",
+                    "inflation",
+                    "notices",
+                    "warnings",
+                    "plan",
+                    "needs"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported file type (decided from the content, not the name)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The content could not be processed (no format matches the file)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The parser service this request depends on is not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/real-estate-imports/commit": {
+      "post": {
+        "operationId": "commitRealEstateImport",
+        "summary": "Import a mortgage workbook or CSV template",
+        "description": "Same upload as the preview; reads the file again and writes it in one transaction. Installments are identified by loan and number, prepayments by loan, date and amount, works by property and name, payment phases by project, description, amount and planned date: importing the same file twice adds nothing. Existing rows change only with `update=true`, and only their figures: notes, descriptions, statuses of installments and links to bank movements are never touched. The installment fields the file has values for are switched on. Yearly inflation is read and shown but not stored.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The mortgage workbook (.xlsx) or one of the CSV templates (.csv), at most 10 MB. Formulas are never evaluated: only cached values are read."
+                  },
+                  "loanId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The loan that receives installments and prepayments (the pool’s own)."
+                  },
+                  "propertyId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The property that receives works and acquisition costs; the loan’s own property when left out."
+                  },
+                  "update": {
+                    "type": "string",
+                    "enum": [
+                      "true",
+                      "false"
+                    ],
+                    "description": "`true` (the default) updates installments, works and phases that exist but differ from the file; `false` leaves every existing row alone."
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "parserId": {
+                      "type": "string"
+                    },
+                    "loanId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "propertyId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "installments": {
+                          "type": "object",
+                          "properties": {
+                            "create": {
+                              "type": "integer"
+                            },
+                            "update": {
+                              "type": "integer"
+                            },
+                            "unchanged": {
+                              "type": "integer"
+                            },
+                            "rejected": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "create",
+                            "update",
+                            "unchanged",
+                            "rejected"
+                          ]
+                        },
+                        "prepayments": {
+                          "type": "object",
+                          "properties": {
+                            "create": {
+                              "type": "integer"
+                            },
+                            "unchanged": {
+                              "type": "integer"
+                            },
+                            "rejected": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "create",
+                            "unchanged",
+                            "rejected"
+                          ]
+                        },
+                        "works": {
+                          "type": "object",
+                          "properties": {
+                            "create": {
+                              "type": "integer"
+                            },
+                            "update": {
+                              "type": "integer"
+                            },
+                            "unchanged": {
+                              "type": "integer"
+                            },
+                            "rejected": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "create",
+                            "update",
+                            "unchanged",
+                            "rejected"
+                          ]
+                        },
+                        "payments": {
+                          "type": "object",
+                          "properties": {
+                            "create": {
+                              "type": "integer"
+                            },
+                            "update": {
+                              "type": "integer"
+                            },
+                            "unchanged": {
+                              "type": "integer"
+                            },
+                            "rejected": {
+                              "type": "integer"
+                            },
+                            "kept": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "create",
+                            "update",
+                            "unchanged",
+                            "rejected",
+                            "kept"
+                          ]
+                        },
+                        "costs": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "fill",
+                            "update",
+                            "unchanged"
+                          ]
+                        },
+                        "costsRejected": {
+                          "type": "integer"
+                        },
+                        "fieldsEnabled": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "inflation": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "installments",
+                        "prepayments",
+                        "works",
+                        "payments",
+                        "costs",
+                        "costsRejected",
+                        "fieldsEnabled",
+                        "inflation"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fileName",
+                    "parserId",
+                    "loanId",
+                    "propertyId",
+                    "result"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported file type (decided from the content, not the name)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The content could not be processed (no format matches the file)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests (see Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The parser service this request depends on is not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pools/{poolId}/real-estate-imports/templates/{name}": {
+      "get": {
+        "operationId": "downloadRealEstateTemplate",
+        "summary": "Download a CSV template",
+        "description": "The `loan-installments` or `works-payments` template as a semicolon-separated CSV with a header and two example rows.",
+        "tags": [
+          "Imports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "poolId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "loan-installments",
+                "works-payments"
+              ]
+            },
+            "required": true,
+            "name": "name",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (permission, or a request from another origin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned to non-members of a pool)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pools/{poolId}/accounts": {
       "get": {
         "operationId": "listAccounts",

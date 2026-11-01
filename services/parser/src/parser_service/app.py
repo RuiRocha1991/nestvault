@@ -26,6 +26,7 @@ from .models import (
     ParseResponse,
     ParsersResponse,
 )
+from .real_estate.models import RealEstateDetectResponse, RealEstateParseResponse
 from .registry import default_registry
 
 log = logging.getLogger("parser_service")
@@ -105,6 +106,18 @@ def create_app(settings: Settings, registry_factory: RegistryFactory = default_r
         data = await read_body(request)
         result = await run(Job("parse-spec", data, settings, registry_factory, spec=spec))
         return ParseResponse.model_validate(result)
+
+    @app.post("/real-estate/detect", dependencies=guarded)
+    async def detect_real_estate(request: Request) -> RealEstateDetectResponse:
+        data = await read_body(request)
+        result = await run(Job("re-detect", data, settings, registry_factory))
+        return RealEstateDetectResponse.model_validate(result)
+
+    @app.post("/real-estate/parse", dependencies=guarded)
+    async def parse_real_estate(request: Request, parser_id: ParserId) -> RealEstateParseResponse:
+        data = await read_body(request)
+        result = await run(Job("re-parse", data, settings, registry_factory, parser_id))
+        return RealEstateParseResponse.model_validate(result)
 
     @app.post("/propose", dependencies=guarded)
     async def propose_mapping(request: Request) -> ProposeResponse:

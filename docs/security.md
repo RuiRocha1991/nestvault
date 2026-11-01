@@ -806,6 +806,51 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/import-support.repo.integration.test.ts` (RLS, isolation, injection payloads),
   `tests/web/imports-route.integration.test.ts` (the multipart route: 401, 404, 403, 413, 415, 400,
   Origin) and the route registry of the isolation suite.
+- **Real estate imports (NES-102)** read the owner's mortgage workbook and two CSV templates (loan
+  installments, works payments). `POST /api/v1/pools/:poolId/real-estate-imports/preview` and
+  `…/commit` take the same multipart upload as the statements (one `file`, strict text fields
+  `loanId`, `propertyId`, `update`; 10 MB counted while read, 413; type decided from the bytes, 415;
+  a PDF is refused) and run the guards in this order: session, membership (404), `imports.run`
+  (403; the commit also needs `realestate.write`, so a member can read a file but not write it),
+  the Pro plan (`assertFeature('real_estate')`, 403 `plan_limit` on Free), the shared `imports`
+  rate limit (20 uploads an hour per pool; the preview and the commit each count), the body (only
+  now), strict fields, then `withPool`. The loan and the property named must be the pool's own
+  (400, never 404 after the membership check, and nothing is written). The file goes to the same
+  isolated parser service through its own endpoints (`/real-estate/detect`, `/real-estate/parse`;
+  same secret, limits, child process and zip-bomb guard). The workbook is read from cached values
+  only: formulas and macros are never evaluated, and CSV cells that look like formulas stay text.
+  Nothing is stored between the preview and the commit (no table, no file on disk): the commit
+  parses the file again, builds the same plan as the preview (`planImport`, one pure function) and
+  applies it in one `withPool` transaction through the repositories, so there is no new table and
+  no new SQL. Rows are matched by natural keys (installment number per loan, prepayment date and
+  amount, works project name per property, payment phase), so the same file twice adds nothing;
+  existing rows change only with `update=true` and only their figures. Never written: notes,
+  descriptions, the status of an installment or of a works project, the dates a project already
+  has (the file only fills empty ones), a payment phase the household marked paid (the file may
+  only advance a planned phase to paid) and the link of a phase to a bank movement. Amounts are
+  checked against `numeric(18,4)` (acquisition costs and the prepayment fee included): a value that
+  is negative or too large skips its row or cost and is counted as rejected, never a 500. The
+  commit takes a transaction-level advisory lock for the pool (`lockPoolResource`, bound
+  parameters) before it reads the current state, so two commits of the same file in parallel are
+  serialized and the second finds everything already there (the natural keys have no unique
+  index). The capital of the installment that carries a prepayment is stored without the extra
+  amount (the workbook includes it; the stored prepayment event is subtracted from the balance
+  separately), so a prepayment is counted once, and re-importing or `update` change nothing. The
+  parser reads at most 20 sheets and 60 columns, a CSV the reader rejects is a 422,
+  and its warnings are codes the web app words in Portuguese.
+  Names and descriptions from the file are stripped of control characters and bounded before they
+  are stored, and every other value is a decimal checked against the column ranges. The audit entry
+  `import.realestate_committed` carries the loan (or property) id and a row count only. The two
+  CSV templates are downloaded from `GET …/real-estate-imports/templates/:name` (allow-list of two
+  names, `text/csv`, `nosniff`, `no-store`; same guards, no audit entry).
+  Verified by `tests/services/real-estate-imports.integration.test.ts` (guards in order, Pro
+  gate, rate limit, strict fields with SQL payloads, other pool's loan and property, preview
+  writes nothing, reference totals, idempotent re-import, notes and links kept, audit without
+  content), `tests/services/real-estate-imports-plan.test.ts`,
+  `tests/services/real-estate-imports-parser-client.test.ts`,
+  `tests/web/real-estate-imports-route.integration.test.ts` (the multipart routes and the CSV
+  download: 401, 404, 403, 413, 415, 400, Origin) and `services/parser/tests/test_real_estate.py`
+  (reference values, formulas not evaluated, detection matrix against the statement parsers).
 - **The prototype's JSON export (NES-47)** is the one upload that is data, not a statement, and it
   writes a whole pool at once, so it is the strictest. `POST /api/v1/pools/:poolId/import-prototype`:
   the body is counted while it is read and cut off at 10 MB (413), parsed as strict UTF-8 JSON, its

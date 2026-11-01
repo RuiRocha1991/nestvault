@@ -27,6 +27,7 @@ import {
   createEncryptedFileStore,
   createHoldersService,
   createImportsService,
+  createRealEstateImportsService,
   createMembersService,
   createMemoryEmailSender,
   createPoolsService,
@@ -63,6 +64,7 @@ import {
   type AuditService,
   type HoldersService,
   type ImportsService,
+  type RealEstateImportsService,
   type Auth,
   type InvitesService,
   type MembersService,
@@ -107,6 +109,7 @@ import {
   tokenIn,
 } from './auth-harness';
 import { createFakeParser, type FakeParser } from './imports';
+import { createFakeRealEstateParser, type FakeRealEstateParser } from './real-estate-imports';
 
 // The real services on the real `_test` databases, built the way `createAuthRuntime` builds them
 // (same wiring, a memory mailbox and a test clock). The isolation suite mounts it behind the Route
@@ -175,6 +178,9 @@ export interface ApiWorld {
   imports: ImportsService;
   /** The stand-in for the parser service behind `imports`, and where its files are kept. */
   importsKit: { parser: FakeParser; storageDir: string };
+  /** The mortgage workbook and CSV template import, with its own stand-in parser (billing off). */
+  realEstateImports: RealEstateImportsService;
+  realEstateKit: { parser: FakeRealEstateParser };
   /** Fresh pools A and B with a member of every role; nothing from an earlier scenario leaks in. */
   newScenario(): Promise<Scenario>;
   close(): Promise<void>;
@@ -230,6 +236,7 @@ export async function createApiWorld(): Promise<ApiWorld> {
   const pools = createPoolsService({ auth, identity, trustedProxyHops: 1 });
   const storageDir = await mkdtemp(join(tmpdir(), 'nv-world-imports-'));
   const parser = createFakeParser();
+  const realEstateParser = createFakeRealEstateParser();
   const world: ApiWorld = {
     identity,
     database,
@@ -426,6 +433,16 @@ export async function createApiWorld(): Promise<ApiWorld> {
       trustedProxyHops: 1,
     }),
     importsKit: { parser, storageDir },
+    realEstateImports: createRealEstateImportsService({
+      auth,
+      identity,
+      limiter,
+      entitlements: createEntitlements({ identity, billingEnabled: false }),
+      parser: realEstateParser,
+      run: database.withPool,
+      trustedProxyHops: 1,
+    }),
+    realEstateKit: { parser: realEstateParser },
     async newScenario() {
       return buildScenario(world, accounts, clock);
     },

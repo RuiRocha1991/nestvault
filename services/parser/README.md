@@ -33,6 +33,38 @@ Errors are `{code, message}`; a message never contains file content.
 | `bpi-xlsx` | bank | BPI Net "Extracto movimentos" (xlsx, sheet `Movimentos`) | Text dates `dd-mm-aaaa`, signed amount, running balance; the file lists the newest first, rows come out oldest first. The movement date is the row date (the value date is not used). `type` is set for card purchases, transfers and fees. `meta.account_hint` is the account number; reconciles each balance against the one before. |
 | `generic-pdf-lines` | bank | any PDF with one `dd-mm-yyyy description value balance` line per movement | Confidence 0.5 (the threshold): a named parser always wins. |
 
+### Real estate parsers (NES-102)
+
+Not statements: they have their own registry and endpoints (`POST /real-estate/detect`,
+`POST /real-estate/parse?parser_id=…`, same secret and limits), so the detection matrices never clash.
+Output is `{rows, meta, warnings}` with `kind` = `installment`, `prepayment`, `work`, `work_payment` or
+`inflation` (`schemas/real-estate.schema.json`, regenerated with `pnpm parser:schema`).
+
+| Id | Input | Notes |
+| --- | --- | --- |
+| `mortgage-workbook-xlsx` | the owner's mortgage workbook (sheets `Sumário`, `Amortização`, `Resumo`, `Remodelações`, `Pagamentos`, `Inflação`) | Cached values only, formulas are never evaluated. Also returns acquisition costs and a per-sheet summary. |
+| `loan-installments-csv` | CSV template `templates/loan-installments.csv` | Installments and prepayments. |
+| `works-payments-csv` | CSV template `templates/works-payments.csv` | Works projects and payment phases. |
+
+Rules worth knowing: `warnings` are codes (`code` or `code:count`), not sentences; at most 20 sheets and
+60 columns are read; a CSV the reader cannot read is a 422. In the `Resumo` sheet a bare "Imposto de
+selo" is the purchase stamp duty only inside the acquisition section ("Custos de aquisição"), because
+the loan has a stamp tax line of its own; "Imposto de selo compra" is read anywhere. A works deposit
+strictly between 0 and 1 is a fraction (0,25 = 25 %), anything else is already a percentage, so
+exactly 1 is 1 %; both readings are reported as warnings. The `Inflação` sheet is reported with
+action `shown`: the rows are read, the app has no store for them.
+
+Prepayments: in the real `Sumário` sheet the capital of the prepayment month includes the amount
+amortised early. The parser returns that installment with its regular capital (file capital minus the
+prepayment; the carrying installment is the first one due on or after the prepayment date) and the
+prepayment as its own row with the whole amount, so the app, which subtracts stored prepayments from
+the balance, counts it once (warning `prepayment_removed_from_capital:N`). When the capital is smaller
+than the amount the file is taken to exclude it: nothing is subtracted (`prepayment_not_in_capital:N`).
+The stored prepayment keeps the `reduce_term` effect.
+
+The fixture workbook is synthetic: `python -m tests.support.mortgage` (with `PYTHONPATH=.:src`) rewrites
+`tests/fixtures/mortgage/`. The CSV templates are duplicated in `packages/services` (a test checks they match).
+
 PDF text comes from `pdfplumber` only (no poppler). `tests/support/trade_republic.py` generates the
 fixture statement; the golden test runs `docs/tools/extrato_para_csv.py` on it and compares.
 

@@ -1564,6 +1564,39 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/imports-route.integration.test.ts runs the same checks against the real handler: 401, 404 for non-members, 403 below imports.run, 413 over 10 MB, 415 for a renamed executable, unknown fields, Origin and the strict success body',
   },
 
+  // ------------------------------------------------- pool scope: real estate import (NES-102)
+  {
+    scope: 'exempt',
+    method: 'POST',
+    path: `${POOL}/real-estate-imports/preview`,
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/preview/route'),
+      ),
+    reason:
+      'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/real-estate-imports-route.integration.test.ts runs the same checks against the real handler: 401, 404 for non-members, 403 below imports.run, 413 over 10 MB, 415 for a renamed executable, unknown fields, Origin and the strict success body',
+  },
+  {
+    scope: 'exempt',
+    method: 'POST',
+    path: `${POOL}/real-estate-imports/commit`,
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/commit/route')),
+    reason:
+      'multipart/form-data, which the generated cases (JSON bodies) cannot send; tests/web/real-estate-imports-route.integration.test.ts runs the same checks against the real handler (also 403 for a member, who lacks realestate.write, and Origin), and tests/services/real-estate-imports.integration.test.ts covers the commit, the other pool and idempotency',
+  },
+  {
+    scope: 'exempt',
+    method: 'GET',
+    path: `${POOL}/real-estate-imports/templates/:name`,
+    load: () =>
+      load(
+        import('../../apps/web/src/app/api/v1/pools/[poolId]/real-estate-imports/templates/[name]/route'),
+      ),
+    reason:
+      'answers text/csv, not JSON; tests/web/real-estate-imports-route.integration.test.ts checks the 200 body and headers, 401, 404 and 403',
+  },
+
   // ---------------------------------------------------------------- pool scope: accounts
   {
     scope: 'pool',

@@ -1,0 +1,489 @@
+{
+  "$defs": {
+    "AcquisitionCosts": {
+      "additionalProperties": false,
+      "properties": {
+        "deed": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Deed",
+          "type": "string"
+        },
+        "imt": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Imt",
+          "type": "string"
+        },
+        "stamp_duty": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Stamp Duty",
+          "type": "string"
+        },
+        "registration": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Registration",
+          "type": "string"
+        },
+        "bank_fees": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Bank Fees",
+          "type": "string"
+        }
+      },
+      "title": "AcquisitionCosts",
+      "type": "object"
+    },
+    "InflationRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "inflation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "year": {
+          "maximum": 2200,
+          "minimum": 1900,
+          "title": "Year",
+          "type": "integer"
+        },
+        "rate_pct": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Rate Pct",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "year",
+        "rate_pct"
+      ],
+      "title": "InflationRow",
+      "type": "object"
+    },
+    "InstallmentRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "installment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "number": {
+          "maximum": 600,
+          "minimum": 1,
+          "title": "Number",
+          "type": "integer"
+        },
+        "due_date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Due Date",
+          "type": "string"
+        },
+        "capital": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Capital",
+          "type": "string"
+        },
+        "interest": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Interest",
+          "type": "string"
+        },
+        "fees": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Fees",
+          "type": "string"
+        },
+        "stamp_tax": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Stamp Tax",
+          "type": "string"
+        },
+        "life_insurance": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Life Insurance",
+          "type": "string"
+        },
+        "home_insurance": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Home Insurance",
+          "type": "string"
+        },
+        "credit_insurance": {
+          "default": "0",
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Credit Insurance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "number",
+        "due_date",
+        "capital",
+        "interest"
+      ],
+      "title": "InstallmentRow",
+      "type": "object"
+    },
+    "PrepaymentRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "prepayment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "amount": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "fee": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fee"
+        }
+      },
+      "required": [
+        "kind",
+        "date",
+        "amount"
+      ],
+      "title": "PrepaymentRow",
+      "type": "object"
+    },
+    "RealEstateMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "parser_id": {
+          "title": "Parser Id",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "row_count": {
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "acquisition_costs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcquisitionCosts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sheets": {
+          "items": {
+            "$ref": "#/$defs/SheetSummary"
+          },
+          "title": "Sheets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parser_id",
+        "parser_version",
+        "row_count"
+      ],
+      "title": "RealEstateMeta",
+      "type": "object"
+    },
+    "SheetSummary": {
+      "additionalProperties": false,
+      "description": "One line of the import dialog: what a sheet holds and what the app does with it.",
+      "properties": {
+        "sheet": {
+          "maxLength": 500,
+          "title": "Sheet",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 500,
+          "title": "Label",
+          "type": "string"
+        },
+        "rows": {
+          "title": "Rows",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "import",
+            "recalculated",
+            "shown"
+          ],
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sheet",
+        "label",
+        "rows",
+        "action"
+      ],
+      "title": "SheetSummary",
+      "type": "object"
+    },
+    "WorkPaymentRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "work_payment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "work": {
+          "maxLength": 500,
+          "title": "Work",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 500,
+          "title": "Description",
+          "type": "string"
+        },
+        "amount": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Amount",
+          "type": "string"
+        },
+        "planned_date": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Planned Date"
+        },
+        "paid_date": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paid Date"
+        },
+        "status": {
+          "default": "planned",
+          "enum": [
+            "planned",
+            "paid"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "work",
+        "description",
+        "amount"
+      ],
+      "title": "WorkPaymentRow",
+      "type": "object"
+    },
+    "WorkRow": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "work",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 500,
+          "title": "Name",
+          "type": "string"
+        },
+        "supplier": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplier"
+        },
+        "budget": {
+          "maxLength": 40,
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "title": "Budget",
+          "type": "string"
+        },
+        "deposit_pct": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "pattern": "^-?\\d+(\\.\\d+)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deposit Pct"
+        },
+        "status": {
+          "default": "planned",
+          "enum": [
+            "planned",
+            "in_progress",
+            "done"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Date"
+        },
+        "planned_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Planned End"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "budget"
+      ],
+      "title": "WorkRow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rows": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "inflation": "#/$defs/InflationRow",
+            "installment": "#/$defs/InstallmentRow",
+            "prepayment": "#/$defs/PrepaymentRow",
+            "work": "#/$defs/WorkRow",
+            "work_payment": "#/$defs/WorkPaymentRow"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/InstallmentRow"
+          },
+          {
+            "$ref": "#/$defs/PrepaymentRow"
+          },
+          {
+            "$ref": "#/$defs/WorkRow"
+          },
+          {
+            "$ref": "#/$defs/WorkPaymentRow"
+          },
+          {
+            "$ref": "#/$defs/InflationRow"
+          }
+        ]
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "meta": {
+      "$ref": "#/$defs/RealEstateMeta"
+    },
+    "warnings": {
+      "items": {
+        "maxLength": 500,
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rows",
+    "meta",
+    "warnings"
+  ],
+  "title": "RealEstateParseResponse",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nestvault.local/schemas/real-estate-parse-response.json"
+}

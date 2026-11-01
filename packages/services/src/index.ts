@@ -34,6 +34,7 @@ export * from './settings';
 export * from './prototype-import';
 export * from './months';
 export * from './imports';
+export * from './real-estate-imports';
 export * from './property-costs';
 export * from './real-estate';
 export * from './snapshots';
