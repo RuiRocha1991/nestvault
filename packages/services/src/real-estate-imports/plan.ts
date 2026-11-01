@@ -117,8 +117,7 @@ export const nameKey = (text: string): string => text.normalize('NFC').toLowerCa
 
 const money = (value: string): string => toPlain(dec(value).toDecimalPlaces(4));
 /** numeric(18,4): 14 integer digits at most. */
-const MAX_AMOUNT = 1e14;
-const fits = (amount: string): boolean => !dec(amount).isNegative() && dec(amount).lt(MAX_AMOUNT);
+const fits = (amount: string): boolean => !dec(amount).isNegative() && dec(amount).lt(1e14);
 const same = (a: string | null, b: string | null): boolean =>
   a === null || b === null ? a === b : dec(a).eq(dec(b));
 
@@ -289,7 +288,7 @@ function workValues(
   const budget = money(row.budget);
   const deposit = row.deposit_pct === null ? null : money(row.deposit_pct);
   if (!inRange(name, 80) || (supplier !== null && !inRange(supplier, 80))) return null;
-  if (dec(budget).isNegative() || dec(budget).gte(1e14)) return null;
+  if (!fits(budget)) return null;
   if (deposit !== null && (dec(deposit).isNegative() || dec(deposit).gt(100))) return null;
   if (row.start_date && row.planned_end && row.planned_end < row.start_date) return null;
   return {
@@ -370,7 +369,7 @@ function planWorksAndPayments(
       inRange(projectName, 80) &&
       inRange(description, 120) &&
       dec(amount).gt(0) &&
-      dec(amount).lt(1e14) &&
+      fits(amount) &&
       (row.status === 'paid' ? row.paid_date !== null : row.paid_date === null);
     if (!valid) {
       outPayments.rejected += 1;
