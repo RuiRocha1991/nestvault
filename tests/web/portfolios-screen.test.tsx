@@ -182,6 +182,7 @@ const ctx = (over: Partial<TabContext> = {}): TabContext => ({
   linkedAccounts: [],
   accounts: [],
   plans: [],
+  reminders: [],
   holders: [],
   permissions: { ops: true, portfolios: true, notes: true },
   ...over,
@@ -339,5 +340,25 @@ describe('PortfoliosScreen', () => {
       data: { ...base.data, hasDividends: false, holdings: [], positions: [] },
     });
     expect(html).not.toContain('Maiores posições');
+  });
+
+  it('lists the plan reminders in the transactions tab and not in the other tabs', () => {
+    const reminders = [
+      {
+        id: '0192f3a1-0000-7000-8000-000000000051',
+        planId: '0192f3a1-0000-7000-8000-000000000040',
+        period: '2026-10',
+        createdAt: '2026-10-15T09:00:00.000Z',
+        read: false,
+        ticker: 'VWCE',
+        amount: '100',
+        portfolioId: PORTFOLIO,
+        active: true,
+      },
+    ];
+    const html = screen('transactions', { reminders });
+    expect(html).toContain('Investimento regular por registar: VWCE');
+    expect(html).toContain('1 por ler');
+    expect(screen('summary', { reminders })).not.toContain('Investimento regular por registar');
   });
 });

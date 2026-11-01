@@ -1805,6 +1805,17 @@
       "categoryDeleted": "Categoria apagada"
     }
   },
+  "notifications": {
+    "planReminder": {
+      "region": "Investimentos regulares por registar",
+      "title": "Investimentos regulares por registar",
+      "unread": "{count, plural, one {# por ler} other {# por ler}}",
+      "message": "Investimento regular por registar: {ticker} · {amount} ({period})",
+      "register": "Registar",
+      "markRead": "Marcar como lido",
+      "failed": "Não foi possível concluir a ação. Tenta outra vez."
+    }
+  },
   "notes": {
     "title": "Nota",
     "close": "Fechar",

@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
+import { PlanReminders } from '@webapp/components/notifications/plan-reminders';
 import {
   deltaTone,
   goalTone,
@@ -24,6 +25,7 @@ import {
   type CategorySlice,
   type OverviewData,
 } from '@webapp/lib/overview-view';
+import type { PlanReminderView } from '@webapp/lib/plan-reminders-view';
 
 import { OverviewHeader, type HolderChip } from './overview-header';
 import { RangeSelect } from './range-select';
@@ -32,8 +34,15 @@ export interface OverviewScreenProps {
   poolId: string;
   data: OverviewData;
   holders: readonly HolderChip[];
+  /** Open plan reminders of the pool; the banner shows the ones the caller has not read. */
+  reminders: readonly PlanReminderView[];
   /** What the caller may do; the services enforce it, this only hides the buttons. */
-  can: { addTransaction: boolean; addPortfolio: boolean; addAccount: boolean };
+  can: {
+    addTransaction: boolean;
+    addPortfolio: boolean;
+    addAccount: boolean;
+    registerPlan: boolean;
+  };
 }
 
 const linkButton =
@@ -102,7 +111,7 @@ function KpiCard({
   );
 }
 
-export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenProps) {
+export function OverviewScreen({ poolId, data, holders, reminders, can }: OverviewScreenProps) {
   const t = useTranslations('overview');
   const tShell = useTranslations('nav.items');
   const tCategories = useTranslations('categories');
@@ -166,6 +175,12 @@ export function OverviewScreen({ poolId, data, holders, can }: OverviewScreenPro
   return (
     <>
       {header}
+      <PlanReminders
+        poolId={poolId}
+        reminders={reminders}
+        variant="banner"
+        canRegister={can.registerPlan}
+      />
       <div className="grid grid-cols-12 gap-4">
         <KpiCard
           title={t('kpi.netWorth')}

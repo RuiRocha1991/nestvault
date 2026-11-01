@@ -5,6 +5,7 @@ import { parseRange } from '@webapp/lib/overview-view';
 import { isPoolSegment } from '@webapp/lib/pool';
 import { getHolders } from '@webapp/server/holders';
 import { getOverview } from '@webapp/server/overview';
+import { getPlanReminders } from '@webapp/server/plan-reminders';
 import { getPoolPermissions } from '@webapp/server/pool';
 
 export const dynamic = 'force-dynamic';
@@ -23,10 +24,11 @@ export default async function OverviewPage({
   if (!isPoolSegment(poolId)) notFound();
   const range = parseRange((await searchParams).periodo);
 
-  const [data, holders, permissions] = await Promise.all([
+  const [data, holders, permissions, planReminders] = await Promise.all([
     getOverview(poolId, range),
     getHolders(poolId),
     getPoolPermissions(poolId),
+    getPlanReminders(poolId),
   ]);
 
   return (
@@ -34,10 +36,12 @@ export default async function OverviewPage({
       poolId={poolId}
       data={data}
       holders={holders.holders.map(({ id, name, color }) => ({ id, name, color }))}
+      reminders={planReminders.reminders}
       can={{
         addTransaction: permissions.includes('transactions.write'),
         addPortfolio: permissions.includes('portfolios.write'),
         addAccount: permissions.includes('accounts.write'),
+        registerPlan: permissions.includes('ops.write'),
       }}
     />
   );

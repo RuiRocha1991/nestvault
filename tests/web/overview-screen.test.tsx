@@ -120,14 +120,23 @@ const DATA: OverviewScreenProps['data'] = {
   },
 };
 
-const ALL = { addTransaction: true, addPortfolio: true, addAccount: true };
+const ALL = { addTransaction: true, addPortfolio: true, addAccount: true, registerPlan: true };
 const HOLDERS = [
   { id: '0192f3a1-0000-7000-8000-000000000001', name: 'Rui', color: '#F2913D' },
   { id: '0192f3a1-0000-7000-8000-000000000002', name: 'Ana', color: '#6C5CFF' },
 ];
 
 const screen = (over: Partial<OverviewScreenProps> = {}) =>
-  wrap(<OverviewScreen poolId={POOL} data={DATA} holders={HOLDERS} can={ALL} {...over} />);
+  wrap(
+    <OverviewScreen
+      poolId={POOL}
+      data={DATA}
+      holders={HOLDERS}
+      reminders={[]}
+      can={ALL}
+      {...over}
+    />,
+  );
 
 describe('overview screen', () => {
   it('shows the four KPIs with their values and sub-lines', () => {
@@ -186,7 +195,9 @@ describe('overview screen', () => {
   });
 
   it('hides every write button from a viewer', () => {
-    const html = screen({ can: { addTransaction: false, addPortfolio: false, addAccount: false } });
+    const html = screen({
+      can: { addTransaction: false, addPortfolio: false, addAccount: false, registerPlan: false },
+    });
     expect(html).not.toContain('nova=1');
     expect(html).not.toContain('novo=1');
     expect(html).not.toContain('Novo<');
@@ -243,9 +254,29 @@ describe('overview screen', () => {
     expect(html).not.toContain('Evolução do património');
     const viewer = screen({
       data: empty,
-      can: { addTransaction: false, addPortfolio: false, addAccount: false },
+      can: { addTransaction: false, addPortfolio: false, addAccount: false, registerPlan: false },
     });
     expect(viewer).toContain('Vamos começar');
     expect(viewer).not.toContain('Criar conta');
+  });
+
+  it('shows the plan reminder banner for unread reminders only', () => {
+    const base = {
+      id: '0192f3a1-0000-7000-8000-000000000051',
+      planId: '0192f3a1-0000-7000-8000-000000000040',
+      period: '2026-10',
+      createdAt: '2026-10-15T09:00:00.000Z',
+      ticker: 'VWCE',
+      amount: '100',
+      portfolioId: '0192f3a1-0000-7000-8000-000000000020',
+      active: true,
+    };
+    expect(screen({ reminders: [{ ...base, read: false }] })).toContain(
+      'Investimento regular por registar: VWCE',
+    );
+    expect(screen({ reminders: [{ ...base, read: true }] })).not.toContain(
+      'Investimento regular por registar',
+    );
+    expect(screen()).not.toContain('plan-reminders-banner');
   });
 });
