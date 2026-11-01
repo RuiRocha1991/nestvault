@@ -33,6 +33,7 @@ import type { Logger } from '../logger';
 import { createMembersService, type MembersService } from '../members';
 import { createMonthsService, type MonthsService } from '../months';
 import { createNotesService, type NotesService } from '../notes';
+import { createNotificationsService, type NotificationsService } from '../notifications';
 import { createOverviewService, type OverviewService } from '../overview';
 import { createPoolsService, type PoolsService } from '../pools';
 import { createPropertiesService, type PropertiesService } from '../properties';
@@ -115,6 +116,8 @@ export interface AuthRuntime {
   interest: InterestService;
   /** Notes on movements and operations, and month notes. */
   notes: NotesService;
+  /** In-app notifications and the caller's read state. */
+  notifications: NotificationsService;
   /** The overview screen in one read. */
   overview: OverviewService;
   /** The monthly review. */
@@ -195,6 +198,7 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     deposits: createDepositsService({ auth, identity, ...hops }),
     interest: createInterestService({ auth, identity, ...hops }),
     notes: createNotesService({ auth, identity, ...hops }),
+    notifications: createNotificationsService({ auth, identity, ...hops }),
     overview: createOverviewService({ auth, identity, ...hops }),
     months: createMonthsService({ auth, identity, ...hops }),
     rules: createRulesService({ auth, identity, ...hops }),

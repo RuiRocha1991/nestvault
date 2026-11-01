@@ -323,7 +323,7 @@ describe('plans.remind', () => {
       await withPool(a.ctx, (tx) =>
         notificationsRepo.markRead(tx, a.ctx, reminder?.id ?? '', user1),
       ),
-    ).toBe(true);
+    ).toBe('marked');
 
     expect((await open(a.ctx, user1))[0]?.read).toBe(true);
     expect((await open(a.ctx, user2))[0]?.read).toBe(false);
@@ -341,7 +341,7 @@ describe('plans.remind', () => {
       await withPool(b.ctx, (tx) =>
         notificationsRepo.markRead(tx, b.ctx, reminder?.id ?? '', newId()),
       ),
-    ).toBe(false);
+    ).toBe('missing');
     expect(
       await failureCodeOf(
         withPool(b.ctx, (tx) =>

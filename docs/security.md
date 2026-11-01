@@ -254,6 +254,18 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   `tests/db/notes.repo.integration.test.ts` (`expectIsolated` for every function, checks, injection
   payloads, re-import keeps the note), `tests/services/notes.integration.test.ts` (roles,
   lengths, 409, audit without text) and the generated route cases for `/note` and `/months`.
+- **Notifications API (NES-148)**: `notifications` / `notification_reads` (NES-68) are read and
+  marked only through `notificationsRepo` on a `PoolContext`. Listing and marking as read need
+  `pool.read` (the read state is personal, so viewers keep their own; no write permission exists
+  to deny); the reader is always the session user, never a body or query value, and the response
+  carries the caller's own `read` flag only. A notification id of another pool answers 404 and
+  changes nothing, and so does a resolved one (404, no read row). Marking as read is audited:
+  `notification.read` (target = the notification id, only when this call newly marks it) and
+  `notification.read_all` (meta `count`, none when nothing changed); ids and counts only, never
+  notification content. A repeated query key (`?status=a&status=b`) is rejected with 400.
+  Verified by `tests/db/notifications.repo.integration.test.ts` (`expectIsolated`, injection
+  payloads), `tests/services/notifications.integration.test.ts` and the generated route cases for
+  `/notifications`.
 - **Portfolio cash moves (NES-43)**: `portfolio_cash_moves` follows the block above (`pool_id`,
   FORCE RLS, repository on a `PoolContext`). The portfolio, the receiving account and the bank
   movement are composite foreign keys `(pool_id, …)`, so none can belong to another pool even by
