@@ -59,3 +59,14 @@ try {
   );
   process.exit(1);
 }
+
+// The list of pools may be stale after a restore or a downtime: fix it without waiting for 03:40. A
+// failure here only warns (the worker is already running and the daily run will try again).
+try {
+  await worker.enqueue('pools.reconcile');
+} catch (error) {
+  log.warn(
+    { code: error instanceof Error && 'code' in error ? String(error.code) : 'unknown' },
+    'could not ask for a pool reconciliation at start-up',
+  );
+}

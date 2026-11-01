@@ -97,7 +97,11 @@ async function tableCounts(poolId: string): Promise<Record<string, number>> {
     const counts: Record<string, number> = {};
     for (const table of tables) {
       counts[table] =
-        (await query<{ n: number }>(`select count(*)::int as n from ${table}`))[0]?.n ?? -1;
+        (
+          await query<{ n: number }>(`select count(*)::int as n from ${table} where pool_id = $1`, [
+            poolId,
+          ])
+        )[0]?.n ?? -1;
     }
     counts.categories =
       (

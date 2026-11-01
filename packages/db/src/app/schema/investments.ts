@@ -36,6 +36,8 @@ export const plans = pgTable(
     day: smallint('day').notNull(),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    // When the plan last became active (created active, or switched on): reminders are due from then on.
+    activatedAt: timestamp('activated_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

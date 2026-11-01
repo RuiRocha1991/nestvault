@@ -32,6 +32,10 @@ DO $$ BEGIN
     REVOKE ALL ON public.worker_pools FROM worker_rw;
     GRANT SELECT ON public.worker_pools TO worker_rw;
   END IF;
+  -- reconcile_worker_pools() (NES-150) is the only way the worker changes worker_pools.
+  IF to_regprocedure('public.reconcile_worker_pools()') IS NOT NULL THEN
+    GRANT EXECUTE ON FUNCTION public.reconcile_worker_pools() TO worker_rw;
+  END IF;
 END $$;
 SQL
 done
