@@ -70,4 +70,5 @@ export * from './loan-events';
 export * from './index-rates';
 export * from './works';
 export * from './property-costs';
+export * from './net-worth-snapshots';
 export * from './notifications';

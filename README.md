@@ -63,6 +63,7 @@ pnpm lint && pnpm typecheck && pnpm test
 | `pnpm build`                            | Build every package (placeholders for now)                                                               |
 | `pnpm dev` / `pnpm dev:worker`          | Web app on http://localhost:4000 / the job worker (pg-boss; needs `pnpm db:up` and `pnpm db:migrate`)    |
 | `pnpm worker:runs`                      | Last job runs, durations and failures (`--failed`, `--limit N`); read from the `pgboss` schema           |
+| `pnpm worker:backfill-snapshots`        | Rebuild the net worth snapshots of every past month end (`--pool <uuid>` for one pool); safe to repeat   |
 | `pnpm db:worker-role`                   | Create or refresh the `worker_rw` database role on an existing volume (a fresh volume has it already)    |
 | `pnpm env:init`                         | Create `.env.local` with random secrets from `.env.example`                                              |
 | `pnpm env:check` / `pnpm env:sync`      | List / add the variables your `.env.local` lacks (names only)                                            |

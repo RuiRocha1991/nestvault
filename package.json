@@ -28,6 +28,7 @@
     "parser:up": "docker compose --env-file .env.local up -d --build --wait parser parser-gateway",
     "db:worker-role": "docker compose --env-file .env.local up -d --wait postgres && docker compose --env-file .env.local exec -T postgres bash /docker-entrypoint-initdb.d/02-worker-role.sh",
     "worker:runs": "pnpm --filter @nestvault/worker runs",
+    "worker:backfill-snapshots": "pnpm --filter @nestvault/worker backfill-snapshots",
     "db:down": "docker compose --env-file .env.local down",
     "db:reset": "bash scripts/db-reset.sh",
     "db:check": "bash scripts/db-check.sh",

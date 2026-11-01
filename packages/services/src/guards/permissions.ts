@@ -26,6 +26,7 @@ export const PERMISSIONS = [
   'imports.run',
   'settings.write',
   'audit.read',
+  'snapshots.write',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -52,7 +53,8 @@ const ADMIN: readonly Permission[] = [
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<Role, ReadonlySet<Permission>>> = {
-  owner: new Set(PERMISSIONS),
+  // `snapshots.write` is for the worker's system context only: no role holds it.
+  owner: new Set(PERMISSIONS.filter((permission) => permission !== 'snapshots.write')),
   admin: new Set(ADMIN),
   member: new Set(MEMBER),
   viewer: new Set<Permission>(['pool.read']),

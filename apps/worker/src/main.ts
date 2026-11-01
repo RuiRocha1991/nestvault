@@ -1,5 +1,7 @@
+import { isAbsolute, resolve } from 'node:path';
+
 import { workerEnv } from '@nestvault/config/node';
-import { createAppDatabase } from '@nestvault/db';
+import { createAppDatabase, createIdentityDatabase } from '@nestvault/db';
 import { createLogger } from '@nestvault/services';
 
 import { createWorkerPoolRunner } from './database';
@@ -13,8 +15,17 @@ const env = workerEnv();
 // The sample job only runs outside production, to see the runtime working.
 // Jobs about global data (no pool) write through the worker's own connection.
 const database = createAppDatabase(env.DATABASE_URL_WORKER, 2);
+const identity = createIdentityDatabase(env.DATABASE_URL_IDENTITY, 2);
+// A relative IMPORT_STORAGE_DIR is from the repository root (two levels above apps/worker).
+const storageDir = isAbsolute(env.IMPORT_STORAGE_DIR)
+  ? env.IMPORT_STORAGE_DIR
+  : resolve(import.meta.dirname, '../../..', env.IMPORT_STORAGE_DIR);
 const withPool = createWorkerPoolRunner(env.DATABASE_URL_WORKER);
-const production = createProductionJobs({ db: database.db, withPool });
+const production = createProductionJobs({
+  db: database.db,
+  withPool,
+  tenant: { identity, run: withPool, storageDir },
+});
 const jobs = env.NODE_ENV === 'production' ? production : [...production, samplePing];
 const worker = createWorker({ connectionString: env.DATABASE_URL_WORKER, jobs, log });
 
@@ -26,6 +37,7 @@ async function shutdown(signal: string): Promise<void> {
   try {
     await worker.stop();
     await database.close();
+    await identity.close();
     await withPool.close();
     process.exit(0);
   } catch (error) {

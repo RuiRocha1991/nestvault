@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tsx --env-file-if-exists=../../.env.local src/main.ts",
     "runs": "tsx --env-file-if-exists=../../.env.local src/runs-cli.ts",
+    "backfill-snapshots": "tsx --env-file-if-exists=../../.env.local src/backfill-cli.ts",
     "build": "echo \"worker: nothing to build yet\"",
     "typecheck": "tsc -p tsconfig.json"
   },
