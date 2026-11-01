@@ -1806,6 +1806,26 @@
       "categoryDeleted": "Categoria apagada"
     }
   },
+  "notifications": {
+    "planReminder": {
+      "title": "Investimentos regulares por registar",
+      "unread": "{count} por ler",
+      "details": "{amount} · dia {day} · {portfolio} · {period}",
+      "read": "Lido",
+      "register": "Registar compra",
+      "registering": "A registar…",
+      "registerLabel": "Registar compra de {ticker} ({period})",
+      "markRead": "Marcar como lido",
+      "markReadLabel": "Marcar como lido: {ticker} ({period})",
+      "notices": {
+        "registered": "Compra registada",
+        "notFound": "Este lembrete já não existe: o plano foi apagado ou a compra já foi registada.",
+        "forbidden": "Não tens permissão para fazer isto.",
+        "inactive": "Este plano está em pausa. Ativa-o para registar a compra.",
+        "failed": "Não foi possível concluir a ação. Tenta outra vez."
+      }
+    }
+  },
   "notes": {
     "title": "Nota",
     "close": "Fechar",

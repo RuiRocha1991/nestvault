@@ -22,6 +22,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { NoteIndicator } from '@webapp/components/notes/note-indicator';
 import { NoteSheet } from '@webapp/components/notes/note-sheet';
 import { useNoteRow } from '@webapp/components/notes/use-note-row';
+import { PlanReminders } from '@webapp/components/notifications/plan-reminders';
 import { AssetCell } from '@webapp/components/portfolios/asset-badge';
 import { NativeMoney } from '@webapp/components/portfolios/money';
 import type { OpenDialog, TabContext } from '@webapp/components/portfolios/types';
@@ -75,6 +76,12 @@ export function TransactionsTab({ ctx, open }: { ctx: TabContext; open: OpenDial
 
   return (
     <Card>
+      <PlanReminders
+        poolId={ctx.poolId}
+        reminders={ctx.reminders}
+        variant="list"
+        canRegister={ctx.permissions.ops}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <Segmented
           label={t('type')}

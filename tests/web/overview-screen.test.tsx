@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ToastProvider } from '@nestvault/ui';
 import {
   OverviewScreen,
   type OverviewScreenProps,
@@ -25,7 +26,7 @@ const NBSP = '\u00a0';
 const wrap = (node: React.ReactNode) =>
   renderToStaticMarkup(
     <NextIntlClientProvider locale="pt-PT" messages={messages} timeZone="Europe/Lisbon">
-      {node}
+      <ToastProvider>{node}</ToastProvider>
     </NextIntlClientProvider>,
   );
 
@@ -120,14 +121,23 @@ const DATA: OverviewScreenProps['data'] = {
   },
 };
 
-const ALL = { addTransaction: true, addPortfolio: true, addAccount: true };
+const ALL = { addTransaction: true, addPortfolio: true, addAccount: true, registerPlan: true };
 const HOLDERS = [
   { id: '0192f3a1-0000-7000-8000-000000000001', name: 'Rui', color: '#F2913D' },
   { id: '0192f3a1-0000-7000-8000-000000000002', name: 'Ana', color: '#6C5CFF' },
 ];
 
 const screen = (over: Partial<OverviewScreenProps> = {}) =>
-  wrap(<OverviewScreen poolId={POOL} data={DATA} holders={HOLDERS} can={ALL} {...over} />);
+  wrap(
+    <OverviewScreen
+      poolId={POOL}
+      data={DATA}
+      holders={HOLDERS}
+      reminders={[]}
+      can={ALL}
+      {...over}
+    />,
+  );
 
 describe('overview screen', () => {
   it('shows the four KPIs with their values and sub-lines', () => {
@@ -186,7 +196,9 @@ describe('overview screen', () => {
   });
 
   it('hides every write button from a viewer', () => {
-    const html = screen({ can: { addTransaction: false, addPortfolio: false, addAccount: false } });
+    const html = screen({
+      can: { addTransaction: false, addPortfolio: false, addAccount: false, registerPlan: false },
+    });
     expect(html).not.toContain('nova=1');
     expect(html).not.toContain('novo=1');
     expect(html).not.toContain('Novo<');
@@ -243,9 +255,32 @@ describe('overview screen', () => {
     expect(html).not.toContain('Evolução do património');
     const viewer = screen({
       data: empty,
-      can: { addTransaction: false, addPortfolio: false, addAccount: false },
+      can: { addTransaction: false, addPortfolio: false, addAccount: false, registerPlan: false },
     });
     expect(viewer).toContain('Vamos começar');
     expect(viewer).not.toContain('Criar conta');
+  });
+
+  it('shows the plan reminder banner for unread reminders only', () => {
+    const base = {
+      id: '0192f3a1-0000-7000-8000-000000000051',
+      planId: '0192f3a1-0000-7000-8000-000000000040',
+      period: '2026-10',
+      ticker: 'VWCE',
+      assetType: 'etf',
+      amount: '100',
+      currency: 'EUR',
+      day: 5,
+      portfolioName: 'Longo prazo',
+      portfolioId: '0192f3a1-0000-7000-8000-000000000020',
+      active: true,
+    };
+    expect(screen({ reminders: [{ ...base, read: false }] })).toContain(
+      'Investimentos regulares por registar',
+    );
+    expect(screen({ reminders: [{ ...base, read: true }] })).not.toContain(
+      'Investimentos regulares por registar',
+    );
+    expect(screen()).not.toContain('plan-reminders-banner');
   });
 });
