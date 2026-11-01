@@ -106,7 +106,7 @@ export const realEstateResponseSchema = z
                 sheet: z.string().max(500),
                 label: z.string().max(500),
                 rows: z.number().int(),
-                action: z.enum(['import', 'recalculated']),
+                action: z.enum(['import', 'recalculated', 'shown']),
               })
               .strict()
               .describe(

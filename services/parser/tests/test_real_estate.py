@@ -96,12 +96,12 @@ def test_reference_totals(workbook: RealEstateParseResponse) -> None:
         == COSTS_TOTAL
         == Decimal("2559.71")
     )
-    assert workbook.warnings == []
+    assert workbook.warnings == ["deposit_read_as_fraction:4"]
 
 
 def test_row_counts_match_the_import_dialog(workbook: RealEstateParseResponse) -> None:
     assert len(workbook.rows) == workbook.meta.row_count == TOTAL_ROWS == 92
-    by_sheet = {s.sheet: s.rows for s in workbook.meta.sheets if s.action == "import"}
+    by_sheet = {s.sheet: s.rows for s in workbook.meta.sheets if s.action != "recalculated"}
     assert by_sheet == {
         "Sumário": 73,
         "Amortização": 1,
@@ -109,6 +109,9 @@ def test_row_counts_match_the_import_dialog(workbook: RealEstateParseResponse) -
         "Pagamentos": 8,
         "Inflação": 6,
     }
+    actions = {s.sheet: s.action for s in workbook.meta.sheets}
+    assert actions["Inflação"] == "shown"  # read, but the app has no store for it
+    assert actions["Sumário"] == "import"
     derived = [s for s in workbook.meta.sheets if s.action == "recalculated"]
     assert len(derived) == 1
     assert derived[0].rows == 0
@@ -163,7 +166,7 @@ def test_formulas_are_not_evaluated() -> None:
     )
     result = _parse(data)
     assert [r.number for r in result.rows if isinstance(r, InstallmentRow)] == [1]
-    assert any("no cached values" in w for w in result.warnings)
+    assert "installments_without_values:1" in result.warnings
 
 
 def test_a_workbook_without_installments_fails() -> None:
@@ -177,7 +180,7 @@ def test_repeated_installment_numbers_keep_the_first() -> None:
     data = make_xlsx({"Sumário": [head, [1, "2026-01-05", 100, 20], [1, "2026-02-05", 999, 20]]})
     result = _parse(data)
     assert [r.capital for r in result.rows if isinstance(r, InstallmentRow)] == ["100"]
-    assert any("repeated" in w for w in result.warnings)
+    assert "installments_repeated:1" in result.warnings
 
 
 def test_payment_marked_paid_without_a_date_stays_planned() -> None:
@@ -194,7 +197,90 @@ def test_payment_marked_paid_without_a_date_stays_planned() -> None:
     phase = next(r for r in result.rows if isinstance(r, WorkPaymentRow))
     assert phase.status == "planned"
     assert phase.paid_date is None
-    assert any("no payment date" in w for w in result.warnings)
+    assert "payments_paid_without_date:1" in result.warnings
+
+
+def _with_summary(rows: list[list[object]]) -> RealEstateParseResponse:
+    return _parse(
+        make_xlsx(
+            {
+                "Sumário": [["Nº", "Data", "Amortização", "Juros"], [1, "2026-01-05", 1, 1]],
+                "Resumo": rows,
+            }
+        )
+    )
+
+
+def test_the_loan_stamp_tax_line_is_not_the_purchase_stamp_duty() -> None:
+    result = _with_summary(
+        [
+            ["Empréstimo"],
+            ["Imposto de selo", 400],
+            ["Custos de aquisição"],
+            ["Escritura", 100],
+            ["Imposto de selo", 992],
+        ]
+    )
+    assert result.meta.acquisition_costs is not None
+    assert result.meta.acquisition_costs.stamp_duty == "992"
+
+
+def test_a_stamp_line_outside_the_acquisition_section_is_ignored_with_a_warning() -> None:
+    result = _with_summary([["Empréstimo"], ["Imposto de selo", 400], ["IMT", 5]])
+    assert result.meta.acquisition_costs is not None
+    assert result.meta.acquisition_costs.stamp_duty == "0"
+    assert "stamp_duty_not_found" in result.warnings
+
+
+def test_the_explicit_purchase_stamp_label_is_read_anywhere() -> None:
+    result = _with_summary(
+        [["Imposto de selo compra", 700], ["Empréstimo"], ["Imposto de selo", 9]]
+    )
+    assert result.meta.acquisition_costs is not None
+    assert result.meta.acquisition_costs.stamp_duty == "700"
+
+
+@pytest.mark.parametrize(
+    ("cell", "expected", "warning"),
+    [
+        (0.25, "25", "deposit_read_as_fraction:1"),
+        (0.5, "50", "deposit_read_as_fraction:1"),
+        (1, "1", "deposit_one_read_as_percent:1"),
+        (25, "25", None),
+        (100, "100", None),
+    ],
+)
+def test_the_deposit_rule(cell: float, expected: str, warning: str | None) -> None:
+    result = _parse(
+        make_xlsx(
+            {
+                "Sumário": [["Nº", "Data", "Amortização", "Juros"], [1, "2026-01-05", 1, 1]],
+                "Remodelações": [["Obra", "Orçamento", "Entrada"], ["Kitchen", 1000, cell]],
+            }
+        )
+    )
+    work = next(r for r in result.rows if isinstance(r, WorkRow))
+    assert work.deposit_pct == expected
+    assert [w for w in result.warnings if w.startswith("deposit")] == ([warning] if warning else [])
+
+
+def test_sheets_and_columns_are_capped_like_the_sniffer() -> None:
+    wide: list[list[object]] = [["Nº", "Data", "Amortização", "Juros"] + [None] * 100]
+    wide[0][90] = "Seguro vida"
+    wide.append([1, "2026-01-05", 1, 1] + [None] * 86 + [55] + [None] * 9)
+    sheets: dict[str, list[list[object]]] = {"Sumário": wide}
+    for index in range(30):
+        sheets[f"Extra {index}"] = [["x"]]
+    result = _parse(make_xlsx(sheets))
+    row = next(r for r in result.rows if isinstance(r, InstallmentRow))
+    assert row.life_insurance == "0"  # the column past MAX_COLUMNS is not read
+
+
+def test_a_csv_the_reader_rejects_is_a_clean_422() -> None:
+    huge = "x" * 200_000  # over the csv module field limit
+    data = f"Nº;Data;Amortização;Juros\n1;2026-01-05;100;20\n2;2026-02-05;{huge};20\n".encode()
+    with pytest.raises(ParseFailedError):
+        LoanInstallmentsCsv().parse(sniff(data, SETTINGS))
 
 
 # --- CSV templates -----------------------------------------------------------------------------

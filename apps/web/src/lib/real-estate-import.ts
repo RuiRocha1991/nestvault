@@ -72,8 +72,10 @@ export function importProblemKey(
   }
 }
 
+export type PlanCounts = NonNullable<RealEstatePreview['plan']>['keep'];
+
 /** Created, updated and already-there rows of a plan, over every kind the file can hold. */
-export function planTotals(plan: NonNullable<RealEstatePreview['plan']>) {
+export function planTotals(plan: PlanCounts) {
   const created =
     plan.installments.create +
     plan.prepayments.create +
@@ -90,6 +92,47 @@ export function planTotals(plan: NonNullable<RealEstatePreview['plan']>) {
     plan.prepayments.unchanged +
     plan.works.unchanged +
     plan.payments.unchanged;
-  const rejected = plan.installments.rejected + plan.works.rejected + plan.payments.rejected;
+  const rejected =
+    plan.installments.rejected +
+    plan.prepayments.rejected +
+    plan.works.rejected +
+    plan.payments.rejected +
+    plan.costsRejected;
   return { created, updated, unchanged, rejected };
 }
+
+/** Parser warning codes (`snake_case` or `snake_case:count`) as message keys (`camelCase`). */
+export const WARNING_KEYS = [
+  'installmentsWithoutValues',
+  'installmentsRepeated',
+  'prepaymentsTableMissing',
+  'worksTableMissing',
+  'paymentsTableMissing',
+  'inflationTableMissing',
+  'paymentsPaidWithoutDate',
+  'depositReadAsFraction',
+  'depositOneReadAsPercent',
+  'stampDutyNotFound',
+  'rowsNotInstallments',
+  'rowsNotPayments',
+] as const;
+export type WarningKey = (typeof WARNING_KEYS)[number] | 'unknown';
+
+export function parseWarning(warning: string): { key: WarningKey; count: number } {
+  const [code = '', count = '0'] = warning.split(':');
+  const camel = code.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+  const known = (WARNING_KEYS as readonly string[]).includes(camel);
+  return { key: known ? (camel as WarningKey) : 'unknown', count: Number(count) || 0 };
+}
+
+/** The message key (under `realEstate.import.sheets`) of a sheet or CSV the parser names. */
+const SHEET_KEYS: Readonly<Record<string, string>> = {
+  Sumário: 'installments',
+  Amortização: 'prepayments',
+  Remodelações: 'works',
+  Pagamentos: 'payments',
+  Inflação: 'inflation',
+  Installments: 'csvInstallments',
+  Payments: 'csvPayments',
+};
+export const sheetKey = (sheet: string): string => SHEET_KEYS[sheet] ?? 'other';

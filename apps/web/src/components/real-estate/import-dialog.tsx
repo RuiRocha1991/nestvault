@@ -3,7 +3,7 @@
 import { Button, Chip, Modal, Table, Td, Th, formatMoney, formatPct } from '@nestvault/ui';
 import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 
 import {
   IMPORT_MAX_BYTES,
@@ -11,8 +11,10 @@ import {
   hasImportExtension,
   importForm,
   importProblemKey,
+  parseWarning,
   planTotals,
   previewImport,
+  sheetKey,
   templateUrl,
   type RealEstatePreview,
 } from '@webapp/lib/real-estate-import';
@@ -27,18 +29,9 @@ type Step =
 /**
  * Mockup 44: import of the owner's spreadsheet or a CSV template into this property and its loan.
  * The file is read twice by the server (a preview, then the commit), so nothing is stored between
- * the two steps and nothing is written before "Importar".
+ * the two steps and nothing is written before "Importar". The preview carries the plan for both
+ * values of "update existing", so the checkbox never needs another upload.
  */
-const SHEET_KEYS: Readonly<Record<string, string>> = {
-  Sumário: 'installments',
-  Amortização: 'prepayments',
-  Remodelações: 'works',
-  Pagamentos: 'payments',
-  Inflação: 'inflation',
-  Installments: 'csvInstallments',
-  Payments: 'csvPayments',
-};
-
 export function ImportDialog({
   open,
   onOpenChange,
@@ -60,10 +53,15 @@ export function ImportDialog({
   const [step, setStep] = useState<Step>({ name: 'choose' });
   const [update, setUpdate] = useState(true);
   const [problem, setProblem] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  // Answers that arrive after the dialog was closed or another file was chosen are dropped.
+  const generation = useRef(0);
 
   function close(next: boolean) {
     onOpenChange(next);
     if (!next) {
+      generation.current += 1;
+      setDragging(false);
       setStep({ name: 'choose' });
       setProblem(null);
       setUpdate(true);
@@ -81,10 +79,13 @@ export function ImportDialog({
       return;
     }
     setStep({ name: 'reading' });
+    generation.current += 1;
+    const mine = generation.current;
     const answer = await previewImport(
       poolId,
       importForm(file, { loanId, propertyId }, wantUpdate),
     );
+    if (mine !== generation.current) return;
     if (answer.ok) {
       setStep({ name: 'preview', file, preview: answer.data });
     } else {
@@ -93,13 +94,12 @@ export function ImportDialog({
     }
   }
 
-  /** The same file again with the other choice, without leaving the preview. */
-  async function refresh(file: File, wantUpdate: boolean) {
-    const answer = await previewImport(
-      poolId,
-      importForm(file, { loanId, propertyId }, wantUpdate),
-    );
-    if (answer.ok) setStep({ name: 'preview', file, preview: answer.data });
+  function drop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+    if (step.name !== 'choose') return;
+    const file = event.dataTransfer.files[0];
+    if (file) void read(file, update);
   }
 
   async function write() {
@@ -107,7 +107,9 @@ export function ImportDialog({
     const { file, preview } = step;
     setProblem(null);
     setStep({ name: 'writing', file, preview });
+    const mine = generation.current;
     const answer = await commitImport(poolId, importForm(file, { loanId, propertyId }, update));
+    if (mine !== generation.current) return;
     if (answer.ok) {
       const { created, updated, unchanged } = planTotals(answer.data.result);
       setStep({ name: 'done', created, updated, unchanged });
@@ -119,7 +121,8 @@ export function ImportDialog({
   }
 
   const preview = step.name === 'preview' || step.name === 'writing' ? step.preview : null;
-  const totals = preview?.plan ? planTotals(preview.plan) : null;
+  const counts = preview?.plan ? preview.plan[update ? 'update' : 'keep'] : null;
+  const totals = counts ? planTotals(counts) : null;
   const importable = preview ? preview.sheets.filter((sheet) => sheet.action === 'import') : [];
   const blocked = !!preview && preview.needs.loan && !loanId;
   const nothingNew = !!totals && totals.created === 0 && totals.updated === 0;
@@ -147,7 +150,9 @@ export function ImportDialog({
               disabled={step.name === 'writing' || blocked || nothingNew}
               onClick={() => void write()}
             >
-              {step.name === 'writing' ? t('submitting') : t('submit', { count: preview.rowCount })}
+              {step.name === 'writing'
+                ? t('submitting')
+                : t('submit', { count: totals ? totals.created + totals.updated : 0 })}
             </Button>
           )}
         </>
@@ -155,7 +160,17 @@ export function ImportDialog({
     >
       {(step.name === 'choose' || step.name === 'reading') && (
         <>
-          <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-line-2 bg-inset p-8 text-center">
+          <div
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => {
+              setDragging(false);
+            }}
+            onDrop={drop}
+            className={`flex flex-col items-center gap-3 rounded-md border border-dashed bg-inset p-8 text-center ${dragging ? 'border-accent' : 'border-line-2'}`}
+          >
             <b className="text-lg">{t('prompt')}</b>
             <p className="m-0 max-w-[52ch] text-sm text-fg-3">{t('hint')}</p>
             <input
@@ -219,19 +234,19 @@ export function ImportDialog({
             </thead>
             <tbody>
               {preview.sheets.map((sheet) => (
-                <tr key={sheet.sheet}>
+                <tr key={`${sheet.sheet}-${sheet.action}`}>
                   <Td>
-                    <b>{sheet.sheet}</b>
+                    <b>{sheetKey(sheet.sheet).startsWith('csv') ? t('csvFile') : sheet.sheet}</b>
                   </Td>
                   <Td className={sheet.action === 'import' ? '' : 'text-fg-2'}>
-                    {sheet.action === 'import'
-                      ? t(`sheets.${SHEET_KEYS[sheet.sheet] ?? 'installments'}`)
-                      : t('recalculated')}
+                    {sheet.action === 'recalculated'
+                      ? t('recalculated')
+                      : t(`sheets.${sheetKey(sheet.sheet) as 'installments'}`)}
                   </Td>
-                  <Td numeric>{sheet.action === 'import' ? sheet.rows : '—'}</Td>
+                  <Td numeric>{sheet.action === 'recalculated' ? '—' : sheet.rows}</Td>
                   <Td>
                     <Chip tone={sheet.action === 'import' ? 'accent' : 'default'}>
-                      {sheet.action === 'import' ? t('actionImport') : t('actionRecalculated')}
+                      {t(`actions.${sheet.action}`)}
                     </Chip>
                   </Td>
                 </tr>
@@ -239,6 +254,9 @@ export function ImportDialog({
             </tbody>
           </Table>
           {importable.length === 0 && <p className="m-0 text-sm text-fg-3">{t('nothingNew')}</p>}
+          {preview.sheets.some((sheet) => sheet.action === 'shown') && (
+            <p className="m-0 text-sm text-fg-2">{t('shownNotStored')}</p>
+          )}
           {!!preview.costs && (
             <p className="m-0 text-sm text-fg-2">
               {t('costs', { total: formatMoney(preview.costs.total) })}
@@ -273,7 +291,6 @@ export function ImportDialog({
               checked={update}
               onChange={(event) => {
                 setUpdate(event.target.checked);
-                if (step.name === 'preview') void refresh(step.file, event.target.checked);
               }}
             />
             {t('update')}
@@ -290,9 +307,9 @@ export function ImportDialog({
                     unchanged: totals.unchanged,
                   })}
               {totals.rejected > 0 && ` ${t('rejected', { count: totals.rejected })}`}
-              {!!preview.plan &&
-                preview.plan.payments.kept > 0 &&
-                ` ${t('kept', { count: preview.plan.payments.kept })}`}
+              {!!counts &&
+                counts.payments.kept > 0 &&
+                ` ${t('kept', { count: counts.payments.kept })}`}
             </p>
           )}
           {blocked && (
@@ -304,9 +321,10 @@ export function ImportDialog({
             <details className="text-sm text-fg-3">
               <summary>{t('warnings')}</summary>
               <ul className="m-0 mt-1 list-disc pl-5">
-                {preview.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
+                {preview.warnings.map((warning, index) => {
+                  const { key, count } = parseWarning(warning);
+                  return <li key={`${index}-${warning}`}>{t(`warning.${key}`, { count })}</li>;
+                })}
               </ul>
             </details>
           )}

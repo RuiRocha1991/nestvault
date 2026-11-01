@@ -3227,7 +3227,8 @@
                             "type": "string",
                             "enum": [
                               "import",
-                              "recalculated"
+                              "recalculated",
+                              "shown"
                             ]
                           }
                         },
@@ -3381,121 +3382,266 @@
                         "null"
                       ],
                       "properties": {
-                        "installments": {
+                        "keep": {
                           "type": "object",
                           "properties": {
-                            "create": {
+                            "installments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "prepayments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "works": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "payments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                },
+                                "kept": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected",
+                                "kept"
+                              ]
+                            },
+                            "costs": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "fill",
+                                "update",
+                                "unchanged"
+                              ]
+                            },
+                            "costsRejected": {
                               "type": "integer"
                             },
-                            "update": {
-                              "type": "integer"
+                            "fieldsEnabled": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             },
-                            "unchanged": {
-                              "type": "integer"
-                            },
-                            "rejected": {
+                            "inflation": {
                               "type": "integer"
                             }
                           },
                           "required": [
-                            "create",
-                            "update",
-                            "unchanged",
-                            "rejected"
+                            "installments",
+                            "prepayments",
+                            "works",
+                            "payments",
+                            "costs",
+                            "costsRejected",
+                            "fieldsEnabled",
+                            "inflation"
                           ]
                         },
-                        "prepayments": {
+                        "update": {
                           "type": "object",
                           "properties": {
-                            "create": {
+                            "installments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "prepayments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "works": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected"
+                              ]
+                            },
+                            "payments": {
+                              "type": "object",
+                              "properties": {
+                                "create": {
+                                  "type": "integer"
+                                },
+                                "update": {
+                                  "type": "integer"
+                                },
+                                "unchanged": {
+                                  "type": "integer"
+                                },
+                                "rejected": {
+                                  "type": "integer"
+                                },
+                                "kept": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "create",
+                                "update",
+                                "unchanged",
+                                "rejected",
+                                "kept"
+                              ]
+                            },
+                            "costs": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "fill",
+                                "update",
+                                "unchanged"
+                              ]
+                            },
+                            "costsRejected": {
                               "type": "integer"
                             },
-                            "unchanged": {
+                            "fieldsEnabled": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "inflation": {
                               "type": "integer"
                             }
                           },
                           "required": [
-                            "create",
-                            "unchanged"
+                            "installments",
+                            "prepayments",
+                            "works",
+                            "payments",
+                            "costs",
+                            "costsRejected",
+                            "fieldsEnabled",
+                            "inflation"
                           ]
-                        },
-                        "works": {
-                          "type": "object",
-                          "properties": {
-                            "create": {
-                              "type": "integer"
-                            },
-                            "update": {
-                              "type": "integer"
-                            },
-                            "unchanged": {
-                              "type": "integer"
-                            },
-                            "rejected": {
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "create",
-                            "update",
-                            "unchanged",
-                            "rejected"
-                          ]
-                        },
-                        "payments": {
-                          "type": "object",
-                          "properties": {
-                            "create": {
-                              "type": "integer"
-                            },
-                            "update": {
-                              "type": "integer"
-                            },
-                            "unchanged": {
-                              "type": "integer"
-                            },
-                            "rejected": {
-                              "type": "integer"
-                            },
-                            "kept": {
-                              "type": "integer"
-                            }
-                          },
-                          "required": [
-                            "create",
-                            "update",
-                            "unchanged",
-                            "rejected",
-                            "kept"
-                          ]
-                        },
-                        "costs": {
-                          "type": "string",
-                          "enum": [
-                            "none",
-                            "fill",
-                            "update",
-                            "unchanged"
-                          ]
-                        },
-                        "fieldsEnabled": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "inflation": {
-                          "type": "integer"
                         }
                       },
                       "required": [
-                        "installments",
-                        "prepayments",
-                        "works",
-                        "payments",
-                        "costs",
-                        "fieldsEnabled",
-                        "inflation"
+                        "keep",
+                        "update"
                       ]
                     },
                     "needs": {
@@ -3756,11 +3902,15 @@
                             },
                             "unchanged": {
                               "type": "integer"
+                            },
+                            "rejected": {
+                              "type": "integer"
                             }
                           },
                           "required": [
                             "create",
-                            "unchanged"
+                            "unchanged",
+                            "rejected"
                           ]
                         },
                         "works": {
@@ -3822,6 +3972,9 @@
                             "unchanged"
                           ]
                         },
+                        "costsRejected": {
+                          "type": "integer"
+                        },
                         "fieldsEnabled": {
                           "type": "array",
                           "items": {
@@ -3838,6 +3991,7 @@
                         "works",
                         "payments",
                         "costs",
+                        "costsRejected",
                         "fieldsEnabled",
                         "inflation"
                       ]

@@ -16,6 +16,17 @@ Sheets, found by name without accents or case:
 
 Formulas are never evaluated: only the cached values the file carries are read, and a cell whose
 formula has no cached value counts as empty.
+
+Warnings are codes (`code` or `code:count`), not sentences: the web app words them in Portuguese.
+
+- `installments_without_values:N`, `installments_repeated:N`
+- `prepayments_table_missing`, `works_table_missing`, `payments_table_missing`,
+  `inflation_table_missing`
+- `payments_paid_without_date:N`
+- `deposit_read_as_fraction:N` and `deposit_one_read_as_percent:N` (see `_deposit`)
+- `stamp_duty_not_found` (an "Imposto de selo" line outside the acquisition section)
+
+Limits, like `sniff`: at most `MAX_SHEETS` sheets and `MAX_COLUMNS` columns are read.
 """
 
 import io
@@ -26,7 +37,7 @@ from typing import Any
 import openpyxl
 
 from ..errors import ParseFailedError, UnsupportedFileError
-from ..sniff import SniffedFile
+from ..sniff import MAX_COLUMNS, MAX_SHEETS, SniffedFile
 from .models import (
     AcquisitionCosts,
     InflationRow,
@@ -69,7 +80,7 @@ OTHER_SHEETS = (PREPAYMENTS, SUMMARY, WORKS, PAYMENTS, INFLATION)
 _COSTS: dict[str, tuple[str, ...]] = {
     "deed": ("ESCRITURA", "CUSTO ESCRITURA", "DEED"),
     "imt": ("IMT",),
-    "stamp_duty": ("IMPOSTO DE SELO", "IMPOSTO DE SELO COMPRA", "STAMP DUTY"),
+    "stamp_duty": ("IMPOSTO DE SELO COMPRA", "IMPOSTO DE SELO AQUISICAO", "STAMP DUTY"),
     "registration": ("REGISTO", "REGISTO PREDIAL", "REGISTRATION"),
     "bank_fees": ("DESPESAS BANCARIAS", "COMISSOES BANCARIAS", "BANK FEES"),
 }
@@ -80,6 +91,10 @@ _LABELS = {
     PAYMENTS: ("Pagamentos", "Payment phases of the works"),
     INFLATION: ("Inflação", "Yearly consumer price changes"),
 }
+# A bare "Imposto de selo" is also the stamp tax of the loan; it counts as the purchase one only
+# inside the acquisition section of the Resumo sheet.
+_AMBIGUOUS_STAMP = ("IMPOSTO DE SELO", "IMPOSTO SELO")
+_PURCHASE_SECTION = ("AQUISICAO", "COMPRA")
 _MAX_ROWS = 5000
 
 
@@ -108,7 +123,7 @@ class MortgageWorkbookXlsx:
     def parse(self, file: SniffedFile) -> RealEstateParseResponse:
         workbook = _open(file.data)
         try:
-            sheets = _sheet_names(tuple(workbook.sheetnames))
+            sheets = _sheet_names(tuple(workbook.sheetnames[:MAX_SHEETS]))
             tables = {key: _rows(workbook[real]) for key, real in sheets.items()}
         finally:
             workbook.close()
@@ -143,7 +158,7 @@ class MortgageWorkbookXlsx:
             rows += inflation
             summary.append(_line(INFLATION, len(inflation)))
 
-        costs = _costs(tables[SUMMARY]) if SUMMARY in tables else None
+        costs = _costs(tables[SUMMARY], warnings_out) if SUMMARY in tables else None
         derived = [real for key, real in sheets.items() if key == SUMMARY or key in DERIVED]
         if derived:
             summary.append(
@@ -170,8 +185,10 @@ class MortgageWorkbookXlsx:
 
 
 def _line(key: str, count: int) -> SheetSummary:
+    """CPI rows are shown but the app has nowhere to store them (`shown`); the rest is imported."""
     sheet, label = _LABELS[key]
-    return SheetSummary(sheet=sheet, label=label, rows=count, action="import")
+    action = "shown" if key == INFLATION else "import"
+    return SheetSummary(sheet=sheet, label=label, rows=count, action=action)
 
 
 def _open(data: bytes) -> Any:
@@ -184,7 +201,10 @@ def _open(data: bytes) -> Any:
 
 
 def _rows(sheet: Any) -> list[list[Any]]:
-    return [list(row) for row in sheet.iter_rows(max_row=_MAX_ROWS, values_only=True)]
+    return [
+        list(row)
+        for row in sheet.iter_rows(max_row=_MAX_ROWS, max_col=MAX_COLUMNS, values_only=True)
+    ]
 
 
 def _installments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
@@ -209,23 +229,23 @@ def _installments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRo
             continue
         result[row.number] = row
     if skipped:
-        notes.append(f"{skipped} installment rows have no cached values and were left out.")
+        notes.append(f"installments_without_values:{skipped}")
     if duplicated:
-        notes.append(f"{duplicated} repeated installment numbers were left out.")
+        notes.append(f"installments_repeated:{duplicated}")
     return [result[number] for number in sorted(result)]
 
 
 def _prepayments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
     found = find_header(table, PREPAYMENT_COLUMNS, ("date", "amount"))
     if found is None:
-        notes.append('The "Amortização" sheet has no table of prepayments.')
+        notes.append("prepayments_table_missing")
         return []
     start, columns = found
     result: list[RealEstateRow] = []
     for raw in table[start + 1 :]:
         day = date_of(at(raw, columns, "date"))
         amount = money_of(at(raw, columns, "amount"))
-        if day is None or amount is None or float(amount) <= 0:
+        if day is None or amount is None or Decimal(amount) <= 0:
             continue
         fee = money_of(at(raw, columns, "fee"))
         result.append(
@@ -237,19 +257,19 @@ def _prepayments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow
 def _works(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
     found = find_header(table, WORK_COLUMNS, ("name", "budget"))
     if found is None:
-        notes.append('The "Remodelações" sheet has no table of works.')
+        notes.append("works_table_missing")
         return []
     start, columns = found
     result: list[RealEstateRow] = []
+    fractions = ones = 0
     for raw in table[start + 1 :]:
         name = text_of(at(raw, columns, "name"))
         budget = money_of(at(raw, columns, "budget"))
-        if name is None or budget is None or float(budget) < 0:
+        if name is None or budget is None or Decimal(budget) < 0:
             continue
-        deposit = money_of(at(raw, columns, "deposit"))
-        if deposit is not None:
-            share = Decimal(deposit)
-            deposit = money_of(str(share * 100)) if share <= 1 else deposit
+        deposit, kind = _deposit(money_of(at(raw, columns, "deposit")))
+        fractions += kind == "fraction"
+        ones += kind == "one"
         result.append(
             WorkRow(
                 kind="work",
@@ -262,13 +282,33 @@ def _works(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
                 planned_end=date_of(at(raw, columns, "end")),
             )
         )
+    if fractions:
+        notes.append(f"deposit_read_as_fraction:{fractions}")
+    if ones:
+        notes.append(f"deposit_one_read_as_percent:{ones}")
     return result
+
+
+def _deposit(value: str | None) -> tuple[str | None, str]:
+    """The deposit of a project as a percentage, and how it was read.
+
+    A cell holds either a fraction (0,25 = 25 %) or percentage points (25 = 25 %); the cached value
+    does not say which. The rule: strictly between 0 and 1 is a fraction, anything else is already a
+    percentage, so exactly 1 is 1 % and never 100 %. Both readings that could surprise are reported
+    as warnings.
+    """
+    if value is None:
+        return None, "none"
+    share = Decimal(value)
+    if 0 < share < 1:
+        return money_of(str(share * 100)), "fraction"
+    return value, "one" if share == 1 else "percent"
 
 
 def _payments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
     found = find_header(table, PAYMENT_COLUMNS, ("work", "description", "amount"))
     if found is None:
-        notes.append('The "Pagamentos" sheet has no table of payments.')
+        notes.append("payments_table_missing")
         return []
     start, columns = found
     result: list[RealEstateRow] = []
@@ -279,14 +319,14 @@ def _payments(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
         if row is not None:
             result.append(row)
     if corrected:
-        notes.append(f"{corrected} payments marked as paid have no payment date: kept as planned.")
+        notes.append(f"payments_paid_without_date:{corrected}")
     return result
 
 
 def _inflation(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
     found = find_header(table, INFLATION_COLUMNS, ("year", "rate"))
     if found is None:
-        notes.append('The "Inflação" sheet has no yearly table.')
+        notes.append("inflation_table_missing")
         return []
     start, columns = found
     seen: dict[int, InflationRow] = {}
@@ -299,12 +339,27 @@ def _inflation(table: list[list[Any]], notes: list[str]) -> list[RealEstateRow]:
     return [seen[year] for year in sorted(seen)]
 
 
-def _costs(table: list[list[Any]]) -> AcquisitionCosts | None:
-    """The acquisition costs: label in one cell, amount in the next cell that holds a number."""
+def _costs(table: list[list[Any]], notes: list[str]) -> AcquisitionCosts | None:
+    """The acquisition costs: label in one cell, amount in the next cell that holds a number.
+
+    A bare "Imposto de selo" is read only inside the acquisition section (a line with a single
+    label such as "Custos de aquisição" opens it, any other single label closes it), because the
+    loan has a stamp tax line of its own; "Imposto de selo compra" is read anywhere."""
     found: dict[str, str] = {}
+    in_purchase = False
+    ambiguous_skipped = False
     for raw in table:
+        filled = [cell for cell in raw if cell is not None and str(cell).strip() != ""]
+        if len(filled) == 1 and isinstance(filled[0], str):
+            in_purchase = any(word in header_key(filled[0]) for word in _PURCHASE_SECTION)
+            continue
         for position, cell in enumerate(raw):
             key = header_key(cell)
+            if key in _AMBIGUOUS_STAMP and not in_purchase:
+                ambiguous_skipped = True
+                break
+            if key in _AMBIGUOUS_STAMP:
+                key = "IMPOSTO DE SELO COMPRA"
             field = next((name for name, labels in _COSTS.items() if key in labels), None)
             if field is None or field in found:
                 continue
@@ -314,4 +369,6 @@ def _costs(table: list[list[Any]]) -> AcquisitionCosts | None:
             if amount is not None:
                 found[field] = amount
             break
+    if ambiguous_skipped and "stamp_duty" not in found:
+        notes.append("stamp_duty_not_found")
     return AcquisitionCosts(**found) if found else None

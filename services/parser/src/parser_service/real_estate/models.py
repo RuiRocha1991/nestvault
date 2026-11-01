@@ -9,7 +9,7 @@ from ..models import Decimal_, IsoDate, Text, _Strict
 
 WorkStatus = Literal["planned", "in_progress", "done"]
 PaymentStatus = Literal["planned", "paid"]
-SheetAction = Literal["import", "recalculated"]
+SheetAction = Literal["import", "recalculated", "shown"]
 
 
 class InstallmentRow(_Strict):

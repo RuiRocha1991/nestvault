@@ -1,5 +1,6 @@
 import {
   loanEventsRepo,
+  lockPoolResource,
   loansRepo,
   newId,
   propertiesRepo,
@@ -113,7 +114,11 @@ export function countsOf(plan: Plan): PlanCountsDto {
       unchanged: plan.installments.unchanged,
       rejected: plan.installments.rejected,
     },
-    prepayments: { create: plan.prepayments.create.length, unchanged: plan.prepayments.unchanged },
+    prepayments: {
+      create: plan.prepayments.create.length,
+      unchanged: plan.prepayments.unchanged,
+      rejected: plan.prepayments.rejected,
+    },
     works: {
       create: plan.works.create.length,
       update: plan.works.update.length,
@@ -128,6 +133,7 @@ export function countsOf(plan: Plan): PlanCountsDto {
       kept: plan.payments.kept,
     },
     costs: plan.costs.action,
+    costsRejected: plan.costs.rejected,
     fieldsEnabled: plan.enableFields,
     inflation: plan.inflation,
   });
@@ -137,7 +143,7 @@ export function countsOf(plan: Plan): PlanCountsDto {
 export function previewOf(
   response: Response,
   info: { fileName: string; confidence: number },
-  plan: Plan | null,
+  plan: { keep: Plan; update: Plan } | null,
 ): RealEstatePreviewDto {
   const rows = response.rows;
   const installments = rows.filter((row): row is Of<'installment'> => row.kind === 'installment');
@@ -194,7 +200,7 @@ export function previewOf(
       inflationSummed: inflation.length > 1,
     },
     warnings: response.warnings,
-    plan: plan && countsOf(plan),
+    plan: plan && { keep: countsOf(plan.keep), update: countsOf(plan.update) },
     needs: {
       loan: installments.length > 0 || prepayments.length > 0,
       property: works.length > 0 || payments.length > 0 || costs !== null,
@@ -344,11 +350,13 @@ export function createRealEstateImportsService(
       const file = await readFile(read);
       const chosen = file.fields.loanId !== undefined || file.fields.propertyId !== undefined;
       const plan = chosen
-        ? await run(ctx, async (tx) =>
-            planImport(file.response, await loadState(tx, ctx, file.fields), {
-              update: file.fields.update === 'true',
-            }),
-          )
+        ? await run(ctx, async (tx) => {
+            const state = await loadState(tx, ctx, file.fields);
+            return {
+              keep: planImport(file.response, state, { update: false }),
+              update: planImport(file.response, state, { update: true }),
+            };
+          })
         : null;
       return previewOf(file.response, file, plan);
     },
@@ -358,6 +366,9 @@ export function createRealEstateImportsService(
       await limiter.consume('imports', ctx.poolId);
       const file = await readFile(read);
       const outcome = await run(ctx, async (tx) => {
+        // One import of a pool at a time: the natural keys have no unique index, so two commits of
+        // the same file in parallel would both see "nothing there" and write every row twice.
+        await lockPoolResource(tx, ctx.poolId, 'real-estate-import');
         const state = await loadState(tx, ctx, file.fields);
         const plan = planImport(file.response, state, { update: file.fields.update === 'true' });
         const problem = needsError(plan);

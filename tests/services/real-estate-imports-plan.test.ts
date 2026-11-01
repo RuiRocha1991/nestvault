@@ -211,7 +211,7 @@ describe('planImport: a second import adds nothing', () => {
     });
     const plan = planImport(response, state, options);
     expect(plan.installments).toMatchObject({ create: [], update: [], unchanged: 2 });
-    expect(plan.prepayments).toEqual({ create: [], unchanged: 1 });
+    expect(plan.prepayments).toEqual({ create: [], unchanged: 1, rejected: 0 });
     expect(plan.works).toMatchObject({ create: [], update: [], unchanged: 1 });
     expect(plan.payments).toMatchObject({ create: [], update: [], unchanged: 1 });
     expect(plan.costs.action).toBe('unchanged');
@@ -251,10 +251,12 @@ describe('planImport: existing rows', () => {
     expect(planImport(response, state, { update: false }).costs).toEqual({
       action: 'fill',
       values: { imt: '100' },
+      rejected: 0,
     });
     expect(planImport(response, state, { update: true }).costs).toEqual({
       action: 'update',
       values: { deedCost: '915', imt: '100' },
+      rejected: 0,
     });
   });
 
@@ -307,6 +309,139 @@ describe('planImport: existing rows', () => {
       budget: '200',
       status: 'planned',
     });
+  });
+});
+
+describe('planImport: what the household chose by hand is never overwritten', () => {
+  const phaseRow = (patch: object): RealEstateRow => ({
+    kind: 'work_payment',
+    work: 'Kitchen',
+    description: 'Deposit',
+    amount: '300',
+    planned_date: '2026-01-10',
+    paid_date: null,
+    status: 'planned',
+    ...patch,
+  });
+  const phase = (patch: Partial<WorksPaymentRow>) =>
+    ({
+      id: ID,
+      projectId: ID,
+      description: 'Deposit',
+      amount: '300.0000',
+      plannedDate: '2026-01-10',
+      paidDate: null,
+      status: 'planned',
+      transactionId: null,
+      ...patch,
+    }) as WorksPaymentRow;
+  const withPhase = (patch: Partial<WorksPaymentRow>) =>
+    emptyState({
+      works: [{ id: ID, name: 'Kitchen' } as WorksProjectRow],
+      payments: [phase(patch)],
+    });
+
+  it('a phase marked paid by hand is not reset to planned by "update existing"', () => {
+    const state = withPhase({ status: 'paid', paidDate: '2026-01-12' });
+    const plan = planImport(realEstateResponse([phaseRow({})]), state, { update: true });
+    expect(plan.payments).toMatchObject({ update: [], create: [], unchanged: 0, kept: 1 });
+  });
+
+  it('nor is its payment date replaced by the date the file states', () => {
+    const state = withPhase({ status: 'paid', paidDate: '2026-01-12' });
+    const row = phaseRow({ status: 'paid', paid_date: '2026-01-20' });
+    const plan = planImport(realEstateResponse([row]), state, { update: true });
+    expect(plan.payments).toMatchObject({ update: [], kept: 1 });
+  });
+
+  it('the file may mark a planned phase as paid', () => {
+    const row = phaseRow({ status: 'paid', paid_date: '2026-01-20' });
+    const plan = planImport(realEstateResponse([row]), withPhase({}), { update: true });
+    expect(plan.payments.update).toHaveLength(1);
+    expect(plan.payments.update[0]?.values).toMatchObject({
+      status: 'paid',
+      paidDate: '2026-01-20',
+    });
+  });
+
+  it('an existing project keeps its status and dates; the file only fills missing dates', () => {
+    const work = (patch: object): RealEstateRow => ({
+      kind: 'work',
+      name: 'Kitchen',
+      supplier: 'Supplier A',
+      budget: '1500',
+      deposit_pct: '30',
+      status: 'planned',
+      start_date: '2026-03-01',
+      planned_end: '2026-04-01',
+      ...patch,
+    });
+    const stored = {
+      id: ID,
+      name: 'Kitchen',
+      supplier: 'Supplier A',
+      budget: '1000.0000',
+      depositPct: '30.0000',
+      status: 'done',
+      startDate: '2026-01-05',
+      plannedEnd: null,
+      description: null,
+      notes: null,
+    } as WorksProjectRow;
+    const plan = planImport(realEstateResponse([work({})]), emptyState({ works: [stored] }), {
+      update: true,
+    });
+    expect(plan.works.update).toHaveLength(1);
+    expect(plan.works.update[0]?.values).toMatchObject({
+      budget: '1500',
+      status: 'done', // the household finished it; the file says planned
+      startDate: '2026-01-05', // the household's date stays
+      plannedEnd: '2026-04-01', // missing: filled
+    });
+    // only the status differs: nothing to update
+    const same = planImport(
+      realEstateResponse([work({ budget: '1000', start_date: '2026-01-05', planned_end: null })]),
+      emptyState({ works: [stored] }),
+      { update: true },
+    );
+    expect(same.works).toMatchObject({ update: [], unchanged: 1 });
+  });
+});
+
+describe('planImport: amounts that do not fit numeric(18,4)', () => {
+  it('rejects an acquisition cost that is too large or negative, without touching the others', () => {
+    const response = realEstateResponse([], 'x', {
+      deed: '100000000000000',
+      imt: '-5',
+      stamp_duty: '200',
+      registration: '0',
+      bank_fees: '0',
+    });
+    const plan = planImport(response, emptyState(), options);
+    expect(plan.costs).toEqual({ action: 'fill', values: { stampDuty: '200' }, rejected: 2 });
+  });
+
+  it('rejects a prepayment whose amount or fee does not fit, and one with a negative fee', () => {
+    const prepayment = (patch: object): RealEstateRow => ({
+      kind: 'prepayment',
+      date: '2026-02-01',
+      amount: '500',
+      fee: null,
+      ...patch,
+    });
+    const plan = planImport(
+      realEstateResponse([
+        prepayment({ fee: '100000000000000' }),
+        prepayment({ fee: '-1' }),
+        prepayment({ amount: '100000000000000', date: '2026-03-01' }),
+        prepayment({ fee: '2.5', date: '2026-04-01' }),
+      ]),
+      emptyState(),
+      options,
+    );
+    expect(plan.prepayments.rejected).toBe(3);
+    expect(plan.prepayments.create).toHaveLength(1);
+    expect(plan.prepayments.create[0]).toMatchObject({ date: '2026-04-01', fee: '2.5' });
   });
 });
 

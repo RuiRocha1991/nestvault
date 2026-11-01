@@ -23,8 +23,10 @@ import type { RealEstateParserResponse } from '../imports/parser-client';
 // date, amount), a works project by (property, name), a payment phase by (project, description,
 // amount, planned date, occurrence in the file) and the acquisition costs by the property. A row
 // that is already there is left alone unless "update existing" is on, and then only the figures
-// the file states change: notes, descriptions, statuses chosen by hand on a loan, and links to bank
-// movements are never touched.
+// the file states change. Never touched: notes, descriptions, the status of an installment or of a
+// works project (the household moves those by hand), the dates a works project already has, a
+// payment phase marked paid by hand (the file may mark a planned phase paid, never the opposite)
+// and links to bank movements.
 
 type Row = RealEstateParserResponse['rows'][number];
 type Of<K extends Row['kind']> = Extract<Row, { kind: K }>;
@@ -73,8 +75,13 @@ export interface Plan {
   };
   /** Built-in installment fields the file has values for and the loan has switched off. */
   enableFields: BuiltinKey[];
-  prepayments: { create: LoanEventValues[]; unchanged: number };
-  costs: { action: 'none' | 'fill' | 'update' | 'unchanged'; values: CostValues };
+  prepayments: { create: LoanEventValues[]; unchanged: number; rejected: number };
+  costs: {
+    action: 'none' | 'fill' | 'update' | 'unchanged';
+    values: CostValues;
+    /** Costs of the file that are negative or do not fit the column: skipped. */
+    rejected: number;
+  };
   works: {
     /** `key` ties the payments to a project that does not exist yet. */
     create: { key: string; values: WorksProjectValues }[];
@@ -109,6 +116,9 @@ const inRange = (text: string | null, max: number): text is string =>
 export const nameKey = (text: string): string => text.normalize('NFC').toLowerCase().trim();
 
 const money = (value: string): string => toPlain(dec(value).toDecimalPlaces(4));
+/** numeric(18,4): 14 integer digits at most. */
+const MAX_AMOUNT = 1e14;
+const fits = (amount: string): boolean => !dec(amount).isNegative() && dec(amount).lt(MAX_AMOUNT);
 const same = (a: string | null, b: string | null): boolean =>
   a === null || b === null ? a === b : dec(a).eq(dec(b));
 
@@ -152,9 +162,7 @@ function installmentValues(row: Of<'installment'>, today: string): InstallmentVa
     values.homeInsurance,
     values.creditInsurance,
   ];
-  return amounts.some((amount) => dec(amount).isNegative() || dec(amount).gte(1e14))
-    ? null
-    : values;
+  return amounts.every(fits) ? values : null;
 }
 
 const AMOUNT_KEYS = [
@@ -201,12 +209,16 @@ function planInstallments(rows: readonly Of<'installment'>[], state: PlanState, 
 }
 
 function planPrepayments(rows: readonly Of<'prepayment'>[], state: PlanState) {
-  const out: Plan['prepayments'] = { create: [], unchanged: 0 };
+  const out: Plan['prepayments'] = { create: [], unchanged: 0, rejected: 0 };
   if (!state.loan) return out;
   const known = state.prepayments.map((event) => ({ date: event.date, amount: event.amount }));
   for (const row of rows) {
     const amount = money(row.amount);
-    if (dec(amount).lte(0) || dec(amount).gte(1e14)) continue;
+    const fee = row.fee === null ? null : money(row.fee);
+    if (dec(amount).lte(0) || !fits(amount) || (fee !== null && !fits(fee))) {
+      out.rejected += 1;
+      continue;
+    }
     const index = known.findIndex(
       (k) => k.date === row.date && k.amount !== null && same(k.amount, amount),
     );
@@ -215,13 +227,12 @@ function planPrepayments(rows: readonly Of<'prepayment'>[], state: PlanState) {
       out.unchanged += 1;
       continue;
     }
-    const fee = row.fee === null ? null : money(row.fee);
     out.create.push({
       kind: 'prepayment',
       date: row.date,
       effectiveFrom: defaultEffectiveFrom('prepayment', row.date),
       amount,
-      fee: fee !== null && !dec(fee).isNegative() ? fee : null,
+      fee,
       effect: 'reduce_term',
       indexValue: null,
       spread: null,
@@ -246,21 +257,26 @@ function planCosts(
   state: PlanState,
   o: PlanOptions,
 ): Plan['costs'] {
-  if (!costs || !state.property) return { action: 'none', values: {} };
+  if (!costs || !state.property) return { action: 'none', values: {}, rejected: 0 };
   const values: CostValues = {};
+  let rejected = 0;
   for (const [fromFile, column] of COST_COLUMNS) {
     const next = money(costs[fromFile]);
-    if (dec(next).isZero() || dec(next).isNegative()) continue;
+    if (!fits(next)) {
+      rejected += 1;
+      continue;
+    }
+    if (dec(next).isZero()) continue;
     const current = state.property[column];
     if (same(current, next)) continue;
     if (dec(current).isZero() || o.update) values[column] = next;
   }
   const changed = Object.keys(values).length > 0;
-  if (!changed) return { action: 'unchanged', values };
+  if (!changed) return { action: 'unchanged', values, rejected };
   const overwrites = (Object.keys(values) as (keyof CostValues)[]).some(
     (column) => !dec(state.property?.[column] ?? 0).isZero(),
   );
-  return { action: overwrites ? 'update' : 'fill', values };
+  return { action: overwrites ? 'update' : 'fill', values, rejected };
 }
 
 function workValues(
@@ -284,9 +300,10 @@ function workValues(
     supplier,
     budget,
     depositPct: deposit,
-    status: row.status,
-    startDate: row.start_date,
-    plannedEnd: row.planned_end,
+    // The household moves the status by hand and sets its own dates: the file only fills dates.
+    status: current?.status ?? row.status,
+    startDate: current ? (current.startDate ?? row.start_date) : row.start_date,
+    plannedEnd: current ? (current.plannedEnd ?? row.planned_end) : row.planned_end,
     notes: current?.notes ?? null,
   };
 }
@@ -336,7 +353,6 @@ function planWorksAndPayments(
       same(current.budget, values.budget) &&
       same(current.depositPct, values.depositPct) &&
       current.supplier === values.supplier &&
-      current.status === values.status &&
       current.startDate === values.startDate &&
       current.plannedEnd === values.plannedEnd;
     if (equal || !o.update) outWorks.unchanged += 1;
@@ -388,9 +404,12 @@ function planWorksAndPayments(
       continue;
     }
     const equal = current.status === values.status && current.paidDate === values.paidDate;
+    // The file may only advance a planned phase to paid: a phase the household marked paid, or one
+    // linked to a bank movement, keeps what it has.
+    const advances = current.status === 'planned' && values.status === 'paid';
     if (equal || !o.update) {
       outPayments.unchanged += 1;
-    } else if (current.transactionId) {
+    } else if (current.transactionId || !advances) {
       outPayments.kept += 1;
     } else if (project) {
       outPayments.update.push({ projectId: project.id, id: current.id, values });

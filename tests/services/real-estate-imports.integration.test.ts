@@ -142,7 +142,7 @@ async function figures(loanId: string, propertyId: string) {
 async function auditEntries() {
   return rows<{ action: string; target: string | null; meta: Record<string, unknown> }>(
     world.identity,
-    sql`select action, target, meta from audit_log where pool_id = ${s.poolA} and action like 'realestate_import.%' order by at, id`,
+    sql`select action, target, meta from audit_log where pool_id = ${s.poolA} and action = 'import.realestate_committed' order by at, id`,
   );
 }
 
@@ -162,7 +162,9 @@ describe('real estate import: preview', () => {
       plan: null,
       needs: { loan: true, property: true },
     });
-    const imported = result.sheets.filter((sheet) => sheet.action === 'import');
+    const imported = result.sheets.filter((sheet) => sheet.action !== 'recalculated');
+    // The CPI sheet is read and shown, never stored: it is not counted as an import.
+    expect(result.sheets.find((sheet) => sheet.sheet === 'Inflação')?.action).toBe('shown');
     expect(imported.map((sheet) => [sheet.sheet, sheet.rows])).toEqual([
       ['Sumário', 73],
       ['Amortização', 1],
@@ -185,15 +187,19 @@ describe('real estate import: preview', () => {
   it('with a loan and a property says what importing would do, and writes nothing', async () => {
     const { property, loan, fields } = await target();
     const result = await preview({ fields });
-    expect(result.plan).toMatchObject({
-      installments: { create: 73, update: 0, unchanged: 0, rejected: 0 },
-      prepayments: { create: 1, unchanged: 0 },
-      works: { create: 4 },
-      payments: { create: 8 },
-      costs: 'fill',
-      inflation: 6,
-    });
-    expect(result.plan?.fieldsEnabled.sort()).toEqual(['creditInsurance', 'fees', 'stampTax']);
+    // One preview carries the plan for both values of "update existing".
+    for (const plan of [result.plan?.keep, result.plan?.update]) {
+      expect(plan).toMatchObject({
+        installments: { create: 73, update: 0, unchanged: 0, rejected: 0 },
+        prepayments: { create: 1, unchanged: 0, rejected: 0 },
+        works: { create: 4 },
+        payments: { create: 8 },
+        costs: 'fill',
+        costsRejected: 0,
+        inflation: 6,
+      });
+      expect(plan?.fieldsEnabled.sort()).toEqual(['creditInsurance', 'fees', 'stampTax']);
+    }
     const { installments, events, works } = await figures(loan.id, property.id);
     expect([installments.length, events.length, works.length]).toEqual([0, 0, 0]);
     expect(await auditEntries()).toEqual([]);
@@ -291,6 +297,54 @@ describe('real estate import: commit', () => {
       fieldsEnabled: [],
     });
     expect(await figures(loan.id, property.id)).toEqual(before);
+  });
+
+  it('two commits of the same file in parallel write every row once', async () => {
+    const { property, loan, fields } = await target();
+    const results = await Promise.all([commit({ fields }), commit({ fields })]);
+    const created = results.map((r) => r.result.prepayments.create + r.result.works.create);
+    expect(created.sort()).toEqual([0, 5]); // one of them did the work, the other found it done
+    const after = await figures(loan.id, property.id);
+    expect(after.installments).toHaveLength(73);
+    expect(after.events.filter((event) => event.kind === 'prepayment')).toHaveLength(1);
+    expect(after.works).toHaveLength(4);
+    expect(after.works.flatMap((work) => work.phases)).toHaveLength(8);
+  });
+
+  it('a phase marked paid by hand stays paid when the file says planned', async () => {
+    const { property, loan, fields } = await target();
+    // The file starts with every phase planned; the household then marks one paid by hand.
+    const planned = mortgageWorkbookResponse();
+    for (const row of planned.rows) {
+      if (row.kind === 'work_payment') Object.assign(row, { status: 'planned', paid_date: null });
+    }
+    parser.response = planned;
+    await commit({ fields });
+    const owner = await s.as('owner');
+    const works = (await figures(loan.id, property.id)).works;
+    const work = works[0];
+    const phase = work?.phases[0];
+    await world.works.updatePayment(owner, s.poolA, work?.id ?? '', phase?.id ?? '', {
+      paidDate: '2026-05-05',
+    });
+    const result = await commit({ fields });
+    expect(result.result.payments).toMatchObject({ update: 0, kept: 1 });
+    const after = (await figures(loan.id, property.id)).works
+      .flatMap((w) => w.phases)
+      .find((p) => p.id === phase?.id);
+    expect(after).toMatchObject({ status: 'paid', paidDate: '2026-05-05' });
+  });
+
+  it('an acquisition cost that does not fit the column is skipped with a count, not a 500', async () => {
+    const { property, fields } = await target();
+    const response = mortgageWorkbookResponse();
+    if (response.meta.acquisition_costs) response.meta.acquisition_costs.imt = '100000000000000';
+    parser.response = response;
+    const result = await commit({ fields });
+    expect(result.result.costsRejected).toBe(1);
+    const costs = (await world.properties.get(await s.as('owner'), s.poolA, property.id)).costs;
+    expect(Number(costs.imt)).toBe(0);
+    expect(Number(costs.total)).toBeCloseTo(2559.71 - 631.86, 2);
   });
 
   it('never overwrites notes, descriptions or the status the household chose', async () => {

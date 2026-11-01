@@ -22,7 +22,7 @@ export const SheetSummaryDto = z.object({
   sheet: z.string(),
   label: z.string(),
   rows: z.number().int(),
-  action: z.enum(['import', 'recalculated']),
+  action: z.enum(['import', 'recalculated', 'shown']),
 });
 
 export const PlanCountsDto = z.object({
@@ -32,7 +32,11 @@ export const PlanCountsDto = z.object({
     unchanged: z.number().int(),
     rejected: z.number().int(),
   }),
-  prepayments: z.object({ create: z.number().int(), unchanged: z.number().int() }),
+  prepayments: z.object({
+    create: z.number().int(),
+    unchanged: z.number().int(),
+    rejected: z.number().int(),
+  }),
   works: z.object({
     create: z.number().int(),
     update: z.number().int(),
@@ -47,6 +51,8 @@ export const PlanCountsDto = z.object({
     kept: z.number().int(),
   }),
   costs: z.enum(['none', 'fill', 'update', 'unchanged']),
+  /** Acquisition costs of the file that are negative or too large to store: skipped. */
+  costsRejected: z.number().int(),
   /** Installment fields the import switches on because the file has values for them. */
   fieldsEnabled: z.array(z.string()),
   /** CPI rows read from the file (shown, not stored). */
@@ -96,8 +102,12 @@ export const RealEstatePreviewDto = z.object({
     inflationSummed: z.boolean(),
   }),
   warnings: z.array(z.string()),
-  /** What importing into the chosen loan and property would do; `null` before they are chosen. */
-  plan: PlanCountsDto.nullable(),
+  /**
+   * What importing into the chosen loan and property would do, with "update existing" off (`keep`)
+   * and on (`update`), so the dialog switches between them without a second upload; `null` before
+   * the loan and the property are chosen.
+   */
+  plan: z.object({ keep: PlanCountsDto, update: PlanCountsDto }).nullable(),
   /** The file has rows that need a loan / a property the request did not name. */
   needs: z.object({ loan: z.boolean(), property: z.boolean() }),
 });

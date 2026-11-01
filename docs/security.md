@@ -812,8 +812,17 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   applies it in one `withPool` transaction through the repositories, so there is no new table and
   no new SQL. Rows are matched by natural keys (installment number per loan, prepayment date and
   amount, works project name per property, payment phase), so the same file twice adds nothing;
-  existing rows change only with `update=true` and only their figures: notes, descriptions, the
-  status of an installment and the link of a payment phase to a bank movement are never written.
+  existing rows change only with `update=true` and only their figures. Never written: notes,
+  descriptions, the status of an installment or of a works project, the dates a project already
+  has (the file only fills empty ones), a payment phase the household marked paid (the file may
+  only advance a planned phase to paid) and the link of a phase to a bank movement. Amounts are
+  checked against `numeric(18,4)` (acquisition costs and the prepayment fee included): a value that
+  is negative or too large skips its row or cost and is counted as rejected, never a 500. The
+  commit takes a transaction-level advisory lock for the pool (`lockPoolResource`, bound
+  parameters) before it reads the current state, so two commits of the same file in parallel are
+  serialized and the second finds everything already there (the natural keys have no unique
+  index). The parser reads at most 20 sheets and 60 columns, a CSV the reader rejects is a 422,
+  and its warnings are codes the web app words in Portuguese.
   Names and descriptions from the file are stripped of control characters and bounded before they
   are stored, and every other value is a decimal checked against the column ranges. The audit entry
   `import.realestate_committed` carries the loan (or property) id and a row count only. The two

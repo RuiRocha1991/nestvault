@@ -1065,7 +1065,7 @@
         "sheet": "Inflação",
         "label": "Yearly consumer price changes",
         "rows": 6,
-        "action": "import"
+        "action": "shown"
       },
       {
         "sheet": "Resumo · Pago por anos · Plano de pagamento",
@@ -1075,5 +1075,7 @@
       }
     ]
   },
-  "warnings": []
+  "warnings": [
+    "deposit_read_as_fraction:4"
+  ]
 }

@@ -8072,7 +8072,7 @@
                 "preview"
               ]
             },
-            "description": "Pro. Multipart upload: pick the mortgage workbook (.xlsx) or a CSV template in `file` (10 MB at most). `loanId` and `propertyId` are optional; with them the answer also says what importing would create, update or leave alone (`plan`). Nothing is written. Needs `imports.run`. 415 for a file whose content is not what its name says, 413 over 10 MB, 422 when no real estate format recognises it, 429 after 20 uploads an hour per pool.",
+            "description": "Pro. Multipart upload: pick the mortgage workbook (.xlsx) or a CSV template in `file` (10 MB at most). `loanId` and `propertyId` are optional; with them the answer also says what importing would create, update or leave alone, with \"update existing\" off and on (`plan.keep`, `plan.update`). CPI rows are read and shown (`action: shown`) but not stored. Nothing is written. Needs `imports.run`. 415 for a file whose content is not what its name says, 413 over 10 MB, 422 when no real estate format recognises it, 429 after 20 uploads an hour per pool.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -8133,7 +8133,7 @@
                 "commit"
               ]
             },
-            "description": "Pro. Same upload as the preview; writes it in one transaction. Importing the same file twice adds nothing; existing rows change only with `update=true` and notes, descriptions and links to bank movements are never touched. Needs `imports.run` and `realestate.write` (403 for members and viewers). 400 when the file has installments and no `loanId`, or works and no property.",
+            "description": "Pro. Same upload as the preview; writes it in one transaction. Importing the same file twice adds nothing (two commits in parallel are serialized); existing rows change only with `update=true`, and notes, descriptions, the status of installments and works, the dates a work already has, phases marked paid by hand and links to bank movements are never touched. Needs `imports.run` and `realestate.write` (403 for members and viewers). 400 when the file has installments and no `loanId`, or works and no property.",
             "body": {
               "mode": "formdata",
               "formdata": [

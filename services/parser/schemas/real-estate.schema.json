@@ -253,7 +253,8 @@
         "action": {
           "enum": [
             "import",
-            "recalculated"
+            "recalculated",
+            "shown"
           ],
           "title": "Action",
           "type": "string"

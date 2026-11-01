@@ -46,6 +46,14 @@ Output is `{rows, meta, warnings}` with `kind` = `installment`, `prepayment`, `w
 | `loan-installments-csv` | CSV template `templates/loan-installments.csv` | Installments and prepayments. |
 | `works-payments-csv` | CSV template `templates/works-payments.csv` | Works projects and payment phases. |
 
+Rules worth knowing: `warnings` are codes (`code` or `code:count`), not sentences; at most 20 sheets and
+60 columns are read; a CSV the reader cannot read is a 422. In the `Resumo` sheet a bare "Imposto de
+selo" is the purchase stamp duty only inside the acquisition section ("Custos de aquisição"), because
+the loan has a stamp tax line of its own; "Imposto de selo compra" is read anywhere. A works deposit
+strictly between 0 and 1 is a fraction (0,25 = 25 %), anything else is already a percentage, so
+exactly 1 is 1 %; both readings are reported as warnings. The `Inflação` sheet is reported with
+action `shown`: the rows are read, the app has no store for them.
+
 The fixture workbook is synthetic: `python -m tests.support.mortgage` (with `PYTHONPATH=.:src`) rewrites
 `tests/fixtures/mortgage/`. The CSV templates are duplicated in `packages/services` (a test checks they match).
 

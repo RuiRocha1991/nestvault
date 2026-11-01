@@ -10,7 +10,7 @@ import io
 from typing import Any, ClassVar
 
 from ..errors import ParseFailedError
-from ..sniff import SniffedFile
+from ..sniff import MAX_COLUMNS, SniffedFile
 from .models import (
     RealEstateMeta,
     RealEstateParseResponse,
@@ -60,10 +60,13 @@ def _table(file: SniffedFile) -> list[list[Any]]:
         dialect = csv.excel
     reader = csv.reader(io.StringIO(file.text), dialect)
     rows: list[list[Any]] = []
-    for row in reader:
-        rows.append(list(row))
-        if len(rows) >= _MAX_ROWS:
-            break
+    try:
+        for row in reader:
+            rows.append(list(row)[:MAX_COLUMNS])
+            if len(rows) >= _MAX_ROWS:
+                break
+    except csv.Error as exc:  # a NUL byte, a field over the size limit
+        raise ParseFailedError("The CSV could not be read.") from exc
     return rows
 
 
@@ -106,9 +109,7 @@ class LoanInstallmentsCsv(_CsvParser):
         if not rows:
             raise ParseFailedError("The file has no usable installment rows.")
         rows.sort(key=lambda row: getattr(row, "number", 0))
-        warnings = [f"{skipped} rows were not valid installments and were left out."] * bool(
-            skipped
-        )
+        warnings = [f"rows_not_installments:{skipped}"] * bool(skipped)
         return _response(self.id, self.version, rows, warnings, "Installments", "installments")
 
 
@@ -138,11 +139,9 @@ class WorksPaymentsCsv(_CsvParser):
             raise ParseFailedError("The file has no usable payment rows.")
         warnings = []
         if skipped:
-            warnings.append(f"{skipped} rows were not valid payments and were left out.")
+            warnings.append(f"rows_not_payments:{skipped}")
         if corrected:
-            warnings.append(
-                f"{corrected} payments marked as paid have no payment date: kept as planned."
-            )
+            warnings.append(f"payments_paid_without_date:{corrected}")
         return _response(self.id, self.version, rows, warnings, "Payments", "payments")
 
 
