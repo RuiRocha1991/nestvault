@@ -23,6 +23,7 @@ export * from './investments';
 export * from './savings';
 export * from './automation';
 export * from './notes';
+export * from './notifications';
 export * from './overview';
 export * from './entitlements';
 export * from './goals';

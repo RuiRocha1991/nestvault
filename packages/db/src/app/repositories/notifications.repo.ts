@@ -107,6 +107,35 @@ export const notificationsRepo = {
       .onConflictDoNothing();
     return true;
   },
+
+  /** Records that `userId` read every open notification of this pool; returns how many were new. */
+  async markAllRead(tx: PoolTx, ctx: PoolContext, userId: string): Promise<number> {
+    const unread = await tx
+      .select({ id: notifications.id })
+      .from(notifications)
+      .leftJoin(
+        notificationReads,
+        and(
+          eq(notificationReads.poolId, notifications.poolId),
+          eq(notificationReads.notificationId, notifications.id),
+          eq(notificationReads.userId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(notifications.poolId, ctx.poolId),
+          isNull(notifications.resolvedAt),
+          isNull(notificationReads.readAt),
+        ),
+      );
+    if (unread.length === 0) return 0;
+    const rows = await tx
+      .insert(notificationReads)
+      .values(unread.map((row) => ({ poolId: ctx.poolId, notificationId: row.id, userId })))
+      .onConflictDoNothing()
+      .returning({ notificationId: notificationReads.notificationId });
+    return rows.length;
+  },
 };
 
 /**

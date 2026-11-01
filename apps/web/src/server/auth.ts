@@ -22,6 +22,7 @@ import {
   type InterestService,
   type MonthsService,
   type NotesService,
+  type NotificationsService,
   type OverviewService,
   type PortfoliosService,
   type PrototypeImportService,
@@ -209,6 +210,10 @@ export async function getOverviewService(): Promise<OverviewService> {
 
 export async function getNotesService(): Promise<NotesService> {
   return (await getRuntime()).notes;
+}
+
+export async function getNotificationsService(): Promise<NotificationsService> {
+  return (await getRuntime()).notifications;
 }
 
 export async function getInterestService(): Promise<InterestService> {
