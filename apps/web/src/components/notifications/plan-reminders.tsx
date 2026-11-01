@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Card, CardHeader, Chip, cn, formatMoney, useToast } from '@nestvault/ui';
+import { Button, Card, CardHeader, Chip, formatMoney, useToast } from '@nestvault/ui';
 import { Check, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -122,7 +122,6 @@ export function PlanReminders({ poolId, reminders, variant, canRegister }: PlanR
                     variant="primary"
                     disabled={busy !== null}
                     aria-label={t('registerLabel', { ticker: r.ticker, period })}
-                    className={cn(working && 'opacity-70')}
                     onClick={() => {
                       void actions.register(r);
                     }}
