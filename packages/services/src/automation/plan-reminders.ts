@@ -46,8 +46,12 @@ export function dueDate(period: string, day: number): string {
  * the same asset in that month by hand. A manual buy from before the plan was activated is not an
  * answer (it was made for nothing the plan asked for).
  */
-function answers(plan: PlanRow, period: string, buys: readonly PlanBuy[]): boolean {
-  const activeSince = lisbonDay(plan.activatedAt);
+function answers(
+  plan: PlanRow,
+  activeSince: string,
+  period: string,
+  buys: readonly PlanBuy[],
+): boolean {
   return buys.some(
     (buy) =>
       (buy.planId === plan.id && buy.planPeriod === period) ||
@@ -91,7 +95,11 @@ export async function remindPlansInPool(
   const expire: string[] = [];
   for (const reminder of open) {
     const plan = reminder.planId ? byId.get(reminder.planId) : undefined;
-    if (!plan || !reminder.period || answers(plan, reminder.period, buys))
+    if (
+      !plan ||
+      !reminder.period ||
+      answers(plan, lisbonDay(plan.activatedAt), reminder.period, buys)
+    )
       resolve.push(reminder.id);
     else if (reminder.period < first) expire.push(reminder.id);
   }
@@ -104,7 +112,7 @@ export async function remindPlansInPool(
       const period = monthsBefore(current, back);
       const due = dueDate(period, plan.day);
       // Not late yet, or the plan was not active when its day came.
-      if (due >= today || due < activeSince || answers(plan, period, buys)) continue;
+      if (due >= today || due < activeSince || answers(plan, activeSince, period, buys)) continue;
       if (await notificationsRepo.raisePlanReminder(tx, ctx, newId(), plan.id, period)) {
         outcome.raised += 1;
       }
