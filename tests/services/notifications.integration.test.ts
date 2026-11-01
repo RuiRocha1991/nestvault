@@ -191,10 +191,12 @@ describe('markRead: resolved and audit', () => {
     const entries = await audit('notification.read');
     expect(entries.map((e) => e.target)).toEqual([one.id, two.id, one.id]);
     expect(entries.map((e) => e.user_id)).toEqual([s.ids.owner, s.ids.owner, s.ids.member]);
+    // Only the notification entries: the plan's own `plan.created` entry legitimately holds its id.
     const everything = await rows(
       world.identity,
-      sql`select * from audit_log where pool_id = ${s.poolA}`,
+      sql`select * from audit_log where pool_id = ${s.poolA} and action like 'notification.%'`,
     );
+    expect(everything).toHaveLength(3);
     expect(JSON.stringify(everything)).not.toContain('plan_reminder');
     expect(JSON.stringify(everything)).not.toContain(one.planId);
   });
