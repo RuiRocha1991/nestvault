@@ -8049,6 +8049,169 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Real estate imports",
+      "item": [
+        {
+          "name": "Preview a mortgage workbook or CSV template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "preview"
+              ]
+            },
+            "description": "Pro. Multipart upload: pick the mortgage workbook (.xlsx) or a CSV template in `file` (10 MB at most). `loanId` and `propertyId` are optional; with them the answer also says what importing would create, update or leave alone (`plan`). Nothing is written. Needs `imports.run`. 415 for a file whose content is not what its name says, 413 over 10 MB, 422 when no real estate format recognises it, 429 after 20 uploads an hour per pool.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "loanId",
+                  "value": "{{loanId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "update",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has the detected format and the rows', () => { pm.expect(b.parserId).to.be.a('string'); pm.expect(b.rowCount).to.be.a('number'); pm.expect(b.sheets).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import a mortgage workbook or CSV template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "commit"
+              ]
+            },
+            "description": "Pro. Same upload as the preview; writes it in one transaction. Importing the same file twice adds nothing; existing rows change only with `update=true` and notes, descriptions and links to bank movements are never touched. Needs `imports.run` and `realestate.write` (403 for members and viewers). 400 when the file has installments and no `loanId`, or works and no property.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "loanId",
+                  "value": "{{loanId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "update",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('says what was written', () => { pm.expect(b.result.installments).to.have.keys('create', 'update', 'unchanged', 'rejected'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download a CSV template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/real-estate-imports/templates/loan-installments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "real-estate-imports",
+                "templates",
+                "loan-installments"
+              ]
+            },
+            "description": "`loan-installments` or `works-payments`: a semicolon-separated CSV with a header and two example rows."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('is a CSV attachment', () => { pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'); pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "event": [

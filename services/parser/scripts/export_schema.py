@@ -8,10 +8,12 @@ from pydantic import TypeAdapter
 
 from parser_service.engine.spec import spec_schema
 from parser_service.models import ParseResponse
+from parser_service.real_estate.models import RealEstateParseResponse
 
 SCHEMAS = Path(__file__).resolve().parent.parent / "schemas"
 TARGET = SCHEMAS / "rows.schema.json"
 SPEC_TARGET = SCHEMAS / "import-spec.schema.json"
+REAL_ESTATE_TARGET = SCHEMAS / "real-estate.schema.json"
 
 
 def render() -> str:
@@ -21,12 +23,23 @@ def render() -> str:
     return json.dumps(schema, indent=2, ensure_ascii=False) + "\n"
 
 
+def render_real_estate() -> str:
+    schema = TypeAdapter(RealEstateParseResponse).json_schema(mode="serialization")
+    schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    schema["$id"] = "https://nestvault.local/schemas/real-estate-parse-response.json"
+    return json.dumps(schema, indent=2, ensure_ascii=False) + "\n"
+
+
 def render_spec() -> str:
     return json.dumps(spec_schema(), indent=2, ensure_ascii=False) + "\n"
 
 
 def main() -> int:
-    targets = {TARGET: render(), SPEC_TARGET: render_spec()}
+    targets = {
+        TARGET: render(),
+        SPEC_TARGET: render_spec(),
+        REAL_ESTATE_TARGET: render_real_estate(),
+    }
     if "--check" in sys.argv:
         stale = [
             t

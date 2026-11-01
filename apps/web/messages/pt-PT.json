@@ -1382,7 +1382,8 @@
       "import": {
         "uploaded": "Extrato carregado",
         "committed": "Importação confirmada",
-        "discarded": "Importação descartada"
+        "discarded": "Importação descartada",
+        "realestateCommitted": "Importação de imobiliário confirmada"
       }
     },
     "table": {
@@ -2785,6 +2786,71 @@
       "nominal": "Valorização nominal",
       "real": "Valorização real",
       "note": "As taxas anuais são compostas ({compounded} acumulado), não somadas ({summed}). A alteração do IPC aplica-se só a esta página."
+    },
+    "import": {
+      "open": "Importar folha de cálculo",
+      "title": "Importar folha de cálculo",
+      "close": "Fechar",
+      "cancel": "Cancelar",
+      "back": "Escolher outro ficheiro",
+      "choose": "Escolher ficheiro",
+      "inputLabel": "Ficheiro a importar (.xlsx ou .csv)",
+      "prompt": "Largue aqui a folha de cálculo ou um modelo CSV",
+      "hint": "Aceitamos a folha do crédito habitação (.xlsx) e os modelos CSV de prestações e de pagamentos de obras, até 10 MB. As fórmulas não são calculadas: só os valores guardados no ficheiro.",
+      "templates": "Modelos CSV",
+      "templateInstallments": "Prestações",
+      "templateWorks": "Pagamentos de obras",
+      "reading": "A ler o ficheiro…",
+      "detected": "Detetado automaticamente · {percent}",
+      "sheet": "Folha",
+      "what": "O que vai ser importado",
+      "rows": "Linhas",
+      "action": "Ação",
+      "actionImport": "Importar",
+      "actionRecalculated": "Recalculado",
+      "recalculated": "Calculados pela app a partir das prestações",
+      "sheets": {
+        "installments": "Prestações (capital, juros, comissões, imposto, seguros)",
+        "prepayments": "Amortizações antecipadas",
+        "works": "Obras: orçamento, fornecedor, entrada, estado",
+        "payments": "Fases de pagamento das obras",
+        "inflation": "IPC anual",
+        "csvInstallments": "Prestações do ficheiro CSV",
+        "csvPayments": "Pagamentos de obras do ficheiro CSV"
+      },
+      "costs": "Custos de aquisição: {total}",
+      "fields": "Campos de prestação ativados por terem valores: {fields}",
+      "field": {
+        "lifeInsurance": "Seguro vida",
+        "homeInsurance": "Seguro casa",
+        "creditInsurance": "Seguro crédito",
+        "fees": "Comissões",
+        "stampTax": "Imposto de selo"
+      },
+      "noticeTitle": "Antes de importar:",
+      "noticeCredit": "o seguro de crédito ({amount}) não entra nos totais da folha e passa a contar no custo do crédito.",
+      "noticeInflation": "A inflação passa a ser composta ({compounded}) em vez de somada ({summed}).",
+      "update": "Atualizar prestações existentes sem duplicar",
+      "updateHint": "Notas e ligações a movimentos bancários nunca são substituídas por uma importação.",
+      "plan": "Vai criar {created}, atualizar {updated} e deixar {unchanged} como estão.",
+      "nothingNew": "Não há nada de novo neste ficheiro: tudo já está na aplicação.",
+      "rejected": "{count} linhas não podem ser guardadas e são ignoradas.",
+      "kept": "{count} pagamentos ligados a movimentos bancários não são alterados.",
+      "needsLoan": "Este ficheiro tem prestações, mas o imóvel ainda não tem um crédito. Cria o crédito primeiro.",
+      "warnings": "Avisos do ficheiro",
+      "submit": "Importar {count} linhas",
+      "submitting": "A importar…",
+      "done": "Importação concluída: {created} criadas, {updated} atualizadas, {unchanged} já existiam.",
+      "problem": {
+        "invalid": "O ficheiro não é válido.",
+        "tooLarge": "O ficheiro é maior do que 10 MB.",
+        "unsupported": "Só aceitamos ficheiros .xlsx e .csv.",
+        "unrecognised": "Não reconhecemos este ficheiro como uma folha de crédito habitação ou um modelo CSV.",
+        "forbidden": "A tua função neste agregado não permite importar.",
+        "limit": "Fizeste demasiados envios. Tenta novamente daqui a pouco.",
+        "conflict": "O crédito foi alterado entretanto. Tenta novamente.",
+        "generic": "Não foi possível importar. Tenta novamente dentro de instantes."
+      }
     }
   }
 }

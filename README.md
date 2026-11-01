@@ -220,6 +220,12 @@ folder up together with the key, and to rotate the key put the new one first as
 `APP_ENCRYPTION_KEY=new:<key>,old:<key>`. The parser container must be running (`pnpm parser:up`)
 for an import; the rest of the app does not need it.
 
+Real estate (Pro): on a property, **Importar folha de cálculo** reads the mortgage workbook (`.xlsx`) or the
+two CSV templates (installments, works payments; download links in the dialog) through
+`POST /api/v1/pools/:poolId/real-estate-imports/preview` and `…/commit`. Nothing is stored between the two
+(the commit parses the same file again), so no extra setup; it needs the parser container and the
+`imports.run` and `realestate.write` permissions. `pnpm parser:schema` regenerates both parser schemas.
+
 In the app, **Contas e poupanças → Importar extrato** (`/<poolId>/importar`) is the screen for it: drop a
 file, the format is detected, choose the account, check the preview and confirm. Importing needs the
 `imports.run` permission (owner, admin and member; not viewer). The Playwright import specs

@@ -39,6 +39,10 @@ import { createPropertiesService, type PropertiesService } from '../properties';
 import { createPropertyCostsService, type PropertyCostsService } from '../property-costs';
 import { createPrototypeImportService, type PrototypeImportService } from '../prototype-import';
 import { createRateLimiter, type RateLimiter } from '../rate-limit';
+import {
+  createRealEstateImportsService,
+  type RealEstateImportsService,
+} from '../real-estate-imports';
 import { createRulesService, type RulesService } from '../rules';
 import {
   createDepositsService,
@@ -133,6 +137,8 @@ export interface AuthRuntime {
   prototypeImport: PrototypeImportService;
   /** Bank and broker statements: upload, preview and idempotent commit. */
   imports: ImportsService;
+  /** The mortgage workbook and the real estate CSV templates (Pro). */
+  realEstateImports: RealEstateImportsService;
 }
 
 /** Opens the identity connection (`identity_rw`) and builds Better Auth and the rate limiter on it. */
@@ -157,6 +163,10 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     ...(config.log ? { log: config.log } : {}),
   });
   const pools = createPoolsService({ auth, identity, ...hops });
+  const parserClient = createParserClient({
+    url: config.imports.parserUrl,
+    secret: config.imports.parserSecret,
+  });
   const entitlements = createEntitlementsService({
     auth,
     identity,
@@ -203,14 +213,19 @@ export function createAuthRuntime(config: AuthRuntimeConfig): AuthRuntime {
     holders: createHoldersService({ auth, identity, ...hops }),
     settings: createSettingsService({ auth, identity, ...hops }),
     prototypeImport: createPrototypeImportService({ auth, identity, limiter, ...hops }),
+    realEstateImports: createRealEstateImportsService({
+      auth,
+      identity,
+      limiter,
+      entitlements,
+      parser: parserClient,
+      ...hops,
+    }),
     imports: createImportsService({
       auth,
       identity,
       limiter,
-      parser: createParserClient({
-        url: config.imports.parserUrl,
-        secret: config.imports.parserSecret,
-      }),
+      parser: parserClient,
       files: createEncryptedFileStore({
         dir: config.imports.storageDir,
         ring: parseKeyRing(config.imports.encryptionKey),

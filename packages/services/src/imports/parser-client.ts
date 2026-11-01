@@ -7,6 +7,10 @@ import {
   ValidationError,
 } from '../errors';
 import { logger } from '../logger';
+import {
+  realEstateResponseSchema,
+  type RealEstateResponseSchema,
+} from '../real-estate-imports/parser-rows.generated';
 
 import { parserResponseSchema, type ParserResponseSchema } from './parser-rows.generated';
 
@@ -46,7 +50,28 @@ const proposalSchema = z
   .strict();
 export type MappingProposal = z.infer<typeof proposalSchema>;
 
+/** What the real estate parsers answer (NES-102): installments, works, prepayments, CPI. */
+export type RealEstateParserResponse = RealEstateResponseSchema;
+
+const realEstateCandidateSchema = z
+  .object({
+    parser_id: z.string().max(64),
+    version: z.string().max(40),
+    confidence: z.number().min(0).max(1),
+  })
+  .strict();
+export type RealEstateCandidate = z.infer<typeof realEstateCandidateSchema>;
+const realEstateDetectSchema = z
+  .object({ results: z.array(realEstateCandidateSchema).max(50) })
+  .strict();
+
 const errorSchema = z.object({ code: z.string().max(64) });
+
+/** The client of the parser service's `/real-estate/...` endpoints. */
+export interface RealEstateParserClient {
+  detectRealEstate(data: Uint8Array): Promise<RealEstateCandidate[]>;
+  parseRealEstate(data: Uint8Array, parserId: string): Promise<RealEstateParserResponse>;
+}
 
 export interface ParserClient {
   detect(data: Uint8Array): Promise<ParserCandidate[]>;
@@ -86,7 +111,9 @@ function refusal(status: number, code: string): Error {
   return new UpstreamError();
 }
 
-export function createParserClient(options: ParserClientOptions): ParserClient {
+export function createParserClient(
+  options: ParserClientOptions,
+): ParserClient & RealEstateParserClient {
   const send = options.fetch ?? fetch;
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const base = options.url.replace(/\/+$/, '');
@@ -141,6 +168,16 @@ export function createParserClient(options: ParserClientOptions): ParserClient {
     parseWithSpec(data, spec) {
       const encoded = Buffer.from(JSON.stringify(spec)).toString('base64url');
       return call('/parse-spec', data, parserResponseSchema, { 'x-import-spec': encoded });
+    },
+    async detectRealEstate(data) {
+      return (await call('/real-estate/detect', data, realEstateDetectSchema)).results;
+    },
+    parseRealEstate(data, parserId) {
+      return call(
+        `/real-estate/parse?parser_id=${encodeURIComponent(parserId)}`,
+        data,
+        realEstateResponseSchema,
+      );
     },
   };
 }

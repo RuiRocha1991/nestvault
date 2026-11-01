@@ -105,6 +105,7 @@ export const POOL_AUDIT_ACTIONS = [
   'import.uploaded',
   'import.committed',
   'import.discarded',
+  'import.realestate_committed',
 ] as const;
 
 export const AUDIT_ACTIONS = [...ACCOUNT_AUDIT_ACTIONS, ...POOL_AUDIT_ACTIONS] as const;
