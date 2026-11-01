@@ -32,6 +32,19 @@ DO $$ BEGIN
     REVOKE ALL ON public.worker_pools FROM worker_rw;
     GRANT SELECT ON public.worker_pools TO worker_rw;
   END IF;
+  -- job_requests is written only by request_pool_job() (NES-147): the worker reads and deletes rows.
+  IF to_regclass('public.job_requests') IS NOT NULL THEN
+    REVOKE ALL ON public.job_requests FROM worker_rw;
+    GRANT SELECT, DELETE ON public.job_requests TO worker_rw;
+    -- Same block as the migration, for roles created after it: the app role only calls the function.
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
+      REVOKE ALL ON public.job_requests FROM app_rw;
+    END IF;
+  END IF;
+  IF to_regprocedure('public.request_pool_job(text)') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN
+    GRANT EXECUTE ON FUNCTION public.request_pool_job(text) TO app_rw;
+  END IF;
   -- reconcile_worker_pools() (NES-150) is the only way the worker changes worker_pools.
   IF to_regprocedure('public.reconcile_worker_pools()') IS NOT NULL THEN
     GRANT EXECUTE ON FUNCTION public.reconcile_worker_pools() TO worker_rw;

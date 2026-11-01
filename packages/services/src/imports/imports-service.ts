@@ -4,6 +4,7 @@ import {
   accountsRepo,
   importBatchesRepo,
   isUuid,
+  jobRequestsRepo,
   newId,
   withPool,
   type AccountRow,
@@ -306,6 +307,9 @@ export function createImportsService(deps: ImportsServiceDeps): ImportsService {
         });
         // A second commit of the same batch got here first: undo this one's writes too.
         if (!settled) throw new ConflictError('This import is already settled.');
+        // Ask the worker to link deposit flows now (NES-147). Same transaction as the lines: the
+        // request exists exactly when the import does. The hourly sweep stays as the safety net.
+        if (kind === 'bank') await jobRequestsRepo.request(tx, ctx, 'deposits.link');
         return { outcome, accountId: account.id };
       });
 

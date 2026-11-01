@@ -43,14 +43,19 @@ export {
   transactionsRepo,
 } from './app/repositories/transactions.repo';
 export type { PlanBuy } from './app/repositories/investment-ops.repo';
-export { notificationsRepo, workerPoolsRepo } from './app/repositories/notifications.repo';
+export {
+  jobRequestsRepo,
+  notificationsRepo,
+  workerPoolsRepo,
+} from './app/repositories/notifications.repo';
 export type {
   MarkReadResult,
   NotificationRow,
   OpenNotification,
+  PendingJobRequest,
 } from './app/repositories/notifications.repo';
-export { NOTIFICATION_KINDS } from './app/schema/notifications';
-export type { NotificationKind } from './app/schema/notifications';
+export { NOTIFICATION_KINDS, POOL_JOB_REQUESTS } from './app/schema/notifications';
+export type { NotificationKind, PoolJobRequest } from './app/schema/notifications';
 export type {
   DepositLinkCandidate,
   EngineChange,

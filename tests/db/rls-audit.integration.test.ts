@@ -62,6 +62,7 @@ describe('every nestvault_app table has Row-Level Security', () => {
         '_no_rls_probe',
         'fx_rates',
         'index_rates',
+        'job_requests',
         'worker_pools',
       ]);
       expect(found).toEqual(['_enable_only_probe']);

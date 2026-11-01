@@ -423,6 +423,25 @@ describe('imports service: commit (bank)', () => {
     expect(await ledger(account.id)).toHaveLength(2);
   });
 
+  it('asks the worker to link deposits for this pool only (NES-147)', async () => {
+    const account = await makeAccount('BPI');
+    const requests = (poolId: string) =>
+      world.database.asMigrator(
+        async (pool) =>
+          (
+            await pool.query<{ job_name: string }>(
+              'select job_name from job_requests where pool_id = $1',
+              [poolId],
+            )
+          ).rows,
+      );
+    expect(await requests(s.poolA)).toEqual([]);
+    bankFile(bankRow('2026-01-05', 'Coffee', '-1.20'));
+    await commit((await preview()).batchId, { accountId: account.id });
+    expect(await requests(s.poolA)).toEqual([{ job_name: 'deposits.link' }]);
+    expect(await requests(s.poolB)).toEqual([]);
+  });
+
   it('two identical real lines in one file are both kept, and re-import adds neither', async () => {
     const account = await makeAccount('BPI');
     bankFile(bankRow('2026-01-05', 'Coffee', '-1.20'), bankRow('2026-01-05', 'Coffee', '-1.20'));
@@ -757,6 +776,17 @@ describe('imports service: broker files', () => {
     );
     const buy = ops.find((op) => op.type === 'buy');
     expect(buy?.subAccountId).not.toBeNull(); // the sub-account named after the holder
+    // A broker file has no statement lines to link: no deposits.link request (NES-147).
+    const requests = await world.database.asMigrator(
+      async (pool) =>
+        (
+          await pool.query<{ one: number }>(
+            'select 1 as one from job_requests where pool_id = $1',
+            [s.poolA],
+          )
+        ).rows,
+    );
+    expect(requests).toEqual([]);
   });
 
   it('re-importing the same report adds nothing (broker ids)', async () => {

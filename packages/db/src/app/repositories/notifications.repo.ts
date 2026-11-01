@@ -5,7 +5,9 @@ import type { AppDb, PoolTx } from '../client';
 import {
   notificationReads,
   notifications,
+  jobRequests,
   workerPools,
+  type PoolJobRequest,
   type NotificationRow,
 } from '../schema/notifications';
 
@@ -171,5 +173,51 @@ export const workerPoolsRepo = {
     const row = result.rows[0];
     if (!row) throw new Error('reconcile returned no row');
     return { added: row.added, removed: row.removed };
+  },
+};
+
+/** A request waiting for the worker's relay. */
+export interface PendingJobRequest {
+  poolId: string;
+  jobName: string;
+  token: string;
+  requestedAt: Date;
+}
+
+/**
+ * Requests for a worker job about one pool (NES-147). The web side only calls `request`, inside the
+ * pool's transaction: the row is written with the data it is about, or not at all. The pool comes
+ * from the transaction's `app.pool_id` (the SQL function reads it), never from an argument. The
+ * worker side (`pending`, `settle`) is global and needs `worker_rw`.
+ */
+export const jobRequestsRepo = {
+  async request(tx: PoolTx, _ctx: PoolContext, job: PoolJobRequest): Promise<void> {
+    await tx.execute(sql`select request_pool_job(${job})`);
+  },
+
+  async pending(db: Pick<AppDb, 'select'>, limit = 100): Promise<PendingJobRequest[]> {
+    return db
+      .select({
+        poolId: jobRequests.poolId,
+        jobName: jobRequests.jobName,
+        token: jobRequests.token,
+        requestedAt: jobRequests.requestedAt,
+      })
+      .from(jobRequests)
+      .orderBy(asc(jobRequests.requestedAt))
+      .limit(limit);
+  },
+
+  /** Removes a request once it became a queue run, unless a newer one replaced it meanwhile. */
+  async settle(db: Pick<AppDb, 'delete'>, request: PendingJobRequest): Promise<void> {
+    await db
+      .delete(jobRequests)
+      .where(
+        and(
+          eq(jobRequests.poolId, request.poolId),
+          eq(jobRequests.jobName, request.jobName),
+          eq(jobRequests.token, request.token),
+        ),
+      );
   },
 };
