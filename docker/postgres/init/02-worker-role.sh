@@ -32,6 +32,11 @@ DO $$ BEGIN
     REVOKE ALL ON public.worker_pools FROM worker_rw;
     GRANT SELECT ON public.worker_pools TO worker_rw;
   END IF;
+  -- job_requests is written only by request_pool_job() (NES-147): the worker reads and deletes rows.
+  IF to_regclass('public.job_requests') IS NOT NULL THEN
+    REVOKE ALL ON public.job_requests FROM worker_rw;
+    GRANT SELECT, DELETE ON public.job_requests TO worker_rw;
+  END IF;
 END $$;
 SQL
 done

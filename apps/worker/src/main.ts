@@ -7,6 +7,7 @@ import { createLogger } from '@nestvault/services';
 import { createWorkerPoolRunner } from './database';
 import { createProductionJobs } from './jobs/registry';
 import { samplePing } from './jobs/sample';
+import { createRequestRelay } from './request-relay';
 import { createWorker } from './runtime';
 
 const log = createLogger();
@@ -29,12 +30,20 @@ const production = createProductionJobs({
 const jobs = env.NODE_ENV === 'production' ? production : [...production, samplePing];
 const worker = createWorker({ connectionString: env.DATABASE_URL_WORKER, jobs, log });
 
+// Turns the requests the web app writes (an import commit asks for deposits.link) into runs (NES-147).
+const relay = createRequestRelay({
+  db: database.db,
+  enqueue: (name, payload) => worker.enqueue(name, payload),
+  log,
+});
+
 let stopping = false;
 async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   log.info({ signal }, 'shutting down');
   try {
+    await relay.stop();
     await worker.stop();
     await database.close();
     await identity.close();
@@ -50,6 +59,7 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 try {
   await worker.start();
+  relay.start();
 } catch (error) {
   // Never print the connection string or the driver message (it may carry credentials).
   const code = error instanceof Error && 'code' in error ? String(error.code) : 'unknown';

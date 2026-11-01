@@ -86,3 +86,27 @@ export const workerPools = pgTable('worker_pools', {
 
 export type NotificationRow = typeof notifications.$inferSelect;
 export type NotificationReadRow = typeof notificationReads.$inferSelect;
+
+// Requests for a worker job about one pool (NES-147), for example "link the deposits of this pool now,
+// an import was just committed". The web app cannot import the queue, so it asks through the database:
+// `request_pool_job(job)` (SECURITY DEFINER, the pool comes from `app.pool_id`, never from a
+// parameter) upserts a row, and the worker's relay turns the rows into queue runs within seconds and
+// deletes them. At most one pending row per pool and job; `token` changes on every request, so a request
+// that arrives while the worker is enqueueing is not lost. Global: no RLS, listed in RLS_EXEMPT_TABLES;
+// `app_rw` has no privilege on it, `worker_rw` has SELECT and DELETE.
+export const POOL_JOB_REQUESTS = ['deposits.link'] as const;
+export type PoolJobRequest = (typeof POOL_JOB_REQUESTS)[number];
+
+export const jobRequests = pgTable(
+  'job_requests',
+  {
+    poolId: uuid('pool_id').notNull(),
+    jobName: text('job_name').notNull(),
+    token: uuid('token').notNull().defaultRandom(),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.poolId, table.jobName] }),
+    check('job_requests_job_known', sql`${table.jobName} in ('deposits.link')`),
+  ],
+);

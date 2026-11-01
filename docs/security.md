@@ -154,6 +154,17 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   user) have `pool_id`, FORCE RLS and `*_pool_isolation` policies; notifications hold ids only, no
   user text. Verified by `tests/worker/pool-jobs.integration.test.ts` (pool isolation, idempotence,
   RLS on notifications, `worker_rw` has only `SELECT` on `worker_pools`) and `tests/worker/pool-jobs.test.ts` (payloads).
+- **Job requests (NES-147)**: the web app cannot import the queue, so an import commit asks for
+  `deposits.link` through `job_requests`, the third global table (no RLS, in `RLS_EXEMPT_TABLES`; ids
+  only, one row per pool and job). `app_rw` has no privilege on it: it calls `request_pool_job(job)`
+  (`SECURITY DEFINER`, `search_path` pinned, `EXECUTE` only for `app_rw`), which takes the pool from
+  `app.pool_id` (so a caller can only ask for its own pool, and not at all outside `withPool`) inside
+  the commit's transaction. `worker_rw` has `SELECT` and `DELETE` only; the worker's relay
+  (`apps/worker/src/request-relay.ts`, polls every 2 s) enqueues `{ poolId }` and deletes the row it
+  read (matching `token`, so a newer request survives). The hourly sweep stays as the safety net. Verified by
+  `tests/worker/request-relay.integration.test.ts` (privileges, pool binding, injection payload, relay
+  behaviour), `tests/services/imports.integration.test.ts` (commit writes the request for its pool
+  only) and `tests/worker/exposure.test.ts` (the web app does not import the queue).
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or

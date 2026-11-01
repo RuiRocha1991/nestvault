@@ -11,6 +11,7 @@ export const RLS_EXEMPT_TABLES: readonly string[] = [
   'fx_rates',
   'import_specs',
   'index_rates',
+  'job_requests',
   'worker_pools',
 ];
 
