@@ -83,6 +83,8 @@ export const plansRepo = {
         amount: data.amount,
         day: data.day,
         active: data.active,
+        // Switching a plan on starts its reminders from now; editing it while it stays on does not.
+        activatedAt: sql`case when ${plans.active} = false and ${data.active} then now() else ${plans.activatedAt} end`,
         updatedAt: new Date(),
       })
       .where(and(eq(plans.poolId, ctx.poolId), eq(plans.id, id)))

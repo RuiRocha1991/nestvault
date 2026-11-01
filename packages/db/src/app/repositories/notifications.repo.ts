@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { AppDb, PoolTx } from '../client';
@@ -120,5 +120,19 @@ export const workerPoolsRepo = {
       .from(workerPools)
       .orderBy(asc(workerPools.poolId));
     return rows.map((row) => row.poolId);
+  },
+
+  /**
+   * Makes the list match the pools that have accounts: adds the ones a path without the trigger
+   * (a restore) left out and removes the ones with no data left. Runs `reconcile_worker_pools()`, the
+   * only way `worker_rw` changes the table.
+   */
+  async reconcile(db: Pick<AppDb, 'execute'>): Promise<{ added: number; removed: number }> {
+    const result = await db.execute<{ added: number; removed: number }>(
+      sql`select added, removed from reconcile_worker_pools()`,
+    );
+    const row = result.rows[0];
+    if (!row) throw new Error('reconcile returned no row');
+    return { added: row.added, removed: row.removed };
   },
 };

@@ -154,6 +154,17 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   user) have `pool_id`, FORCE RLS and `*_pool_isolation` policies; notifications hold ids only, no
   user text. Verified by `tests/worker/pool-jobs.integration.test.ts` (pool isolation, idempotence,
   RLS on notifications, `worker_rw` has only `SELECT` on `worker_pools`) and `tests/worker/pool-jobs.test.ts` (payloads).
+- **Reminder lifecycle and `worker_pools` reconciliation (NES-150)**: `plans.remind` looks at the
+  current month and the two before it (a plan is late from its day, and only from `plans.activated_at`,
+  set on creation and when a plan is switched back on, not on every edit); open reminders older than the
+  window expire (`resolved_at`), answered or orphaned ones are resolved. `pools.reconcile` (daily 03:40
+  and at worker start) calls `reconcile_worker_pools()`: `SECURITY DEFINER`, `EXECUTE` only for
+  `worker_rw`, adds the pools that have accounts and removes the ones that have none. The function
+  runs as the table owner, which FORCE RLS binds, so `accounts` gets one extra `FOR SELECT` policy
+  `accounts_pool_sweep` addressed to the migration role alone (never used by the web app or the
+  worker); `app_rw` and `worker_rw` still see only their own pool. Verified by
+  `tests/worker/pool-jobs.integration.test.ts` (catch-up, expiry, activation date, restored and deleted
+  pools, `app_rw` cannot call the function, `worker_rw` cannot write the table directly).
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or

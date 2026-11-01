@@ -5,6 +5,7 @@ import type { Job } from './define';
 import { createFxRefreshJob } from './fx-refresh';
 import { createIndexRatesJob, type IndexRatesJobDeps } from './index-rates';
 import { createDepositsLinkJob, createPlansRemindJob, type PoolJobDeps } from './pool-jobs';
+import { createPoolsReconcileJob } from './pools-reconcile';
 import { createSessionsCleanupJob } from './sessions-cleanup';
 import { createSnapshotsDailyJob } from './snapshots-daily';
 import type { TenantJobDeps } from './tenant';
@@ -23,6 +24,7 @@ export function createProductionJobs(deps: ProductionJobDeps): readonly Job[] {
   return [
     createIndexRatesJob({ db: deps.db, provider: createEcbProvider() }),
     createFxRefreshJob({ db: deps.db, provider: createEcbFxProvider() }),
+    createPoolsReconcileJob({ db: deps.db }),
     createDepositsLinkJob(deps),
     createPlansRemindJob(deps),
     createSnapshotsDailyJob(deps.tenant),

@@ -50,6 +50,8 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 try {
   await worker.start();
+  // The list of pools may be stale after a restore or a downtime: fix it without waiting for 03:40.
+  await worker.enqueue('pools.reconcile');
 } catch (error) {
   // Never print the connection string or the driver message (it may carry credentials).
   const code = error instanceof Error && 'code' in error ? String(error.code) : 'unknown';
