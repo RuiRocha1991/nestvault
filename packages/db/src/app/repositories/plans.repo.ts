@@ -83,8 +83,9 @@ export const plansRepo = {
         amount: data.amount,
         day: data.day,
         active: data.active,
-        // Switching a plan on starts its reminders from now; editing it while it stays on does not.
-        activatedAt: sql`case when ${plans.active} = false and ${data.active} then now() else ${plans.activatedAt} end`,
+        // Reminders count from now when the plan is switched on, or when its day moves earlier (the
+        // days of the months already past would otherwise be late at once). Other edits keep it.
+        activatedAt: sql`case when ${data.active} and (${plans.active} = false or ${data.day} < ${plans.day}) then now() else ${plans.activatedAt} end`,
         updatedAt: new Date(),
       })
       .where(and(eq(plans.poolId, ctx.poolId), eq(plans.id, id)))

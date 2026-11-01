@@ -50,8 +50,6 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 try {
   await worker.start();
-  // The list of pools may be stale after a restore or a downtime: fix it without waiting for 03:40.
-  await worker.enqueue('pools.reconcile');
 } catch (error) {
   // Never print the connection string or the driver message (it may carry credentials).
   const code = error instanceof Error && 'code' in error ? String(error.code) : 'unknown';
@@ -60,4 +58,15 @@ try {
     'worker could not start. Is the database up and migrated? Try: pnpm db:up && pnpm db:migrate',
   );
   process.exit(1);
+}
+
+// The list of pools may be stale after a restore or a downtime: fix it without waiting for 03:40. A
+// failure here only warns (the worker is already running and the daily run will try again).
+try {
+  await worker.enqueue('pools.reconcile');
+} catch (error) {
+  log.warn(
+    { code: error instanceof Error && 'code' in error ? String(error.code) : 'unknown' },
+    'could not ask for a pool reconciliation at start-up',
+  );
 }

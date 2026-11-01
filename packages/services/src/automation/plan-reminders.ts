@@ -35,14 +35,26 @@ export function monthsBefore(period: string, back: number): string {
   return `${String(year)}-${String((index % 12) + 1).padStart(2, '0')}`;
 }
 
-/** Whether a buy answers the plan for `period`: its own run, or a buy of the same asset by hand. */
+/** The date a plan is due in `period`: its day, or the last day of a shorter month. */
+export function dueDate(period: string, day: number): string {
+  const last = Number(monthEnd(period).slice(8, 10));
+  return `${period}-${String(Math.min(day, last)).padStart(2, '0')}`;
+}
+
+/**
+ * Whether a buy answers the plan for `period`: the buy its own run made for that month, or a buy of
+ * the same asset in that month by hand. A manual buy from before the plan was activated is not an
+ * answer (it was made for nothing the plan asked for).
+ */
 function answers(plan: PlanRow, period: string, buys: readonly PlanBuy[]): boolean {
+  const activeSince = lisbonDay(plan.activatedAt);
   return buys.some(
     (buy) =>
       (buy.planId === plan.id && buy.planPeriod === period) ||
       (buy.portfolioId === plan.portfolioId &&
         buy.assetId === plan.assetId &&
-        buy.date.startsWith(period)),
+        buy.date.startsWith(period) &&
+        buy.date >= activeSince),
   );
 }
 
@@ -52,8 +64,9 @@ function answers(plan: PlanRow, period: string, buys: readonly PlanBuy[]): boole
  * for that month, raises one reminder for that plan and month (never a second one, even after it
  * was resolved). A month only counts from the day the plan became active (`activated_at`), so a plan
  * created or switched on after its day is not late. A reminder is resolved when its buy is
- * registered or its plan was switched off or deleted, and expires when its month leaves the window.
- * `today` is `yyyy-mm-dd` in the household's time zone. Runs inside `withPool`.
+ * registered or its plan was switched off or deleted; one still open when its month leaves the
+ * window expires. Answered and orphaned reminders are resolved first, so only the really unanswered
+ * ones count as expired. `today` is `yyyy-mm-dd` in the household's time zone. Runs inside `withPool`.
  */
 export async function remindPlansInPool(
   tx: PoolTx,
@@ -69,29 +82,27 @@ export async function remindPlansInPool(
     notificationsRepo.listOpenPlanReminders(tx, ctx),
   ]);
 
-  const stale = open.filter((reminder) => !reminder.period || reminder.period < first);
-  outcome.expired = await notificationsRepo.resolve(
-    tx,
-    ctx,
-    stale.map((reminder) => reminder.id),
-  );
-  const live = open.filter((reminder) => !stale.includes(reminder));
-
-  const buys = await investmentOpsRepo.listBuysBetween(tx, ctx, `${first}-01`, monthEnd(current));
+  // Buys from the oldest open reminder on, so an old reminder can still be found answered.
+  const oldest = open.reduce((min, n) => (n.period && n.period < min ? n.period : min), first);
+  const buys = await investmentOpsRepo.listBuysBetween(tx, ctx, `${oldest}-01`, monthEnd(current));
   const byId = new Map(plans.map((plan) => [plan.id, plan]));
-  const done = live
-    .filter((reminder) => {
-      const plan = reminder.planId ? byId.get(reminder.planId) : undefined;
-      return !plan || !reminder.period || answers(plan, reminder.period, buys);
-    })
-    .map((reminder) => reminder.id);
-  outcome.resolved = await notificationsRepo.resolve(tx, ctx, done);
+
+  const resolve: string[] = [];
+  const expire: string[] = [];
+  for (const reminder of open) {
+    const plan = reminder.planId ? byId.get(reminder.planId) : undefined;
+    if (!plan || !reminder.period || answers(plan, reminder.period, buys))
+      resolve.push(reminder.id);
+    else if (reminder.period < first) expire.push(reminder.id);
+  }
+  outcome.resolved = await notificationsRepo.resolve(tx, ctx, resolve);
+  outcome.expired = await notificationsRepo.resolve(tx, ctx, expire);
 
   for (const plan of plans) {
     const activeSince = lisbonDay(plan.activatedAt);
     for (let back = REMINDER_WINDOW_MONTHS - 1; back >= 0; back -= 1) {
       const period = monthsBefore(current, back);
-      const due = `${period}-${String(plan.day).padStart(2, '0')}`;
+      const due = dueDate(period, plan.day);
       // Not late yet, or the plan was not active when its day came.
       if (due >= today || due < activeSince || answers(plan, period, buys)) continue;
       if (await notificationsRepo.raisePlanReminder(tx, ctx, newId(), plan.id, period)) {

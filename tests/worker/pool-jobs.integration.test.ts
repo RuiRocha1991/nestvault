@@ -401,6 +401,50 @@ describe('plans.remind', () => {
     expect(back?.activatedAt.getTime()).toBeGreaterThan(Date.parse('2026-06-10T00:00:00Z'));
   });
 
+  it('reminds for February on its last day, and the window crosses the year', async () => {
+    const { a } = createTwoPools();
+    await planPool(a.ctx, 28, '2025-11-01T00:00:00Z');
+    // March 10: the window is January to March; the 28th of January and February have passed, March's has not.
+    const outcome = await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-03-10'));
+    expect(outcome.raised).toBe(2);
+    expect((await open(a.ctx)).map((n) => n.period).sort()).toEqual(['2026-01', '2026-02']);
+  });
+
+  it('does not take a manual buy from before the plan was activated as its answer', async () => {
+    const { a, b } = createTwoPools();
+    // Both plans are active since June 3 and due on June 5: the day counts for them.
+    const before = await planPool(a.ctx, 5, '2026-06-03T00:00:00Z');
+    await buyFor(a.ctx, before, '2026-06-01', null); // bought two days before the plan existed
+    const after = await planPool(b.ctx, 5, '2026-06-03T00:00:00Z');
+    await buyFor(b.ctx, after, '2026-06-04', null); // bought after it
+    await withPool(a.ctx, (tx) => remindPlansInPool(tx, a.ctx, '2026-06-10'));
+    await withPool(b.ctx, (tx) => remindPlansInPool(tx, b.ctx, '2026-06-10'));
+    expect((await open(a.ctx)).map((n) => n.period)).toEqual(['2026-06']);
+    expect(await open(b.ctx)).toEqual([]);
+  });
+
+  it('moves the activation date forward when the plan day moves earlier, not when it moves later', async () => {
+    const { a } = createTwoPools();
+    const made = await planPool(a.ctx, 20, '2026-03-01T00:00:00Z');
+    const values = (day: number) => ({
+      portfolioId: made.portfolio.id,
+      assetId: made.asset.id,
+      accountId: null,
+      subAccountId: null,
+      amount: '100',
+      day,
+      active: true,
+    });
+    const later = await withPool(a.ctx, (tx) =>
+      plansRepo.update(tx, a.ctx, made.plan.id, values(25)),
+    );
+    expect(later?.activatedAt.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    const earlier = await withPool(a.ctx, (tx) =>
+      plansRepo.update(tx, a.ctx, made.plan.id, values(5)),
+    );
+    expect(earlier?.activatedAt.getTime()).toBeGreaterThan(Date.parse('2026-06-10T00:00:00Z'));
+  });
+
   it('keeps the read state per user', async () => {
     const { a } = createTwoPools();
     await planPool(a.ctx);
@@ -490,6 +534,103 @@ describe('pools.reconcile', () => {
     // Idempotent.
     await job.execute({}, info('pools.reconcile'));
     expect(await workerPoolsRepo.list(worker.db)).toEqual(listed);
+  });
+
+  const portfolio = (ctx: PoolContext) =>
+    withPool(ctx, (tx) =>
+      portfoliosRepo.insert(tx, ctx, newId(), {
+        name: 'Reforma',
+        color: '#112233',
+        currency: 'EUR',
+        note: null,
+        targets: {},
+      }),
+    );
+
+  it('keeps a pool that has only a portfolio, and registers it when the portfolio is inserted', async () => {
+    const { a } = createTwoPools();
+    await portfolio(a.ctx); // no account at all
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // the trigger on portfolios
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // not swept away as "no accounts"
+    await asOwner('delete from worker_pools where pool_id = $1', [a.poolId]);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId); // and found again after a restore
+  });
+
+  it('finds a pool again from its plans when the triggers were skipped', async () => {
+    const { a } = createTwoPools();
+    await withPool(a.ctx, async (tx) => {
+      const made = await portfoliosRepo.insert(tx, a.ctx, newId(), {
+        name: 'Reforma',
+        color: '#112233',
+        currency: 'EUR',
+        note: null,
+        targets: {},
+      });
+      const asset = await assetsRepo.insert(tx, a.ctx, newId(), {
+        ticker: 'VWCE',
+        symbol: null,
+        name: 'VWCE',
+        type: 'etf',
+        currency: 'EUR',
+        sector: null,
+        region: null,
+        dps: null,
+        divMonths: [],
+      });
+      await plansRepo.insert(tx, a.ctx, newId(), {
+        portfolioId: made.id,
+        assetId: asset.id,
+        accountId: null,
+        subAccountId: null,
+        amount: '100',
+        day: 5,
+        active: true,
+      });
+    });
+    await asOwner('delete from worker_pools where pool_id = $1', [a.poolId]);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
+  });
+
+  it('removes a pool once its last account, portfolio and plan are gone', async () => {
+    const { a } = createTwoPools();
+    const made = await portfolio(a.ctx);
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
+    await withPool(a.ctx, (tx) => portfoliosRepo.remove(tx, a.ctx, made.id));
+    await job.execute({}, info('pools.reconcile'));
+    expect(await workerPoolsRepo.list(worker.db)).not.toContain(a.poolId);
+  });
+
+  it('waits for an account inserted in a transaction that has not committed, so it cannot drop its pool', async () => {
+    const { a } = createTwoPools();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let inserted: () => void = () => undefined;
+    const insertedSignal = new Promise<void>((resolve) => {
+      inserted = resolve;
+    });
+    // The first account of the pool: its trigger has written the worker_pools row, nothing is committed.
+    const writing = withPool(a.ctx, async (tx) => {
+      await account(tx, a.ctx, 'checking', 'Ordem');
+      inserted();
+      await gate;
+    });
+    await insertedSignal;
+    let finished = false;
+    const reconciling = workerPoolsRepo.reconcile(worker.db).then(() => {
+      finished = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(finished).toBe(false); // blocked by the lock until the account commits
+    release();
+    await writing;
+    await reconciling;
+    expect(await workerPoolsRepo.list(worker.db)).toContain(a.poolId);
   });
 
   it('is the only way the worker changes the list, and the app role cannot call it', async () => {

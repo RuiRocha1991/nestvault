@@ -155,16 +155,26 @@ leave local-only development · **N/A** = does not apply to this stack (with the
   user text. Verified by `tests/worker/pool-jobs.integration.test.ts` (pool isolation, idempotence,
   RLS on notifications, `worker_rw` has only `SELECT` on `worker_pools`) and `tests/worker/pool-jobs.test.ts` (payloads).
 - **Reminder lifecycle and `worker_pools` reconciliation (NES-150)**: `plans.remind` looks at the
-  current month and the two before it (a plan is late from its day, and only from `plans.activated_at`,
-  set on creation and when a plan is switched back on, not on every edit); open reminders older than the
-  window expire (`resolved_at`), answered or orphaned ones are resolved. `pools.reconcile` (daily 03:40
-  and at worker start) calls `reconcile_worker_pools()`: `SECURITY DEFINER`, `EXECUTE` only for
-  `worker_rw`, adds the pools that have accounts and removes the ones that have none. The function
-  runs as the table owner, which FORCE RLS binds, so `accounts` gets one extra `FOR SELECT` policy
-  `accounts_pool_sweep` addressed to the migration role alone (never used by the web app or the
-  worker); `app_rw` and `worker_rw` still see only their own pool. Verified by
-  `tests/worker/pool-jobs.integration.test.ts` (catch-up, expiry, activation date, restored and deleted
-  pools, `app_rw` cannot call the function, `worker_rw` cannot write the table directly).
+  current month and the two before it (a plan is late from its due date, the plan day clamped to the
+  last day of short months, and only from `plans.activated_at`: set on creation, when a plan is
+  switched back on and when its day moves earlier, not on other edits; the migration backfills it with
+  the later of the last edit and the first day of the current month so no burst of old reminders
+  appears after deploy). A manual buy from before the activation does not answer a month. Reminders
+  that are answered or whose plan is gone are resolved, then the still-open ones older than the window
+  expire (`resolved_at`). `pools.reconcile` (daily 03:40 and at worker start, a start-up failure only
+  warns) calls `reconcile_worker_pools()`: `SECURITY DEFINER`, `EXECUTE` only for `worker_rw`; it keeps
+  a pool that has data in `accounts`, `portfolios` or `plans` (the same tables whose AFTER INSERT
+  triggers call `register_worker_pool()`), adds the missing ones and removes the rest. It takes a
+  `SHARE ROW EXCLUSIVE` lock on `worker_pools` first, so it waits for a transaction that has inserted
+  a first row and cannot drop its pool. **Standing grant:** the function runs as the table owner,
+  which FORCE RLS binds, so `accounts`, `portfolios` and `plans` each have one `FOR SELECT ... USING
+  (true)` policy (`*_pool_sweep`) addressed to the role `nestvault_migrator` by name (created only if
+  the role exists): that role can read every pool's rows of those three tables. It is the migration
+  user, never used by the web app or the worker; `app_rw` and `worker_rw` still see only their own
+  pool. Verified by `tests/worker/pool-jobs.integration.test.ts` (catch-up, expiry, activation date,
+  portfolio-only and plan-only pools, deleted pools, the lock, `app_rw` cannot call the function,
+  `worker_rw` cannot write the table), `tests/db/plans-activation-backfill.integration.test.ts` and
+  `tests/services/plan-reminders-window.test.ts`.
 - **Accounts (NES-39)**: `accounts`, `account_holders` and `sub_accounts` follow the block above
   (`pool_id`, FORCE RLS, one `*_pool_isolation` policy each, repositories on a `PoolContext`). The
   foreign keys are composite `(pool_id, id)`, so a link cannot name another pool's person or
