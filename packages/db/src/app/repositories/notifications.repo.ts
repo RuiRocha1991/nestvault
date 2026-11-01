@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { PoolContext } from '../../pool-context';
 import type { AppDb, PoolTx } from '../client';
@@ -10,6 +10,9 @@ import {
 } from '../schema/notifications';
 
 export type { NotificationRow };
+
+/** What `markRead` did, see there. */
+export type MarkReadResult = 'marked' | 'already' | 'missing';
 
 /** An open notification with whether `userId` has read it. */
 export interface OpenNotification extends NotificationRow {
@@ -89,23 +92,57 @@ export const notificationsRepo = {
     return rows.map((row) => ({ ...row.notification, read: row.readAt !== null }));
   },
 
-  /** Records that `userId` read a notification of this pool; false when it is not one. */
+  /**
+   * Records that `userId` read an open notification of this pool: `marked` when this call did it,
+   * `already` when the user had read it, `missing` when it is not an open notification of this pool
+   * (unknown, another pool's, or resolved), in which case nothing is written.
+   */
   async markRead(
     tx: PoolTx,
     ctx: PoolContext,
     notificationId: string,
     userId: string,
-  ): Promise<boolean> {
+  ): Promise<MarkReadResult> {
     const [found] = await tx
       .select({ id: notifications.id })
       .from(notifications)
-      .where(and(eq(notifications.poolId, ctx.poolId), eq(notifications.id, notificationId)));
-    if (!found) return false;
-    await tx
+      .where(
+        and(
+          eq(notifications.poolId, ctx.poolId),
+          eq(notifications.id, notificationId),
+          isNull(notifications.resolvedAt),
+        ),
+      );
+    if (!found) return 'missing';
+    const rows = await tx
       .insert(notificationReads)
       .values({ poolId: ctx.poolId, notificationId, userId })
-      .onConflictDoNothing();
-    return true;
+      .onConflictDoNothing()
+      .returning({ notificationId: notificationReads.notificationId });
+    return rows.length > 0 ? 'marked' : 'already';
+  },
+
+  /**
+   * Records that `userId` read every open notification of this pool in one statement
+   * (`INSERT ... SELECT ... ON CONFLICT DO NOTHING`); returns how many were new.
+   */
+  async markAllRead(tx: PoolTx, ctx: PoolContext, userId: string): Promise<number> {
+    const rows = await tx
+      .insert(notificationReads)
+      .select(
+        tx
+          .select({
+            poolId: notifications.poolId,
+            notificationId: notifications.id,
+            userId: sql<string>`${userId}::uuid`.as('user_id'),
+            readAt: sql<Date>`now()`.as('read_at'),
+          })
+          .from(notifications)
+          .where(and(eq(notifications.poolId, ctx.poolId), isNull(notifications.resolvedAt))),
+      )
+      .onConflictDoNothing()
+      .returning({ notificationId: notificationReads.notificationId });
+    return rows.length;
   },
 };
 

@@ -1228,6 +1228,7 @@
       "deposit": "Depósitos",
       "interest": "Juros",
       "note": "Notas",
+      "notification": "Notificações",
       "import": "Importações"
     },
     "actions": {
@@ -1378,6 +1379,10 @@
       },
       "note": {
         "updated": "Nota alterada"
+      },
+      "notification": {
+        "read": "Notificação lida",
+        "readAll": "Notificações lidas"
       },
       "import": {
         "uploaded": "Extrato carregado",

@@ -16,6 +16,7 @@ import './properties';
 import './investments';
 import './savings';
 import './notes';
+import './notifications';
 import './overview';
 import './assets';
 import './categories';
@@ -71,6 +72,7 @@ export function buildOpenApiDocument() {
         description: 'Bank and broker statements: upload, preview and idempotent commit',
       },
       { name: 'Notes', description: 'Notes on movements and operations, and month notes' },
+      { name: 'Notifications', description: 'In-app notifications and per-user read state' },
       { name: 'Rules', description: 'Keyword rules that categorize movements' },
       { name: 'Holders', description: 'The people of the household who own accounts' },
       { name: 'Settings', description: 'Pool settings and the FX rates the pool uses' },

@@ -144,6 +144,10 @@
     {
       "key": "transactionId",
       "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
     }
   ],
   "item": [
@@ -7674,6 +7678,130 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications"
+              ]
+            },
+            "description": "Any member. The open notifications of the pool, newest first, with the caller's own read state. Add ?status=unread for the unread ones only. unreadCount is the badge. Resolved notifications and other pools' notifications are never listed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json()).sort()).to.eql(['notifications','unreadCount']));",
+                  "const first = pm.response.json().notifications[0]; if (first) { pm.collectionVariables.set('notificationId', first.id); pm.test('notification has exactly the documented fields', () => pm.expect(Object.keys(first).sort()).to.eql(['createdAt','id','kind','period','planId','read'])); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark a notification as read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Any member. Marks it read for you only (idempotent); other members keep their own state. A notification that is not open in this pool (unknown, another pool, resolved) answers 404. Uses {{notificationId}}; when it is empty the pre-request script takes the first unread notification of {{poolId}} (so this request works when sent alone; it needs at least one unread notification, otherwise set notificationId by hand)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('notificationId')) {",
+                  "  pm.sendRequest({ url: pm.variables.replaceIn('{{baseUrl}}/api/v1/pools/{{poolId}}/notifications?status=unread'), method: 'GET' }, (err, res) => {",
+                  "    const first = !err && res.code === 200 ? res.json().notifications[0] : undefined;",
+                  "    if (first) pm.collectionVariables.set('notificationId', first.id);",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark all notifications as read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pools/{{poolId}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pools",
+                "{{poolId}}",
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "Any member. Marks every open notification as read for you only. marked is how many changed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has exactly the documented fields', () => pm.expect(Object.keys(pm.response.json())).to.eql(['marked']));"
                 ]
               }
             }

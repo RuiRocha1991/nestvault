@@ -1,6 +1,8 @@
 import { expect } from 'vitest';
 import type { z } from 'zod';
 
+import { newId, notificationsRepo } from '@nestvault/db';
+import { createPoolContext } from '@nestvault/db/pool-context-factory';
 import {
   CashMoveDto,
   CashMoveListDto,
@@ -25,6 +27,8 @@ import {
   MonthReviewDto,
   MonthNoteListDto,
   NoteDto,
+  NotificationListDto,
+  MarkAllReadDto,
   PortfolioDto,
   PortfolioListDto,
   OverviewDto,
@@ -801,6 +805,39 @@ const foreignPlan = async (s: Scenario): Promise<Foreign> => {
     unchanged: async () => {
       const seen = await s.world.plans.get(await s.as('outsider'), s.poolB, other.id);
       expect(seen).toEqual(other);
+    },
+  };
+};
+
+/**
+ * A plan reminder raised in pool A or pool B, as the worker does it (NES-68); made once per
+ * scenario. Exported for the notifications service tests.
+ */
+export const notificationIn = (s: Scenario, pool: 'A' | 'B', period = '2026-03') =>
+  s.memo(`notification-${pool}-${period}`, async () => {
+    const plan = await planIn(s, pool);
+    const poolId = pool === 'A' ? s.poolA : s.poolB;
+    const ctx = createPoolContext({
+      poolId,
+      actor: { kind: 'system' },
+      role: 'system',
+      permissions: [],
+    });
+    const id = newId();
+    await s.world.database.withPool(ctx, (tx) =>
+      notificationsRepo.raisePlanReminder(tx, ctx, id, plan.id, period),
+    );
+    return { id, planId: plan.id };
+  });
+
+/** The notification of pool B, addressed through pool A's URL: must answer 404 and stay unread. */
+const foreignNotification = async (s: Scenario): Promise<Foreign> => {
+  const other = await notificationIn(s, 'B');
+  return {
+    params: { id: other.id },
+    unchanged: async () => {
+      const seen = await s.world.notifications.list(await s.as('outsider'), s.poolB, {});
+      expect(seen.notifications).toEqual([expect.objectContaining({ id: other.id, read: false })]);
     },
   };
 };
@@ -3673,6 +3710,51 @@ export const ROUTE_REGISTRY: readonly RouteSpec[] = [
       },
       { name: 'no version sent', body: { body: 'sem versão' }, expect: 400 },
     ],
+  },
+
+  // ---------------------------------------------------------------- pool scope: notifications
+  {
+    scope: 'pool',
+    method: 'GET',
+    path: `${POOL}/notifications`,
+    permission: 'pool.read',
+    load: () => load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/route')),
+    prepare: async (s) => {
+      await notificationIn(s, 'A');
+    },
+    success: { status: 200, schema: NotificationListDto },
+    noForeignBecause: 'the list names no resource; the leak probe covers pool B’s reminder',
+    leaks: async (s) => [(await notificationIn(s, 'B')).planId],
+    negatives: [
+      { name: 'an unknown status', query: '?status=everything', expect: 400 },
+      { name: 'an extra query parameter', query: '?poolId=x', expect: 400 },
+      { name: 'a repeated status', query: '?status=bogus&status=unread', expect: 400 },
+    ],
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/notifications/:id/read`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/[id]/read/route')),
+    params: async (s) => ({ id: (await notificationIn(s, 'A')).id }),
+    success: { status: 204 },
+    foreign: foreignNotification,
+  },
+  {
+    scope: 'pool',
+    method: 'POST',
+    path: `${POOL}/notifications/read-all`,
+    permission: 'pool.read',
+    load: () =>
+      load(import('../../apps/web/src/app/api/v1/pools/[poolId]/notifications/read-all/route')),
+    prepare: async (s) => {
+      await notificationIn(s, 'A');
+    },
+    success: { status: 200, schema: MarkAllReadDto },
+    noForeignBecause:
+      'it names no resource; pool B’s reminder stays unread (see the service tests)',
   },
 
   // ---------------------------------------------------------------- exempt, with the reason
